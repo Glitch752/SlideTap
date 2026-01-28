@@ -1,0 +1,41 @@
+@import "settings.scss";
+
+body {
+    margin: 0;
+    color: #ddd;
+    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+    background-color: #060d16;
+    margin: 0;
+    overflow: hidden;
+}
+
+canvas {
+    position: absolute;
+    inset: 0;
+}
+
+#uiCanvas {
+    z-index: 100;
+}
+
+.popup {
+    display: grid;
+    position: absolute;
+    inset: 0;
+    place-items: center;
+}
+
+dialog {
+    background-color: #1d1f29;
+    border: none;
+    box-shadow: 0 0 5px #00000077;
+    display: flex;
+    flex-direction: column;
+
+    transition:
+        opacity 200ms ease-in-out,
+        display 200ms allow-discrete,
+        overlay 200ms allow-discrete;
+    
+    color: #ddd;
+}

@@ -1,5 +1,5 @@
 {
-  "name": "SlideTap",
+  "name": "slide-tap",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,9 +10,11 @@
   },
   "devDependencies": {
     "@rsbuild/core": "^1.7.1",
+    "@rsbuild/plugin-sass": "^1.5.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "three.js": "^0.77.1"
+    "@types/three": "^0.182.0",
+    "three": "^0.182.0"
   }
 }
