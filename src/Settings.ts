@@ -1,4 +1,4 @@
-import { Sounds, SoundType } from "./sounds";
+import { Sounds, SoundType } from "./Sounds";
 
 class PersistedValue<V> {
     private _value: V;

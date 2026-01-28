@@ -9,7 +9,7 @@
     <canvas id="gameCanvas"></canvas>
     <canvas id="uiCanvas"></canvas>
     <div class="popup">
-        <dialog id="settings">
+        <dialog id="settings" open>
             <h1>Settings</h1>
             <h2>Audio latency</h2>
             <p>Negative numbers will move the track forward (screen is delayed) and positive numbers will move the track backward (audio output is delayed). Press calibrate and click in sync with the click sounds to fill automatically. You may also press any keyboard key for claibration if it's more accurate.</p>
@@ -18,6 +18,12 @@
                 <input type="number" name="audioLatency" id="audioLatency" placeholder="Latency (ms)">
                 <button class="adjust up" id="audioLatencyUp">+</button>
                 <button class="calibrate" id="audioLatencyCalibrate" style="--progress: 0%">Calibrate</button>
+            </div>
+
+            <h2>Keyboard layout</h2>
+            <p>Note: QWERTY is the only supported layout currently, and the game will play differently on equirectangular keyboard layouts.</p>
+            <div class="keyboard-layout-preview">
+                <span>QWERTYUIOP</span>
             </div>
         </dialog>
     </div>

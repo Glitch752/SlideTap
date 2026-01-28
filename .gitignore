@@ -14,3 +14,6 @@ dist/
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# I need to figure out how to distribute songs :skulk:
+*.opus
