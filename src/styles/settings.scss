@@ -26,10 +26,6 @@
         padding: 0.25rem 0.5rem;
         outline: none;
         font-size: 1rem;
-
-        &:focus-visible {
-            outline: 1px solid #777;
-        }
     }
 
     .audio-latency-settings {

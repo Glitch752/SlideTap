@@ -18,6 +18,24 @@
             "name": "Medium",
             "difficulty": 30,
             "notes": 341
+        },
+        {
+            "data": "hard.json",
+            "name": "Hard",
+            "difficulty": 50,
+            "notes": 0
+        },
+        {
+            "data": "expert.json",
+            "name": "Expert",
+            "difficulty": 70,
+            "notes": 0
+        },
+        {
+            "data": "master.json",
+            "name": "Master",
+            "difficulty": 90,
+            "notes": 0
         }
     ]
 }
