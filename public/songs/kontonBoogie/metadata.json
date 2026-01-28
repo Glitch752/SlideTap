@@ -8,11 +8,13 @@
     "maps": [
         {
             "data": "easy.json",
-            "name": "Easy"
+            "name": "Easy",
+            "difficulty": 10
         },
         {
             "data": "medium.json",
-            "name": "Medium"
+            "name": "Medium",
+            "difficulty": 30
         }
     ]
 }

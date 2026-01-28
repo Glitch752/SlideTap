@@ -8,8 +8,25 @@
 <body>
     <canvas id="gameCanvas"></canvas>
     <canvas id="uiCanvas"></canvas>
+    <div id="songList">
+        <div class="list">
+            <div class="song">
+                <!-- temporary -->
+                <img src="songs/kontonBoogie/cover.png" />
+                <span class="title">Song title</span>
+                <span class="artist">Song artist</span>
+                <div class="maps">
+                    <span style="--color: #9999ff">10</span>
+                    <span style="--color: #99ffff">30</span>
+                </div>
+            </div>
+        </div>
+        <div class="info">
+
+        </div>
+    </div>
     <div class="popup">
-        <dialog id="settings" open>
+        <dialog id="settings">
             <h1>Settings</h1>
             <h2>Audio latency</h2>
             <p>Negative numbers will move the track forward (screen is delayed) and positive numbers will move the track backward (audio output is delayed). Press calibrate and click in sync with the click sounds to fill automatically. You may also press any keyboard key for claibration if it's more accurate.</p>
@@ -23,7 +40,8 @@
             <h2>Keyboard layout</h2>
             <p>Note: QWERTY is the only supported layout currently, and the game will play differently on equirectangular keyboard layouts.</p>
             <div class="keyboard-layout-preview">
-                <span>QWERTYUIOP</span>
+                <div class="row"><span class="inactive">Q</span><span>W</span><span>E</span><span>R</span><span>T</span><span>Y</span><span>U</span><span>I</span><span>O</span><span class="inactive">P</span></div>
+                <div class="row"><span class="inactive">A</span><span>S</span><span>D</span><span>F</span><span>G</span><span>H</span><span>J</span><span>K</span><span>L</span><span class="inactive">;</span></div>
             </div>
         </dialog>
     </div>

@@ -11,11 +11,11 @@ type MapNote = {
     type: MapNoteType;
 };
 
-export class Map {
+export class GameMap {
     /** All of the notes in this map. Sorted by start time. */
     private notes: MapNote[] = [];
-    /** The total width of this map in lanes */
-    private widthLanes: number = 0;
 
-    
+    constructor(mapData: any) {
+        this.notes = mapData["notes"];
+    }
 }

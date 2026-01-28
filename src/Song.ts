@@ -1,6 +1,9 @@
+import { GameMap } from "./Map";
+
 type SongMap = {
     dataPath: string;
     name: string;
+    difficulty: number;
 };
 
 /**
@@ -48,5 +51,13 @@ export class Song {
         this.cover = new Image();
         this.cover.src = this.getRelativeFile(this.coverPath);
         await new Promise(resolve => this.cover.onload = resolve);
+    }
+
+    public async getMap(index: number): Promise<GameMap> {
+        const mapMeta = this.maps[index];
+        const file = await fetch(this.getRelativeFile(mapMeta.dataPath));
+        const data = await file.json();
+
+        return new GameMap(data);
     }
 }

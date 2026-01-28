@@ -66,4 +66,38 @@
             }
         }
     }
+
+    .keyboard-layout-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        --key-size: 2rem;
+        margin: 0 auto;
+        width: fit-content;
+
+        .row {
+            display: flex;
+            flex-direction: row;
+            gap: 0.5rem;
+
+            &:nth-child(2) {
+                margin-left: calc(var(--key-size) / 3)
+            }
+        }
+
+        span {
+            display: grid;
+            place-items: center;
+            width: var(--key-size);
+            aspect-ratio: 1;
+            font-family: monospace;
+            background-color: var(--surface);
+            // border: 2px solid var(--surface-green);
+
+            &.inactive {
+                background-color: var(--surface-inactive);
+                border: none;
+            }
+        }
+    }
 }

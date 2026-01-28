@@ -1,10 +1,14 @@
 @import "settings.scss";
+@import "songList.scss";
 
 :root {
     --text: #eee;
+    --background: #060d16;
+    --panel: #1d1f29;
     --surface: #3c3c4c;
     --surface-green: color-mix(in srgb, var(--surface) 80%, #00ff00);
     --surface-red: color-mix(in srgb, var(--surface) 80%, #ff0000);
+    --surface-inactive: color-mix(in srgb, var(--surface) 50%, var(--panel));
 }
 
 *, *::before, *::after {
@@ -15,9 +19,11 @@ body {
     margin: 0;
     color: var(--text);
     font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-    background-color: #060d16;
-    margin: 0;
+    background-color: var(--background);
     overflow: hidden;
+    overscroll-behavior: none;
+    width: 100vw;
+    height: 100vh;
 }
 
 canvas {
@@ -37,7 +43,7 @@ canvas {
 }
 
 dialog {
-    background-color: #1d1f29;
+    background-color: var(--panel);
     border: none;
     box-shadow: 0 0 5px #00000077;
 
