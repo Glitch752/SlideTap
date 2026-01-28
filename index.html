@@ -12,9 +12,12 @@
         <dialog id="settings">
             <h1>Settings</h1>
             <h2>Audio latency</h2>
+            <p>Negative numbers will move the track forward (screen is delayed) and positive numbers will move the track backward (audio output is delayed). Press calibrate and click in sync with the click sounds to fill automatically. You may also press any keyboard key for claibration if it's more accurate.</p>
             <div class="audio-latency-settings">
-                <input type="number" name="audioLatency" id="audioLatency" placeholder="Audio Latency (ms)">
-                <button>Calibrate</button>
+                <button class="adjust down" id="audioLatencyDown">-</button>
+                <input type="number" name="audioLatency" id="audioLatency" placeholder="Latency (ms)">
+                <button class="adjust up" id="audioLatencyUp">+</button>
+                <button class="calibrate" id="audioLatencyCalibrate" style="--progress: 0%">Calibrate</button>
             </div>
         </dialog>
     </div>

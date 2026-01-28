@@ -1,5 +1,7 @@
 import './index.scss';
 import * as THREE from 'three/webgpu';
+import { Settings } from './settings';
+import { Sounds } from './sounds';
 
 let SCREEN_WIDTH = window.innerWidth;
 let SCREEN_HEIGHT = window.innerHeight;
@@ -13,7 +15,10 @@ let camera: THREE.PerspectiveCamera;
 let mesh: THREE.Mesh;
 let renderer: THREE.WebGPURenderer;
 
-(document.getElementById("settings") as HTMLDialogElement).show();
+const settings = new Settings();
+Sounds.init();
+
+(document.getElementById("settings") as HTMLDialogElement).showModal();
 
 init();
 

@@ -1,4 +1,6 @@
 #settings {
+    width: 32rem;
+
     h1 {
         font-size: 2rem;
         margin: 0 0 1rem 0;
@@ -9,11 +11,56 @@
         margin: 0;
     }
 
-    input {
-        background-color: #3c3c4c;
+    input[type="number"] {
+        appearance: textfield;
+        font-family: monospace;
+        text-align: center;
+    }
+    input, button {
+        --bg-color: var(--surface);
         color: white;
         border: none;
+        padding: 0.25rem 0.5rem;
+        outline: none;
+        font-size: 1rem;
 
-        // &::
+        &:focus-visible {
+            outline: 1px solid #777;
+        }
+    }
+
+    .audio-latency-settings {
+        display: flex;
+        flex-direction: row;
+        gap: 0.5rem;
+
+        input {
+            width: 8rem;
+        }
+
+        .adjust {
+            aspect-ratio: 1;
+        }
+        .down {
+            --bg-color: var(--surface-red);
+        }
+        .up {
+            --bg-color: var(--surface-green);
+        }
+
+        .calibrate {
+            margin: 0 auto;
+            width: 12rem;
+            position: relative;
+
+            &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                width: var(--progress);
+                transition: width 200ms ease;
+                background-color: var(--surface-green);
+            }
+        }
     }
 }
