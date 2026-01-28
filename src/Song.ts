@@ -1,4 +1,5 @@
 import { GameMap } from "./Map";
+import { SongLeaderboard } from "./SongLeaderboard";
 
 type SongMap = {
     dataPath: string;
@@ -19,9 +20,12 @@ export class Song {
     public length: number = 0; // seconds
     public maps: SongMap[] = [];
 
+    public leaderboard: SongLeaderboard;
+
     public cover: HTMLImageElement = null as unknown as HTMLImageElement;
 
-    private constructor(private id: string) {
+    private constructor(public id: string) {
+        this.leaderboard = new SongLeaderboard(this.id);
     }
 
     public static async load(id: string): Promise<Song> {

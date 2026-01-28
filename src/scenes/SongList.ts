@@ -3,6 +3,14 @@ import { type Scene } from "./Scene";
 
 export const songs = await Promise.all([
     Song.load("kontonBoogie"),
+    Song.load("badApple"),
+    Song.load("kontonBoogie"),
+    Song.load("badApple"),
+    Song.load("kontonBoogie"),
+    Song.load("badApple"),
+    Song.load("kontonBoogie"),
+    Song.load("badApple"),
+    Song.load("kontonBoogie"),
     Song.load("badApple")
 ]);
 
@@ -32,12 +40,33 @@ export class SongListScene implements Scene {
         
     }
 
-    public draw(deltaTime: number): void {
+    public onKeyDown(event: KeyboardEvent): void {
         
     }
 
-    public onKeyDown(event: KeyboardEvent): void {
+    private deltaAccumulator: number = 0;
+    private requiredDelta: number = 0;
+    private lastScrollTime: number = 0;
+
+    public onScroll(event: WheelEvent): void {
+        // This logic works well on my laptop, but I'm not sure if it does
+        // anywhere else sob
+
+        if(Date.now() - this.lastScrollTime < 50) return;
+        if(Date.now() - this.lastScrollTime > 500) this.requiredDelta = 200;
+
+        this.deltaAccumulator += event.deltaY;
+        if(Math.abs(this.deltaAccumulator) < this.requiredDelta) return;
+
+        if(this.requiredDelta < 1500) this.requiredDelta += 500;
         
+        this.selectedSongIndex = (
+            this.selectedSongIndex + songs.length + Math.sign(event.deltaY)
+        ) % songs.length;
+        this.updateListSelected();
+
+        this.deltaAccumulator = 0;
+        this.lastScrollTime = Date.now();
     }
 
     private difficultyColor(difficulty: number): string {
@@ -51,9 +80,16 @@ export class SongListScene implements Scene {
         const songInfosElement = document.getElementById("songListInfos")!;
         songInfosElement.innerHTML = "";
 
+        const numberFormat = Intl.NumberFormat(undefined, {
+            style: "decimal"
+        });
+        const dateFormat = Intl.DateTimeFormat(undefined, {
+            dateStyle: "medium"
+        });
+
         for(const [i, song] of songs.entries()) {
             songListElement.innerHTML += html`
-                <div class="song ${i === this.selectedSongIndex ? "selected" : ""}" style="--idx: ${i}">
+                <div class="song" data-song="${song.id}" data-song-infos-idx="${i}">
                     <img src="${song.getRelativeFile(song.coverPath)}" />
                     <span class="title">${song.name}</span>
                     <span class="artist">${song.artist}</span>
@@ -68,7 +104,7 @@ export class SongListScene implements Scene {
             const selectedMap = song.maps[this.selectedMapIndex];
             const selectedDifficultyColor = this.difficultyColor(selectedMap.difficulty);
             songInfosElement.innerHTML += html`
-                <div class="item ${i === this.selectedSongIndex ? "selected" : ""}" data-song="kontonBoogie" style="--idx: ${i}">
+                <div class="item" data-song="${song.id}" data-song-infos-idx="${i}">
                     <span class="title">${song.name}</span>
                     <span class="artist">${song.artist}</span>
                     <img src="${song.getRelativeFile(song.coverPath)}" />
@@ -94,18 +130,49 @@ export class SongListScene implements Scene {
                     </div>
                     <div class="leaderboard">
                         <h2>Leaderboard</h2>
-                        <div class="entry">
-                            <span>1</span>
-                            <span>10,500</span>
-                            <span>Dec 10. 2026</span>
-                        </div>
+                        ${
+                            song.leaderboard.hasEntries() ? song.leaderboard.entries.map((entry, i) => html`
+                                <div class="entry">
+                                    <span>${i + 1}</span>
+                                    <span>${entry.name}</span>
+                                    <span>${numberFormat.format(entry.score)}</span>
+                                    <span>${dateFormat.format(entry.time)}</span>
+                                </div>
+                            `) : html`
+                                <p>This song has no leaderboard entries yet. Be the first to add one!</p>
+                                <p class="note">Note: leaderboard is currently only local.</p>
+                            `
+                        }
                     </div>
                 </div>
             `;
         }
+
+        this.updateListSelected();
     }
 
-    public updateSelection() {
+    private updateListSelected() {
+        document.querySelectorAll("[data-song-infos-idx].selected").forEach(s =>
+            s.classList.remove("selected")
+        );
+        document.querySelectorAll(`[data-song-infos-idx="${this.selectedSongIndex}"]`).forEach(s =>
+            s.classList.add("selected")
+        );
 
+        const songListElement = document.getElementById("songListSongs")!;
+        const songInfosElement = document.getElementById("songListInfos")!;
+        
+        let songListFocusHeight = songListElement.querySelector<HTMLElement>(".selected")?.offsetTop ?? 0;
+        
+        const selectedSongInfo = songInfosElement.querySelector<HTMLElement>(".selected");
+        let songInfoFocusHeight = selectedSongInfo?.offsetTop ?? 0;
+
+        // Not perfect, but whatever; I think it looks good
+        const screenOffset = window.innerHeight / 2 - (selectedSongInfo?.clientHeight ?? 0) / 2;
+        songListFocusHeight -= screenOffset;
+        songInfoFocusHeight -= screenOffset;
+
+        songListElement.style.setProperty("--focus-height", `${songListFocusHeight}px`);
+        songInfosElement.style.setProperty("--focus-height", `${songInfoFocusHeight}px`);
     }
 }

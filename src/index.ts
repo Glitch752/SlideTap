@@ -19,5 +19,6 @@ export function loadScene(newScene: Scene) {
 
 document.addEventListener("keydown", (e) => scene.onKeyDown?.(e));
 document.addEventListener("keyup", (e) => scene.onKeyUp?.(e));
+document.addEventListener("wheel", (e) => scene.onScroll?.(e), { passive: true });
 
 // (document.getElementById("settings") as HTMLDialogElement).showModal();

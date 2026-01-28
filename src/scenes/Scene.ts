@@ -4,4 +4,5 @@ export interface Scene {
     
     onKeyDown?(event: KeyboardEvent): void;
     onKeyUp?(event: KeyboardEvent): void;
+    onScroll?(event: WheelEvent): void;
 }
