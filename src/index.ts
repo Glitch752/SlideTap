@@ -2,13 +2,8 @@ import './styles/index.scss';
 
 import { Settings } from './Settings';
 import { Sounds } from './Sounds';
-import { Song } from './Song';
 import type { Scene } from './scenes/Scene';
 import { SongListScene } from './scenes/SongList';
-
-export const songs = await Promise.all([
-    Song.load("kontonBoogie")
-]);
 
 const settings = new Settings();
 Sounds.init();

@@ -1,9 +1,9 @@
 {
-    "name": "Konton Boogie",
-    "artist": "Jon-YAKITORY",
-    "track": "kontonBoogie.opus",
+    "_comment": "// TODO: I didn't even try here",
+    "name": "Bad Apple!!",
+    "artist": "SEKAI WXS",
+    "track": "badApple.opus",
     "cover": "cover.png",
-    "_comment": "// TODO: I just estimated this; get the real number",
     "bpm": 192,
     "length": 154,
     "maps": [

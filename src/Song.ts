@@ -4,6 +4,7 @@ type SongMap = {
     dataPath: string;
     name: string;
     difficulty: number;
+    notes: number
 };
 
 /**
@@ -15,6 +16,7 @@ export class Song {
     public trackPath: string = "";
     public coverPath: string = "";
     public bpm: number = 0;
+    public length: number = 0; // seconds
     public maps: SongMap[] = [];
 
     public cover: HTMLImageElement = null as unknown as HTMLImageElement;
@@ -43,6 +45,7 @@ export class Song {
         this.trackPath = data["track"];
         this.coverPath = data["cover"];
         this.bpm = data["bpm"];
+        this.length = data["length"];
         this.maps = data["maps"];
     }
 
