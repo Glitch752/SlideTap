@@ -163,14 +163,7 @@ export class SongListScene implements Scene {
         const songInfosElement = document.getElementById("songListInfos")!;
         
         let songListFocusHeight = songListElement.querySelector<HTMLElement>(".selected")?.offsetTop ?? 0;
-        
-        const selectedSongInfo = songInfosElement.querySelector<HTMLElement>(".selected");
-        let songInfoFocusHeight = selectedSongInfo?.offsetTop ?? 0;
-
-        // Not perfect, but whatever; I think it looks good
-        const screenOffset = window.innerHeight / 2 - (selectedSongInfo?.clientHeight ?? 0) / 2;
-        songListFocusHeight -= screenOffset;
-        songInfoFocusHeight -= screenOffset;
+        let songInfoFocusHeight = songInfosElement.querySelector<HTMLElement>(".selected")?.offsetTop ?? 0;
 
         songListElement.style.setProperty("--focus-height", `${songListFocusHeight}px`);
         songInfosElement.style.setProperty("--focus-height", `${songInfoFocusHeight}px`);
