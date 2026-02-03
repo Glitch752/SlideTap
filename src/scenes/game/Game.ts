@@ -1,6 +1,6 @@
-import type { GameMap } from "../Map";
-import type { Song } from "../Song";
-import { type Scene } from "./Scene";
+import type { GameMap } from "../../Map";
+import type { Song } from "../../Song";
+import { type Scene } from "../Scene";
 import * as THREE from "three/webgpu";
 
 export class GameScene implements Scene {

@@ -1,6 +1,7 @@
+import type { Component } from "svelte";
+
 export interface Scene {
-    show(): void;
-    hide(): void;
+    component: Component<{}>;
     
     onKeyDown?(event: KeyboardEvent): void;
     onKeyUp?(event: KeyboardEvent): void;

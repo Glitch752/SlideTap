@@ -1,3 +1,13 @@
+<script lang="ts">
+    
+</script>
+
+<div id="songList">
+    <div class="list" id="songListSongs"></div>
+    <div class="info" id="songListInfos"></div>
+</div>
+
+<style lang="scss">
 #songList {
     display: flex;
     flex-direction: row;
@@ -218,3 +228,4 @@
         }
     }
 }
+</style>

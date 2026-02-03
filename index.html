@@ -6,32 +6,6 @@
     <title>Slide Tap</title>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <canvas id="uiCanvas"></canvas>
-    <div id="songList">
-        <div class="list" id="songListSongs"></div>
-        <div class="info" id="songListInfos"></div>
-    </div>
-
-    <div class="popup">
-        <dialog id="settings">
-            <h1>Settings</h1>
-            <h2>Audio latency</h2>
-            <p>Negative numbers will move the track forward (screen is delayed) and positive numbers will move the track backward (audio output is delayed). Press calibrate and click in sync with the click sounds to fill automatically. You may also press any keyboard key for claibration if it's more accurate.</p>
-            <div class="audio-latency-settings">
-                <button class="adjust down" id="audioLatencyDown">-</button>
-                <input type="number" name="audioLatency" id="audioLatency" placeholder="Latency (ms)">
-                <button class="adjust up" id="audioLatencyUp">+</button>
-                <button class="calibrate" id="audioLatencyCalibrate" style="--progress: 0%">Calibrate</button>
-            </div>
-
-            <h2>Keyboard layout</h2>
-            <p>Note: QWERTY is the only supported layout currently, and the game will play differently on equirectangular keyboard layouts.</p>
-            <div class="keyboard-layout-preview">
-                <div class="row"><span class="inactive">Q</span><span>W</span><span>E</span><span>R</span><span>T</span><span>Y</span><span>U</span><span>I</span><span>O</span><span class="inactive">P</span></div>
-                <div class="row"><span class="inactive">A</span><span>S</span><span>D</span><span>F</span><span>G</span><span>H</span><span>J</span><span>K</span><span>L</span><span class="inactive">;</span></div>
-            </div>
-        </dialog>
-    </div>
+    <div id="root"></div>
 </body>
 </html>
