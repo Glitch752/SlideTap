@@ -1,31 +1,12 @@
 import { Song } from "../Song";
 import { type Scene } from "./Scene";
 
-export const songs = await Promise.all([
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple")
-]);
-
 /** Simple template function for syntax highlighting and light templating */
 function html(strings: TemplateStringsArray, ...values: any[]): string {
     return String.raw({ raw: strings }, ...values.map(val => {
         if(Array.isArray(val)) return val.join("");
         return val;
     }));
-}
-
-function formatDuration(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    seconds = seconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
 export class SongListScene implements Scene {
