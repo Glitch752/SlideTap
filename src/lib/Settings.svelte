@@ -1,12 +1,74 @@
+<script lang="ts">
+import { get } from "svelte/store";
+import { Settings } from "../Settings";
+import { Sounds, SoundType } from "../Sounds";
+
+let audioLatencyWritable = Settings.audioLatency.writable;
+let audioLatency = $state(get(audioLatencyWritable));
+$effect(() => {
+    audioLatencyWritable.update(() => audioLatency);
+});
+
+let calibrationData: number[] = [];
+let calibrationStartTime: number | null = null;
+let calibrationInterval: number | null = null;
+const calibrationSoundInterval = 500; // ms; the maximum amount that we can calibrate off
+const samplesRequired = 10;
+let calibrateText = $state("Calibrate");
+
+function addSample() {
+    let dataPoint = Date.now() - (calibrationStartTime ?? 0);
+    dataPoint += calibrationSoundInterval / 4;
+    dataPoint %= calibrationSoundInterval;
+    dataPoint -= calibrationSoundInterval / 4;
+
+    calibrationData.push(dataPoint);
+
+    calibrateText = `Click on beat [${calibrationData.length}/${samplesRequired}]`;
+
+    if (calibrationData.length >= samplesRequired) {
+        calibrationStartTime = null;
+        clearInterval(calibrationInterval as number);
+
+        const avg = calibrationData.reduce((a, v) => a + v, 0) / calibrationData.length;
+        audioLatency = Math.round(avg * 10) / 10;
+        calibrateText = "Calibrate";
+        window.removeEventListener("keydown", addSample);
+    }
+}
+
+function startCalibration() {
+    if (calibrationStartTime === 0) return;
+    if (calibrationStartTime !== null) {
+        addSample();
+    } else {
+        calibrationStartTime = 0;
+        calibrationData = [];
+        calibrationInterval = setInterval(() => {
+            if (calibrationStartTime === 0) calibrationStartTime = Date.now() + 50;
+            Sounds.play(SoundType.ClibrationClick, 1, 1, 0);
+        }, calibrationSoundInterval);
+
+        calibrateText = `Click on beat`;
+        window.addEventListener("keydown", addSample);
+    }
+}
+</script>
+
 <div class="settings">
     <h1>Settings</h1>
     <h2>Audio latency</h2>
-    <p>Negative numbers will move the track forward (screen is delayed) and positive numbers will move the track backward (audio output is delayed). Press calibrate and click in sync with the click sounds to fill automatically. You may also press any keyboard key for claibration if it's more accurate.</p>
+    <p>
+        Negative numbers will move the track forward (screen is delayed)
+        and positive numbers will move the track backward (audio output is delayed).
+        Press calibrate and click in sync with the click sounds to fill automatically.
+        You may also press any keyboard key for claibration if it's more accurate.
+    </p>
     <div class="audio-latency-settings">
-        <button class="adjust down" id="audioLatencyDown">-</button>
-        <input type="number" name="audioLatency" id="audioLatency" placeholder="Latency (ms)">
-        <button class="adjust up" id="audioLatencyUp">+</button>
-        <button class="calibrate" id="audioLatencyCalibrate" style="--progress: 0%">Calibrate</button>
+        <button class="adjust down" onclick={() => audioLatency -= 25}>-</button>
+        <input type="number" name="audioLatency" placeholder="Latency (ms)">
+        <button class="adjust up" onclick={() => audioLatency += 25}>+</button>
+        <button class="calibrate" style="--progress: 0%" onmousedown={startCalibration}>{calibrateText}</button>
     </div>
     
     <h2>Keyboard layout</h2>

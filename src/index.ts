@@ -1,24 +1,11 @@
 import './styles/index.scss';
-
-import { Settings } from './Settings';
 import { Sounds } from './Sounds';
-import type { Scene } from './scenes/Scene';
-import { SongListScene } from './scenes/SongList';
+import App from './App.svelte';
+import { mount } from 'svelte';
 
-const settings = new Settings();
 Sounds.init();
 
-let scene: Scene = new SongListScene();
-scene.show();
-
-export function loadScene(newScene: Scene) {
-    scene.hide();
-    scene = newScene;
-    scene.show();
-}
-
-document.addEventListener("keydown", (e) => scene.onKeyDown?.(e));
-document.addEventListener("keyup", (e) => scene.onKeyUp?.(e));
-document.addEventListener("wheel", (e) => scene.onScroll?.(e), { passive: true });
-
-// (document.getElementById("settings") as HTMLDialogElement).showModal();
+mount(App, {
+    target: document.getElementById("root")!,
+    props: {}
+});
