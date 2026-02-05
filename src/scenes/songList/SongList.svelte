@@ -1,5 +1,6 @@
 <script module>
 import { Song } from "../../Song";
+  import SongListItemContent from "./SongListItemContent.svelte";
 
 export const songs = await Promise.all([
     Song.load("kontonBoogie"),
@@ -14,18 +15,21 @@ export const songs = await Promise.all([
     Song.load("badApple")
 ]);
 
-function formatDuration(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    seconds = seconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+export function difficultyColor(difficulty: number): string {
+    return `hsl(${240 - difficulty / 100 * 240}, 100.00%, 80.00%)`;
 }
+export const numberFormat = Intl.NumberFormat(undefined, {
+    style: "decimal"
+});
+export const dateFormat = Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium"
+});
 </script>
 
 <script lang="ts">
 let deltaAccumulator = $state(0);
 let lastScrollTime = $state(0);
 let selectedSongIndex = $state(0);
-let selectedMapIndex = $state(0);
 
 function onScroll(event: WheelEvent): void {
     if(Date.now() - lastScrollTime < 50) return;
@@ -40,17 +44,6 @@ function onScroll(event: WheelEvent): void {
     deltaAccumulator = 0;
     lastScrollTime = Date.now();
 }
-
-function difficultyColor(difficulty: number): string {
-    return `hsl(${240 - difficulty / 100 * 240}, 100.00%, 80.00%)`;
-}
-
-const numberFormat = Intl.NumberFormat(undefined, {
-    style: "decimal"
-});
-const dateFormat = Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium"
-});
 
 let songListElement: HTMLDivElement;
 let songInfosElement: HTMLDivElement;
@@ -83,45 +76,7 @@ $effect(() => {
     <div class="info" bind:this={songInfosElement} style="--focus-height: {songInfosFocusHeight}px">
         {#each songs as song, i}
             <div class="item" class:selected={i === selectedSongIndex} data-song-idx="{i}">
-                <span class="title">{song.name}</span>
-                <span class="artist">{song.artist}</span>
-                <img src={song.getRelativeFile(song.coverPath)} alt={song.name} />
-                <div class="data">
-                    <span>{song.bpm} bpm</span>
-                    <span>{formatDuration(song.length)} long</span>
-                </div>
-                <div class="maps">
-                    {#each song.maps as map}
-                        <button class="map" style="--color: {difficultyColor(map.difficulty)}">
-                            <span class="difficulty">{map.difficulty}</span>
-                            <span class="name">{map.name}</span>
-                            <span class="notes">{map.notes} notes</span>
-                        </button>
-                    {/each}
-                </div>
-                <div class="buttons">
-                    <button class="play" style="--selected-color: {difficultyColor(song.maps[selectedMapIndex].difficulty)}">
-                        Play
-                        <span class="map-name" style="color: {difficultyColor(song.maps[selectedMapIndex].difficulty)}">{song.maps[selectedMapIndex].name}</span>
-                    </button>
-                    <button class="preview">Preview</button>
-                </div>
-                <div class="leaderboard">
-                    <h2>Leaderboard</h2>
-                    {#if song.leaderboard.hasEntries()}
-                        {#each song.leaderboard.entries as entry, idx}
-                            <div class="entry">
-                                <span>{idx + 1}</span>
-                                <span>{entry.name}</span>
-                                <span>{numberFormat.format(entry.score)}</span>
-                                <span>{dateFormat.format(entry.time)}</span>
-                            </div>
-                        {/each}
-                    {:else}
-                        <p>This song has no leaderboard entries yet. Be the first to add one!</p>
-                        <p class="note">Note: leaderboard is currently only local.</p>
-                    {/if}
-                </div>
+                <SongListItemContent {song} />
             </div>
         {/each}
     </div>
@@ -246,106 +201,6 @@ $effect(() => {
 
     &:not(.selected) * {
         pointer-events: none;
-    }
-
-    .title {
-        font-weight: bold;
-        font-size: 2rem;
-        grid-column: 1;
-        grid-row: 1;
-    }
-    .artist {
-        font-size: 1.5rem;
-        grid-column: 1;
-        grid-row: 2;
-    }
-    img {
-        grid-column: 3;
-        grid-row: 1 / 5;
-        max-height: 10rem;
-    }
-    .data {
-        grid-column: 2;
-        grid-row: 1 / 3;
-
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        span {
-            background-color: var(--surface);
-            padding: 0.5rem;
-        }
-    }
-    .maps {
-        grid-column: 1 / 3;
-        grid-row: 4;
-
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        align-items: flex-end;
-        justify-content: flex-end;
-
-        .map {
-            --bg-color: color-mix(in srgb, var(--color) 30%, var(--panel));
-            width: 7rem;
-            border: 1px solid var(--color);
-            font-size: 1rem;
-            text-align: left;
-            padding: 0.5rem;
-            white-space: nowrap;
-        }
-        .map .difficulty {
-            font-size: 1.25rem;
-            font-weight: bold;
-            margin-right: 0.25rem;
-        }
-        .map .notes {
-            display: block;
-        }
-    }
-
-    .buttons {
-        grid-row: 5;
-        grid-column: 1 / -1;
-
-        display: flex;
-        flex-direction: row;
-        gap: 0.5rem;
-    }
-    button {
-        border: none;
-        --bg-color: var(--surface);
-
-        font-size: 1.5rem;
-        color: var(--text);
-        padding: 0.5rem 1rem;
-
-        position: relative;
-
-        &.play {
-            flex: 3;
-            
-            .map-name {
-                position: absolute;
-                right: 1rem;
-                font-size: 1.25rem;
-            }
-        }
-        &.preview {
-            flex: 1;
-        }
-    }
-
-    .leaderboard {
-        grid-column: 1 / -1;
-        grid-row: 6;
-
-        h2 {
-            font-size: 1.5rem;
-            margin: 0 0 0.5rem 0;
-        }
     }
 }
 </style>

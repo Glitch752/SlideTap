@@ -6,5 +6,5 @@ export class Settings {
      * (screen is delayed) and positive numbers will move the track backward
      * (audio output is delayed).
      */
-    public static audioLatency: PersistedValue<number> = new PersistedValue(0, "audio_latency");
+    public static audioLatency: PersistedValue<number> = PersistedValue.get("audio_latency", 0);
 }

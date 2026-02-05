@@ -20,6 +20,8 @@ export class PersistedValue<V> {
             },
             subscribe: (run, _invalidate) => {
                 this.addCallback(run);
+                run(this.value);
+                
                 return () => {
                     this.removeCallback(run);
                 };
@@ -30,7 +32,15 @@ export class PersistedValue<V> {
         };
     }
 
-    constructor(defaultValue: V, private key: string) {
+    private static instances: Map<string, PersistedValue<any>> = new Map();
+    public static get<V>(key: string, defaultValue: V): PersistedValue<V> {
+        if(this.instances.has(key)) return this.instances.get(key)!;
+        const instance = new PersistedValue<V>(defaultValue, key);
+        this.instances.set(key, instance);
+        return instance;
+    }
+
+    private constructor(defaultValue: V, private key: string) {
         this._value = JSON.parse(localStorage.getItem(key) ?? "null") ?? defaultValue;
     }
 
