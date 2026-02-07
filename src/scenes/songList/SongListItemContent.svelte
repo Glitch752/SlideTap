@@ -1,8 +1,10 @@
 <script lang="ts">
-import type { Writable } from "svelte/store";
+import { get, type Writable } from "svelte/store";
 import type { Song } from "../../Song";
 import { dateFormat, difficultyColor, numberFormat } from "./SongList.svelte";
 import { PersistedValue } from "../../utils/persistedValue";
+  import { loadScene } from "../../App.svelte";
+  import { GameScene } from "../game/Game";
 
 const { song }: { song: Song } = $props();
 
@@ -15,6 +17,10 @@ function formatDuration(seconds: number): string {
 // svelte-ignore state_referenced_locally
 let selectedMapIndex: Writable<number> = PersistedValue.get(`mapidx:${song.id}`, 0)?.writable;
 const selectedMap = $derived(song.maps[$selectedMapIndex]);
+
+async function play() {
+    loadScene(await GameScene.load(song, get(selectedMapIndex)));
+}
 </script>
 
 <span class="title">{song.name}</span>
@@ -34,7 +40,7 @@ const selectedMap = $derived(song.maps[$selectedMapIndex]);
     {/each}
 </div>
 <div class="buttons">
-    <button class="play" style="--selected-color: {difficultyColor(selectedMap.difficulty)}">
+    <button class="play" style="--selected-color: {difficultyColor(selectedMap.difficulty)}" onclick={play}>
         Play
         <span class="map-name" style="color: {difficultyColor(song.maps[$selectedMapIndex].difficulty)}">{song.maps[$selectedMapIndex].name}</span>
     </button>

@@ -2,16 +2,19 @@ import type { GameMap } from "../../Map";
 import type { Song } from "../../Song";
 import { type Scene } from "../Scene";
 import * as THREE from "three/webgpu";
+import Game from "./Game.svelte";
 
 export class GameScene implements Scene {
+    public component = Game;
+
     private scene: THREE.Scene;
     private camera: THREE.PerspectiveCamera;
     private mesh: THREE.Mesh;
-    private renderer: THREE.WebGPURenderer;
+    // private renderer: THREE.WebGPURenderer;
     
-    private gameCanvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
-    private uiCanvas = document.getElementById("uiCanvas") as HTMLCanvasElement;
-    private ui = this.uiCanvas.getContext("2d") as CanvasRenderingContext2D;
+    private gameCanvas: HTMLCanvasElement | null = null;
+    private uiCanvas: HTMLCanvasElement | null = null;
+    private ui: CanvasRenderingContext2D | null = null;
 
     private screenWidth = window.innerWidth;
     private screenHeight = window.innerHeight;
@@ -49,13 +52,13 @@ export class GameScene implements Scene {
         );
         this.scene.add(this.mesh);
 
-        this.renderer = new THREE.WebGPURenderer({
-            antialias: true,
-            canvas: this.gameCanvas
-        });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(this.screenWidth, this.screenHeight);
-        this.renderer.setAnimationLoop(this.animate.bind(this));
+        // this.renderer = new THREE.WebGPURenderer({
+        //     antialias: true,
+        //     canvas: this.gameCanvas
+        // });
+        // this.renderer.setPixelRatio(window.devicePixelRatio);
+        // this.renderer.setSize(this.screenWidth, this.screenHeight);
+        // this.renderer.setAnimationLoop(this.animate.bind(this));
 
         window.addEventListener('resize', this.resize.bind(this));
     }
@@ -65,7 +68,7 @@ export class GameScene implements Scene {
         this.screenHeight = window.innerHeight;
         this.aspect = this.screenWidth / this.screenHeight;
 
-        this.renderer.setSize(this.screenWidth, this.screenHeight);
+        // this.renderer.setSize(this.screenWidth, this.screenHeight);
 
         this.camera.aspect = this.aspect;
         this.camera.updateProjectionMatrix();
@@ -97,10 +100,10 @@ export class GameScene implements Scene {
         this.mesh.position.y = 700 * Math.sin(r);
         this.mesh.position.z = 3000 + 700 * Math.sin(r);
 
-        this.renderer.render(this.scene, this.camera);
+        // this.renderer.render(this.scene, this.camera);
     }
 
     private drawUi() {
-        this.ui.drawImage(this.song.cover, 10, 10, 256, 256);
+        // this.ui.drawImage(this.song.cover, 10, 10, 256, 256);
     }
 }

@@ -193,13 +193,13 @@ $effect(() => {
 
     translate: 2rem 0;
     opacity: 0.4;
-    &.selected {
+    &:global(.selected) {
         translate: 0;
         opacity: 1;
     }
     transition: translate 200ms ease, opacity 200ms ease;
 
-    &:not(.selected) * {
+    &:not(:global(.selected)) :global(*) {
         pointer-events: none;
     }
 }
