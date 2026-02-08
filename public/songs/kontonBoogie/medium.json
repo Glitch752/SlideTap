@@ -1,0 +1,11 @@
+{
+    "notes": [
+        {
+            "startTime": 1000,
+            "endTime": 1500,
+            "startLane": 0,
+            "endLane": 2,
+            "type": 0
+        }
+    ]
+}

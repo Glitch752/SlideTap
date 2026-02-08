@@ -1,6 +1,6 @@
 enum MapNoteType {
-    Primary,
-    Background
+    Primary = 0,
+    Background = 1
 };
 
 type MapNote = {

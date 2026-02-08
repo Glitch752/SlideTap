@@ -8,31 +8,31 @@
     "length": 154,
     "maps": [
         {
-            "data": "easy.json",
+            "dataPath": "easy.json",
             "name": "Easy",
             "difficulty": 10,
             "notes": 105
         },
         {
-            "data": "medium.json",
+            "dataPath": "medium.json",
             "name": "Medium",
             "difficulty": 30,
             "notes": 341
         },
         {
-            "data": "hard.json",
+            "dataPath": "hard.json",
             "name": "Hard",
             "difficulty": 50,
             "notes": 0
         },
         {
-            "data": "expert.json",
+            "dataPath": "expert.json",
             "name": "Expert",
             "difficulty": 70,
             "notes": 0
         },
         {
-            "data": "master.json",
+            "dataPath": "master.json",
             "name": "Master",
             "difficulty": 90,
             "notes": 0

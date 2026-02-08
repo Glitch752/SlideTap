@@ -8,13 +8,13 @@
     "length": 154,
     "maps": [
         {
-            "data": "easy.json",
+            "dataPath": "easy.json",
             "name": "Easy",
             "difficulty": 10,
             "notes": 105
         },
         {
-            "data": "medium.json",
+            "dataPath": "medium.json",
             "name": "Medium",
             "difficulty": 30,
             "notes": 341

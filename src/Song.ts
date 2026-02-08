@@ -62,9 +62,15 @@ export class Song {
 
     public async getMap(index: number): Promise<GameMap> {
         const mapMeta = this.maps[index];
-        const file = await fetch(this.getRelativeFile(mapMeta.dataPath));
-        const data = await file.json();
-
+        const filePath = this.getRelativeFile(mapMeta.dataPath);
+        const file = await fetch(filePath);
+        const text = await file.text();
+        if(text.startsWith("<")) {
+            // Failed to load
+            throw new Error(`Failed to load map data for ${this.name} (${this.id}), map index ${index}. Tried to fetch ${filePath}, but got HTML instead of JSON.`);
+        }
+        
+        const data = JSON.parse(text);
         return new GameMap(data);
     }
 }
