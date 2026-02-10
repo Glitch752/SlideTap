@@ -4,10 +4,37 @@ import { type Scene } from "../Scene";
 import * as THREE from "three";
 import Game from "./Game.svelte";
 
+export abstract class Node {
+    game: GameScene;
+    constructor(game: GameScene) {
+        this.game = game;
+    }
+
+    init(): void {};
+    abstract update(deltaTime: number): void;
+    pause(): void {};
+    unpause(): void {};
+}
+
 export class GameScene implements Scene {
     public component = Game;
 
-    private scene: THREE.Scene;
+    /** Map from raw class to singleton instance */
+    private nodes: Map<new (...args: any[]) => Node, Node> = new Map();
+    public get<T extends Node>(cls: new (...args: any[]) => T): T {
+        const node = this.nodes.get(cls);
+        if(!node) throw new Error(`Node of type ${cls.name} not found`);
+        return node as T;
+    }
+    
+    public map: GameMap = null as any;
+
+    private startTime: number = 0;
+    public get elapsed(): number {
+        return Date.now() - this.startTime;
+    }
+
+    public scene: THREE.Scene;
     private camera: THREE.PerspectiveCamera;
     private mesh: THREE.Mesh;
     private renderer: THREE.WebGLRenderer | null = null;
@@ -28,18 +55,13 @@ export class GameScene implements Scene {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(this.screenWidth, this.screenHeight);
         this.renderer.setAnimationLoop(this.animate.bind(this));
+    
+        this.startTime = Date.now();
     }
 
     private screenWidth = window.innerWidth;
     private screenHeight = window.innerHeight;
     private aspect = this.screenWidth / this.screenHeight;
-
-    private map: GameMap = null as any;
-
-    private startTime: number = 0;
-    private get elapsed(): number {
-        return Date.now() - this.startTime;
-    }
 
     public static async load(song: Song, mapIndex: number): Promise<GameScene> {
         const scene = new GameScene(song, mapIndex);
@@ -80,14 +102,6 @@ export class GameScene implements Scene {
         this.camera.updateProjectionMatrix();
     }
 
-
-    public show(): void {
-        this.startTime = Date.now();
-    }
-
-    public hide(): void {
-        
-    }
 
     private lastTime: number = 0;
     private animate(time: DOMHighResTimeStamp) {

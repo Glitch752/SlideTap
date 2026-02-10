@@ -16,6 +16,12 @@
     });
 </script>
 
+<svelte:window
+    onkeydown={(e) => activeScene.onKeyDown?.(e)}
+    onkeyup={(e) => activeScene.onKeyUp?.(e)}
+    onwheel={(e) => activeScene.onScroll?.(e)}
+/>
+
 <div>
     <Component {...(activeScene.componentProps?.() ?? {})} />
 </div>
