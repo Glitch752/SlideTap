@@ -4,18 +4,6 @@ import { type Scene } from "../Scene";
 import * as THREE from "three";
 import Game from "./Game.svelte";
 
-export abstract class Node {
-    game: GameScene;
-    constructor(game: GameScene) {
-        this.game = game;
-    }
-
-    init(): void {};
-    abstract update(deltaTime: number): void;
-    pause(): void {};
-    unpause(): void {};
-}
-
 export class GameScene implements Scene {
     public component = Game;
 
@@ -26,7 +14,7 @@ export class GameScene implements Scene {
         if(!node) throw new Error(`Node of type ${cls.name} not found`);
         return node as T;
     }
-    
+
     public map: GameMap = null as any;
 
     private startTime: number = 0;
