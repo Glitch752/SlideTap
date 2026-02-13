@@ -7,9 +7,18 @@ export class Signal<T extends[...any[]]> {
     public connect(listener: ((...args: T) => void) | Signal<T>) {
         if(listener instanceof Signal) {
             this.listeners.push(listener.boundEmit);
-            return;
+            return () => this.disconnect(listener);
         }
         this.listeners.push(listener);
+        return () => this.disconnect(listener);
+    }
+
+    public once(listener: (...args: T) => void) {
+        const wrapper = (...args: T) => {
+            this.disconnect(wrapper);
+            listener(...args);
+        };
+        return this.connect(wrapper);
     }
 
     public boundEmit = this.emit.bind(this);
@@ -32,6 +41,32 @@ export class Signal<T extends[...any[]]> {
     }
 }
 
+export interface Node3DLike<T> {
+    add(child: T): void;
+    remove(child: T): void;
+}
+
+export function connectParenting<T extends Node3DLike<T>>(tree: NodeTree<T>) {
+    const offAdd = tree.onNodeAdded.connect((node) => {
+        const parent = node.parent;
+        if(!(parent instanceof Node)) return;
+        if(!parent.value || !node.value) return;
+        parent.value.add(node.value);
+    });
+
+    const offRemove = tree.onNodeRemoved.connect((node) => {
+        const parent = node.parent;
+        if(!(parent instanceof Node)) return;
+        if(!parent.value || !node.value) return;
+        parent.value.remove(node.value);
+    });
+
+    return () => {
+        offAdd();
+        offRemove();
+    };
+}
+
 export class NodeTree<T> {
     children: Set<Node<T>> = new Set();
     updatingChildren: Set<Node<T>> = new Set();
@@ -52,9 +87,62 @@ export class NodeTree<T> {
         if(newId) this.namedChildren.set(newId, node);
     }
 
+    addChildren(...nodes: Array<Node<T>>): void {
+        for(const node of nodes) this.add(node);
+    }
+
+    removeChildren(...nodes: Array<Node<T>>): void {
+        for(const node of nodes) this.remove(node);
+    }
+
+    clear(): void {
+        for(const node of Array.from(this.children)) {
+            this.remove(node);
+        }
+    }
+
+    getById(id: string): Node<T> | undefined {
+        return this.namedChildren.get(id);
+    }
+
+    *walkRecursive(): IterableIterator<Node<T>> {
+        for(const child of this.children) {
+            yield child;
+            yield* child.walkRecursive();
+        }
+    }
+
+    findRecursive(predicate: (node: Node<T>) => boolean): Node<T> | undefined {
+        for(const node of this.walkRecursive()) {
+            if(predicate(node)) return node;
+        }
+        return undefined;
+    }
+
+    forEachRecursive(visitor: (node: Node<T>) => void): void {
+        for(const node of this.walkRecursive()) {
+            visitor(node);
+        }
+    }
+
+    private indexNamedChildren(node: Node<T>): void {
+        if(node.id) this.namedChildren.set(node.id, node);
+        for(const child of node.children) {
+            this.indexNamedChildren(child);
+        }
+    }
+
+    private removeNamedChildren(node: Node<T>): void {
+        if(node.id) this.namedChildren.delete(node.id);
+        for(const child of node.children) {
+            this.removeNamedChildren(child);
+        }
+    }
+
     remove(node: Node<T>): void {
         this.children.delete(node);
         this.updatingChildren.delete(node);
+        this.removeNamedChildren(node);
 
         node.onNodeAdded.disconnect(this.onNodeAdded);
         node.onNodeRemoved.disconnect(this.onNodeRemoved);
@@ -68,6 +156,7 @@ export class NodeTree<T> {
         this.children.add(node);
         if(node.updates) this.updatingChildren.add(node);
         if(node.id) this.setNodeId(node, node.id);
+        this.indexNamedChildren(node);
 
         node.onNodeAdded.connect(this.onNodeAdded);
         node.onNodeRemoved.connect(this.onNodeRemoved);
@@ -89,7 +178,7 @@ export class NodeTree<T> {
             this.updatingChildren.delete(node);
         }
     }
-    setNodeId(node: Node<T>, id: string): void {
+    setNodeId(node: Node<T>, id: string | null): void {
         const oldId = node.id === id ? null : node.id;
         this.onIdChanged.emit(node, oldId, id);
     }
@@ -112,6 +201,8 @@ export class Node<T> extends NodeTree<T> {
         return this._parent;
     }
 
+    value: T | null = null;
+
     private _updates: boolean = false;
     get updates() {
         return this._updates;
@@ -123,29 +214,46 @@ export class Node<T> extends NodeTree<T> {
         return this._id;
     }
 
-    constructor(parent: NodeTree<T> | null) {
+    constructor(parent: NodeTree<T> | null, value: T | null = null) {
         super();
         this._parent = parent;
+        this.value = value;
     }
 
     reparent(newParent: NodeTree<T>) {
         if(this._parent) this._parent.remove(this);
         this._parent = newParent;
         this._parent.add(this);
+        return this;
+    }
+
+    removeFromParent(): void {
+        if(this._parent) this._parent.remove(this);
+        this._parent = null;
+    }
+
+    get root(): NodeTree<T> {
+        let current: NodeTree<T> = this;
+        while(current instanceof Node && current.parent) {
+            current = current.parent;
+        }
+        return current;
     }
 
     setUpdates(updates: boolean) {
         this._updates = updates;
         if(this._parent) this._parent.setNodeUpdating(this, updates);
+        return this;
     }
-    setId(id: string) {
+    setId(id: string | null) {
         this._id = id;
         if(this._parent) this._parent.setNodeId(this, id);
+        return this;
     }
 
     init(): void {}
 
-    update(deltaTime: number): void {}
+    update(_deltaTime: number): void {}
     
     pause(): void {}
     unpause(): void {}
