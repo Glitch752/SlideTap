@@ -3,8 +3,12 @@ import type { Song } from "../Song";
 import { type Scene } from "../scenes/Scene";
 import * as THREE from "three";
 import Game from "../scenes/game/Game.svelte";
-import { NodeTree } from "../lib/miniNodeTree";
+import { connectParenting, NodeTree } from "../lib/miniNodeTree";
 import { Renderer } from "./Renderer";
+import { Cursor } from "./Cursor";
+import { Skybox } from "./environment/Skybox";
+import { Platforms } from "./environment/Platforms";
+import { Lighting } from "./environment/Lighting";
 
 export class GameScene implements Scene {
     public component = Game;
@@ -19,13 +23,17 @@ export class GameScene implements Scene {
     public get elapsed(): number {
         return Date.now() - this.startTime;
     }
-
-    private mesh: THREE.Mesh;
     
     public init(): void {
         this.startTime = Date.now();
+        connectParenting(this.tree, this.scene);
 
         this.tree.addChildren(
+            new Lighting(),
+            new Platforms(),
+            new Skybox(),
+
+            new Cursor(),
             // Renderer must be last so we update before drawing
             new Renderer()
         );
@@ -45,12 +53,6 @@ export class GameScene implements Scene {
         this.song = song;
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("#060d16");
-
-        this.mesh = new THREE.Mesh(
-            new THREE.SphereGeometry(100, 16, 8),
-            new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
-        );
-        this.scene.add(this.mesh);
     }
 
     private lastTime: number = 0;
@@ -58,12 +60,6 @@ export class GameScene implements Scene {
         if(this.lastTime === 0) this.lastTime = time - (1000 / 60);
         const deltaTime = (time - this.lastTime) / 1000;
         this.lastTime = time;
-
-        const r = Date.now() * 0.0005;
-
-        this.mesh.position.x = 700 * Math.cos(r);
-        this.mesh.position.y = 700 * Math.sin(r);
-        this.mesh.position.z = 3000 + 700 * Math.sin(r);
 
         this.tree.updateRecursive(deltaTime);
     }

@@ -1,8 +1,12 @@
 import type { GameScene } from "./Game";
 import { GameNode, NodeID } from "./types";
 import * as THREE from "three";
+import { FlyControls } from "three/examples/jsm/Addons.js";
 
 export class Renderer extends GameNode {
+    private static readonly USE_CAMERA_CONTROLS: boolean = true;
+    private controls: FlyControls | null = null;
+
     private gameCanvas: HTMLCanvasElement | null = null;
     private uiCanvas: HTMLCanvasElement | null = null;
     private ui: CanvasRenderingContext2D | null = null;
@@ -26,7 +30,7 @@ export class Renderer extends GameNode {
         this.camera.position.set(0, 0, 0);
         this.camera.lookAt(new THREE.Vector3(0, 0, 1));
         game.scene.add(this.camera);
-        
+
         this.gameCanvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
         this.uiCanvas = document.getElementById("uiCanvas") as HTMLCanvasElement;
         this.ui = this.uiCanvas.getContext("2d");
@@ -40,6 +44,13 @@ export class Renderer extends GameNode {
         this.renderer.setAnimationLoop(game.animate.bind(game));
 
         window.addEventListener('resize', this.resize.bind(this));
+
+        if(Renderer.USE_CAMERA_CONTROLS) {
+            this.controls = new FlyControls(this.camera, this.gameCanvas);
+            this.controls.movementSpeed = 100;
+            this.controls.rollSpeed = Math.PI / 6;
+            this.controls.dragToLook = true;
+        }
     }
 
     private resize() {
@@ -55,9 +66,13 @@ export class Renderer extends GameNode {
         this.camera.updateProjectionMatrix();
     }
 
-    update(_deltaTime: number): void {
+    update(deltaTime: number): void {
         if(!this.camera) return;
         
+        if(this.controls) {
+            this.controls.update(deltaTime);
+        }
+
         if(this.renderer) this.renderer.render(this.context!.scene, this.camera);
         this.drawUi();
     }

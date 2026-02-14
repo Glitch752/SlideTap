@@ -46,18 +46,29 @@ export interface Node3DLike<T> {
     remove(child: T): void;
 }
 
-export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: NodeTree<T, G>) {
+export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: NodeTree<T, G>, root: Node3DLike<T>) {
     const offAdd = tree.onNodeAdded.connect((node) => {
+        if(!node.value) return;
+
         const parent = node.parent;
-        if(!(parent instanceof Node)) return;
-        if(!parent.value || !node.value) return;
+        if(!(parent instanceof Node)) {
+            root.add(node.value);
+            return;
+        }
+
+        if(!parent.value) return;
         parent.value.add(node.value);
     });
 
     const offRemove = tree.onNodeRemoved.connect((node) => {
+        if(!node.value) return;
+
         const parent = node.parent;
-        if(!(parent instanceof Node)) return;
-        if(!parent.value || !node.value) return;
+        if(!(parent instanceof Node)) {
+            root.add(node.value);
+            return;
+        }
+        if(!parent.value) return;
         parent.value.remove(node.value);
     });
 
