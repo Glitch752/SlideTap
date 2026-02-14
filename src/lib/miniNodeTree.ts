@@ -111,7 +111,7 @@ export class NodeTree<T, G extends {}> {
         }
     }
 
-    getById(id: string): Node<T, G> | undefined {
+    get(id: string): Node<T, G> | undefined {
         return this.namedChildren.get(id);
     }
 
@@ -151,7 +151,7 @@ export class NodeTree<T, G extends {}> {
 
     remove(node: Node<T, G>): void {
         node._parent = null;
-        
+
         this.children.delete(node);
         this.updatingChildren.delete(node);
         this.removeNamedChildren(node);

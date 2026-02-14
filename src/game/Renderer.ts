@@ -1,7 +1,6 @@
 import type { GameScene } from "./Game";
-import { GameNode } from "./types";
+import { GameNode, NodeID } from "./types";
 import * as THREE from "three";
-import { NodeID } from "./NodeIDs";
 
 export class Renderer extends GameNode {
     private gameCanvas: HTMLCanvasElement | null = null;
