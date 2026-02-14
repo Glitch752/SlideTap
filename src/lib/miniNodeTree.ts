@@ -46,7 +46,7 @@ export interface Node3DLike<T> {
     remove(child: T): void;
 }
 
-export function connectParenting<T extends Node3DLike<T>>(tree: NodeTree<T>) {
+export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: NodeTree<T, G>) {
     const offAdd = tree.onNodeAdded.connect((node) => {
         const parent = node.parent;
         if(!(parent instanceof Node)) return;
@@ -67,31 +67,41 @@ export function connectParenting<T extends Node3DLike<T>>(tree: NodeTree<T>) {
     };
 }
 
-export class NodeTree<T> {
-    children: Set<Node<T>> = new Set();
-    updatingChildren: Set<Node<T>> = new Set();
+/**
+ * T = Node value type,
+ * G = Global context
+ */
+export class NodeTree<T, G extends {}> {
+    children: Set<Node<T, G>> = new Set();
+    updatingChildren: Set<Node<T, G>> = new Set();
     /** A recursive map of uniquely-identified children across this scene tree. */
-    namedChildren: Map<string, Node<T>> = new Map();
+    namedChildren: Map<string, Node<T, G>> = new Map();
 
-    onNodeAdded: Signal<[Node<T>]> = new Signal();
-    onNodeRemoved: Signal<[Node<T>]> = new Signal();
-    onIdChanged: Signal<[Node<T>, string | null, string | null]> = new Signal();
+    onNodeAdded: Signal<[Node<T, G>]> = new Signal();
+    onNodeRemoved: Signal<[Node<T, G>]> = new Signal();
+    onIdChanged: Signal<[Node<T, G>, string | null, string | null]> = new Signal();
     onEvent: Signal<[CustomEvent]> = new Signal();
+    
+    private _context: G | null;
+    get context() {
+        return this._context;
+    }
 
-    constructor() {
+    constructor(context: G | null) {
+        this._context = context;
         this.onIdChanged.connect(this.handleIdChanged.bind(this));
     }
 
-    private handleIdChanged(node: Node<T>, oldId: string | null, newId: string | null) {
+    private handleIdChanged(node: Node<T, G>, oldId: string | null, newId: string | null) {
         if(oldId) this.namedChildren.delete(oldId);
         if(newId) this.namedChildren.set(newId, node);
     }
 
-    addChildren(...nodes: Array<Node<T>>): void {
+    addChildren(...nodes: Array<Node<T, G>>): void {
         for(const node of nodes) this.add(node);
     }
 
-    removeChildren(...nodes: Array<Node<T>>): void {
+    removeChildren(...nodes: Array<Node<T, G>>): void {
         for(const node of nodes) this.remove(node);
     }
 
@@ -101,45 +111,47 @@ export class NodeTree<T> {
         }
     }
 
-    getById(id: string): Node<T> | undefined {
+    getById(id: string): Node<T, G> | undefined {
         return this.namedChildren.get(id);
     }
 
-    *walkRecursive(): IterableIterator<Node<T>> {
+    *walkRecursive(): IterableIterator<Node<T, G>> {
         for(const child of this.children) {
             yield child;
             yield* child.walkRecursive();
         }
     }
 
-    findRecursive(predicate: (node: Node<T>) => boolean): Node<T> | undefined {
+    findRecursive(predicate: (node: Node<T, G>) => boolean): Node<T, G> | undefined {
         for(const node of this.walkRecursive()) {
             if(predicate(node)) return node;
         }
         return undefined;
     }
 
-    forEachRecursive(visitor: (node: Node<T>) => void): void {
+    forEachRecursive(visitor: (node: Node<T, G>) => void): void {
         for(const node of this.walkRecursive()) {
             visitor(node);
         }
     }
 
-    private indexNamedChildren(node: Node<T>): void {
+    private indexNamedChildren(node: Node<T, G>): void {
         if(node.id) this.namedChildren.set(node.id, node);
         for(const child of node.children) {
             this.indexNamedChildren(child);
         }
     }
 
-    private removeNamedChildren(node: Node<T>): void {
+    private removeNamedChildren(node: Node<T, G>): void {
         if(node.id) this.namedChildren.delete(node.id);
         for(const child of node.children) {
             this.removeNamedChildren(child);
         }
     }
 
-    remove(node: Node<T>): void {
+    remove(node: Node<T, G>): void {
+        node._parent = null;
+        
         this.children.delete(node);
         this.updatingChildren.delete(node);
         this.removeNamedChildren(node);
@@ -152,7 +164,9 @@ export class NodeTree<T> {
         this.onNodeRemoved.emit(node);
     }
 
-    add(node: Node<T>): void {
+    add(node: Node<T, G>): void {
+        node._parent = this;
+
         this.children.add(node);
         if(node.updates) this.updatingChildren.add(node);
         if(node.id) this.setNodeId(node, node.id);
@@ -166,19 +180,21 @@ export class NodeTree<T> {
         this.onNodeAdded.emit(node);
 
         if(!node._initialized) {
-            node.init();
+            const ctx = node.context;
+            if(!ctx) throw new Error("Global context is not available");
+            node.init(ctx);
             node._initialized = true;
         }
     }
 
-    setNodeUpdating(node: Node<T>, updates: boolean): void {
+    setNodeUpdating(node: Node<T, G>, updates: boolean): void {
         if(updates) {
             this.updatingChildren.add(node);
         } else {
             this.updatingChildren.delete(node);
         }
     }
-    setNodeId(node: Node<T>, id: string | null): void {
+    setNodeId(node: Node<T, G>, id: string | null): void {
         const oldId = node.id === id ? null : node.id;
         this.onIdChanged.emit(node, oldId, id);
     }
@@ -195,10 +211,18 @@ export class NodeTree<T> {
     }
 }
 
-export class Node<T> extends NodeTree<T> {
-    _parent: NodeTree<T> | null;
+/**
+ * T = node value type,
+ * G = global context
+ */
+export class Node<T, G extends {}> extends NodeTree<T, G> {
+    _parent: NodeTree<T, G> | null = null;
     get parent() {
         return this._parent;
+    }
+
+    get context() {
+        return this._parent ? this._parent.context : null;
     }
 
     value: T | null = null;
@@ -214,13 +238,12 @@ export class Node<T> extends NodeTree<T> {
         return this._id;
     }
 
-    constructor(parent: NodeTree<T> | null, value: T | null = null) {
-        super();
-        this._parent = parent;
+    constructor(value: T | null = null) {
+        super(null);
         this.value = value;
     }
 
-    reparent(newParent: NodeTree<T>) {
+    reparent(newParent: NodeTree<T, G>) {
         if(this._parent) this._parent.remove(this);
         this._parent = newParent;
         this._parent.add(this);
@@ -232,8 +255,8 @@ export class Node<T> extends NodeTree<T> {
         this._parent = null;
     }
 
-    get root(): NodeTree<T> {
-        let current: NodeTree<T> = this;
+    get root(): NodeTree<T, G> {
+        let current: NodeTree<T, G> = this;
         while(current instanceof Node && current.parent) {
             current = current.parent;
         }
@@ -251,10 +274,7 @@ export class Node<T> extends NodeTree<T> {
         return this;
     }
 
-    init(): void {}
+    init(_context: G): void {}
 
     update(_deltaTime: number): void {}
-    
-    pause(): void {}
-    unpause(): void {}
 }

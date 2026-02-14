@@ -3,8 +3,8 @@ import { get, type Writable } from "svelte/store";
 import type { Song } from "../../Song";
 import { dateFormat, difficultyColor, numberFormat } from "./SongList.svelte";
 import { PersistedValue } from "../../utils/persistedValue";
-  import { loadScene } from "../../App.svelte";
-  import { GameScene } from "../game/Game";
+import { loadScene } from "../../App.svelte";
+import { GameScene } from "../../game/Game";
 
 const { song }: { song: Song } = $props();
 
