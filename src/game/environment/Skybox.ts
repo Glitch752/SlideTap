@@ -1,3 +1,4 @@
+import type { GameScene } from "../Game";
 import { GameNode } from "../types";
 import * as THREE from "three";
 
@@ -27,14 +28,19 @@ export class Skybox extends GameNode {
         texture.needsUpdate = true;
 
         // Create a large sphere geometry for the skybox
-        const geometry = new THREE.SphereGeometry(9000, 32, 32);
+        const geometry = new THREE.SphereGeometry(10000, 32, 32);
         const material = new THREE.MeshBasicMaterial({
             map: texture,
             side: THREE.BackSide,
-            depthWrite: false
+            depthWrite: false,
+            fog: true
         });
         const skybox = new THREE.Mesh(geometry, material);
 
         super(skybox);
+    }
+
+    init(context: GameScene): void {
+        context.scene.fog = new THREE.FogExp2(0x000000, 0.00015);
     }
 }

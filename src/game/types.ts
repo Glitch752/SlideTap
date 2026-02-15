@@ -6,5 +6,7 @@ import { Node } from "../lib/miniNodeTree";
 export const GameNode = Node<THREE.Object3D, GameScene>;
 
 export enum NodeID {
-    Renderer = "renderer"
+    Renderer = "renderer",
+    Cursor = "cursor",
+    Input = "input"
 }

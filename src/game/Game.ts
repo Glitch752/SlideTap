@@ -5,10 +5,12 @@ import * as THREE from "three";
 import Game from "../scenes/game/Game.svelte";
 import { connectParenting, NodeTree } from "../lib/miniNodeTree";
 import { Renderer } from "./Renderer";
-import { Cursor } from "./Cursor";
 import { Skybox } from "./environment/Skybox";
 import { Platforms } from "./environment/Platforms";
 import { Lighting } from "./environment/Lighting";
+import { Lanes } from "./Lanes";
+import { Input } from "./Input";
+import { NodeID } from "./types";
 
 export class GameScene implements Scene {
     public component = Game;
@@ -17,7 +19,7 @@ export class GameScene implements Scene {
     public map: GameMap = null as any;
 
     public scene: THREE.Scene;
-    public tree: NodeTree<THREE.Object3D, GameScene> = new NodeTree(this as GameScene);
+    public tree: NodeTree<THREE.Object3D, GameScene> = new NodeTree(this as GameScene, true);
 
     private startTime: number = 0;
     public get elapsed(): number {
@@ -29,11 +31,16 @@ export class GameScene implements Scene {
         connectParenting(this.tree, this.scene);
 
         this.tree.addChildren(
+            // Logic
+            new Input(),
+
+            // Rendering
             new Lighting(),
             new Platforms(),
             new Skybox(),
 
-            new Cursor(),
+            new Lanes(),
+
             // Renderer must be last so we update before drawing
             new Renderer()
         );
@@ -62,5 +69,12 @@ export class GameScene implements Scene {
         this.lastTime = time;
 
         this.tree.updateRecursive(deltaTime);
+    }
+
+    onKeyDown(event: KeyboardEvent): void {
+        this.tree.get<Input>(NodeID.Input)!.onKeyDown(event);
+    }
+    onKeyUp(event: KeyboardEvent): void {
+        this.tree.get<Input>(NodeID.Input)!.onKeyUp(event);
     }
 }
