@@ -56,7 +56,9 @@ export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: No
             return;
         }
 
-        if(!parent.value) return;
+        if(!parent.value) {
+            throw new Error("Parent node has no value");
+        }
         parent.value.add(node.value);
     });
 
@@ -68,7 +70,9 @@ export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: No
             root.add(node.value);
             return;
         }
-        if(!parent.value) return;
+        if(!parent.value) {
+            throw new Error("Parent node has no value");
+        }
         parent.value.remove(node.value);
     });
 
@@ -83,24 +87,27 @@ export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: No
  * G = Global context
  */
 export class NodeTree<T, G extends {}> {
-    children: Set<Node<T, G>> = new Set();
-    updatingChildren: Set<Node<T, G>> = new Set();
+    private children: Set<Node<T, G>> = new Set();
+    private updatingChildren: Set<Node<T, G>> = new Set();
     /** A recursive map of uniquely-identified children across this scene tree. */
-    namedChildren: Map<string, Node<T, G>> = new Map();
+    private namedChildren: Map<string, Node<T, G>> = new Map();
 
-    onNodeAdded: Signal<[Node<T, G>]> = new Signal();
-    onNodeRemoved: Signal<[Node<T, G>]> = new Signal();
-    onIdChanged: Signal<[Node<T, G>, string | null, string | null]> = new Signal();
-    onEvent: Signal<[CustomEvent]> = new Signal();
+    public onNodeAdded: Signal<[Node<T, G>]> = new Signal();
+    public onNodeRemoved: Signal<[Node<T, G>]> = new Signal();
+    public onIdChanged: Signal<[Node<T, G>, string | null, string | null]> = new Signal();
+    public onEvent: Signal<[CustomEvent]> = new Signal();
+
+    private initialized: boolean = false;
     
     private _context: G | null;
     get context() {
         return this._context;
     }
 
-    constructor(context: G | null) {
+    constructor(context: G | null, autoInitialize = false) {
         this._context = context;
         this.onIdChanged.connect(this.handleIdChanged.bind(this));
+        if(autoInitialize) this.initialized = true;
     }
 
     private handleIdChanged(node: Node<T, G>, oldId: string | null, newId: string | null) {
@@ -122,8 +129,8 @@ export class NodeTree<T, G extends {}> {
         }
     }
 
-    get(id: string): Node<T, G> | undefined {
-        return this.namedChildren.get(id);
+    get<Type extends Node<T, G>>(id: string): Type | undefined {
+        return this.namedChildren.get(id) as Type | undefined;
     }
 
     *walkRecursive(): IterableIterator<Node<T, G>> {
@@ -172,15 +179,17 @@ export class NodeTree<T, G extends {}> {
         node.onIdChanged.disconnect(this.onIdChanged);
         node.onEvent.disconnect(this.onEvent);
 
+        // Emit the node removed event for the removed node and all its descendants
         this.onNodeRemoved.emit(node);
+        node.forEachRecursive(this.onNodeRemoved.boundEmit);
     }
 
-    add(node: Node<T, G>): void {
+    public add(node: Node<T, G>): void {
         node._parent = this;
 
         this.children.add(node);
         if(node.updates) this.updatingChildren.add(node);
-        if(node.id) this.setNodeId(node, node.id);
+        if(node.id) this._setNodeId(node, node.id);
         this.indexNamedChildren(node);
 
         node.onNodeAdded.connect(this.onNodeAdded);
@@ -188,36 +197,49 @@ export class NodeTree<T, G extends {}> {
         node.onIdChanged.connect(this.onIdChanged);
         node.onEvent.connect(this.onEvent);
 
+        // Emit the node added event for the newly added node and all its descendants
         this.onNodeAdded.emit(node);
+        node.forEachRecursive(this.onNodeAdded.boundEmit);
 
-        if(!node._initialized) {
+        if(this.initialized && !node.initialized) {
             const ctx = node.context;
             if(!ctx) throw new Error("Global context is not available");
-            node.init(ctx);
-            node._initialized = true;
+            node.initRecursive(ctx);
         }
     }
 
-    setNodeUpdating(node: Node<T, G>, updates: boolean): void {
+    public _setNodeUpdating(node: Node<T, G>, updates: boolean): void {
         if(updates) {
             this.updatingChildren.add(node);
         } else {
             this.updatingChildren.delete(node);
         }
     }
-    setNodeId(node: Node<T, G>, id: string | null): void {
+    public _setNodeId(node: Node<T, G>, id: string | null): void {
         const oldId = node.id === id ? null : node.id;
         this.onIdChanged.emit(node, oldId, id);
     }
 
-    updateRecursive(deltaTime: number): void {
+    public updateRecursive(deltaTime: number): void {
         for(const child of this.updatingChildren) {
             child.updateRecursive(deltaTime);
             child.update(deltaTime);
         }
     }
 
-    emitEvent(event: CustomEvent): void {
+    private initRecursive(context: G): void {
+        this.init(context);
+        this.initialized = true;
+
+        for(const child of this.children) {
+            child.initRecursive(context);
+        }
+    }
+    protected init(_context: G): void {
+
+    }
+
+    public emitEvent(event: CustomEvent): void {
         this.onEvent.emit(event);
     }
 }
@@ -242,7 +264,6 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
     get updates() {
         return this._updates;
     }
-    _initialized: boolean = false;
 
     private _id: string | null = null;
     get id() {
@@ -276,12 +297,12 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
 
     setUpdates(updates: boolean) {
         this._updates = updates;
-        if(this._parent) this._parent.setNodeUpdating(this, updates);
+        if(this._parent) this._parent._setNodeUpdating(this, updates);
         return this;
     }
     setId(id: string | null) {
         this._id = id;
-        if(this._parent) this._parent.setNodeId(this, id);
+        if(this._parent) this._parent._setNodeId(this, id);
         return this;
     }
 

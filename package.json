@@ -17,8 +17,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "svelte": "^5.49.1",
     "@types/three": "^0.182.0",
+    "svelte": "^5.49.1",
     "three": "^0.182.0"
   }
 }

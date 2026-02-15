@@ -35,16 +35,28 @@ export class Platforms extends GameNode {
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
             const material = new THREE.MeshBasicMaterial({
-                vertexColors: true,
-                transparent: true,
+                vertexColors: true
             });
 
             const platform = new THREE.Mesh(geometry, material);
             platform.position.set(x, y, z);
-            platform.castShadow = false;
-            platform.receiveShadow = false;
             container.add(platform);
         }
+
+        // Center platform
+        const centerGeometry = new THREE.CircleGeometry(50, 50);
+        centerGeometry.rotateX(-Math.PI / 2);
+        const centerMaterial = new THREE.MeshBasicMaterial({
+            color: "#050B12",
+            transparent: true,
+            opacity: 0.5
+        });
+        const centerPlatform = new THREE.Mesh(centerGeometry, centerMaterial);
+        centerPlatform.position.set(0, -80, 0);
+        // Override depth sorting so the center is always drawn first
+        centerPlatform.renderOrder = -1;
+
+        container.add(centerPlatform);
 
         super(container);
     }
