@@ -1,10 +1,11 @@
+import { CameraController } from "./CameraController";
 import type { GameScene } from "./Game";
 import { GameNode, NodeID } from "./types";
 import * as THREE from "three";
 import { FlyControls } from "three/examples/jsm/Addons.js";
 
 export class Renderer extends GameNode {
-    private static readonly USE_CAMERA_CONTROLS: boolean = true;
+    private static readonly USE_CAMERA_CONTROLS: boolean = false;
     private controls: FlyControls | null = null;
 
     private gameCanvas: HTMLCanvasElement | null = null;
@@ -17,16 +18,18 @@ export class Renderer extends GameNode {
     private screenHeight = window.innerHeight;
     private aspect = this.screenWidth / this.screenHeight;
     
-    private camera: THREE.PerspectiveCamera | null = null;
+    public camera: THREE.PerspectiveCamera | null = null;
 
     constructor() {
         super();
         this.setId(NodeID.Renderer);
         this.setUpdates(true);
+
+        this.add(new CameraController());
     }
 
     init(game: GameScene): void {
-        this.camera = new THREE.PerspectiveCamera(80, this.aspect, 1, 10000);
+        this.camera = new THREE.PerspectiveCamera(80, this.aspect, 1, 12000);
         this.camera.position.set(0, 0, 0);
         this.camera.lookAt(new THREE.Vector3(0, 0, 1));
         game.scene.add(this.camera);
@@ -71,6 +74,12 @@ export class Renderer extends GameNode {
         
         if(this.controls) {
             this.controls.update(deltaTime);
+            // Remove roll from camera
+            this.camera.up.set(0, 1, 0);
+            const target = new THREE.Vector3();
+            this.camera.getWorldDirection(target);
+            target.add(this.camera.position);
+            this.camera.lookAt(target);
         }
 
         if(this.renderer) this.renderer.render(this.context!.scene, this.camera);
