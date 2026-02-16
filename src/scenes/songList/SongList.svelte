@@ -56,9 +56,19 @@ $effect(() => {
     songListFocusHeight = songListElement.querySelector<HTMLElement>(selector)?.offsetTop ?? 0;
     songInfosFocusHeight = songInfosElement.querySelector<HTMLElement>(selector)?.offsetTop ?? 0;
 });
+
+function onKeydown(event: KeyboardEvent) {
+    if(event.key === "ArrowUp") {
+        selectedSongIndex = (selectedSongIndex + songs.length - 1) % songs.length;
+    } else if(event.key === "ArrowDown") {
+        selectedSongIndex = (selectedSongIndex + 1) % songs.length;
+    }
+}
 </script>
 
-<div class="song-list" onwheel={onScroll}>
+<svelte:window onkeydown={onKeydown} />
+
+<div class="song-list" onwheel={onScroll} role="listbox" tabindex="0">
     <div class="list" bind:this={songListElement} style="--focus-height: {songListFocusHeight}px">
         {#each songs as song, i}
             <div class="song" class:selected={i === selectedSongIndex} data-song-idx="{i}">

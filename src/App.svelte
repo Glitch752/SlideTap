@@ -6,6 +6,7 @@
     const Component = $derived(activeScene.component);
 
     export function loadScene(scene: Scene) {
+        // TODO: Screen transition
         activeScene = scene;
     }
 </script>
