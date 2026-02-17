@@ -9,7 +9,7 @@ export default defineConfig({
         template: './index.html'
     },
     server: {
-        port: 3000
+        port: 51734
     },
     output: {
         // Use relative paths

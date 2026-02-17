@@ -67,6 +67,11 @@ export class Renderer extends GameNode {
 
         this.camera.aspect = this.aspect;
         this.camera.updateProjectionMatrix();
+
+        if(this.uiCanvas) {
+            this.uiCanvas.width = this.screenWidth;
+            this.uiCanvas.height = this.screenHeight;
+        }
     }
 
     update(deltaTime: number): void {
@@ -86,10 +91,29 @@ export class Renderer extends GameNode {
         this.drawUi();
     }
 
+    private debugTextValue: any = null;
+
     private drawUi() {
         if(!this.ui) return;
 
         this.ui.clearRect(0, 0, this.screenWidth, this.screenHeight);
-        this.ui.drawImage(this.context!.song.cover, 10, 10, 256, 256);
+        // this.ui.drawImage(this.context!.song.cover, 10, 10, 256, 256);
+        
+        if(this.debugTextValue !== null) {
+            this.ui.font = "20px Arial";
+            this.ui.fillStyle = "white";
+            this.ui.textBaseline = "top";
+            this.ui.fillText(this.debugTextValue, 10, 10);
+        }
+    }
+
+    public debugText(value: any) {
+        if(value instanceof THREE.Vector3) {
+            value = `(${value.x.toFixed(2)}, ${value.y.toFixed(2)}, ${value.z.toFixed(2)})`;
+        }
+        if(typeof value === "number") {
+            value = value.toFixed(3);
+        }
+        this.debugTextValue = value;
     }
 }

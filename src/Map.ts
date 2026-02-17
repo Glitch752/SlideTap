@@ -1,9 +1,9 @@
-enum MapNoteType {
+export enum MapNoteType {
     Primary = 0,
     Background = 1
 };
 
-type MapNote = {
+export type MapNote = {
     startTime: number;
     endTime: number;
     startLane: number;

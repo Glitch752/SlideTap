@@ -88,7 +88,7 @@ export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: No
  */
 export class NodeTree<T, G extends {}> {
     private children: Set<Node<T, G>> = new Set();
-    private updatingChildren: Set<Node<T, G>> = new Set();
+    protected updatingChildren: Set<Node<T, G>> = new Set();
     /** A recursive map of uniquely-identified children across this scene tree. */
     private namedChildren: Map<string, Node<T, G>> = new Map();
 
@@ -188,7 +188,7 @@ export class NodeTree<T, G extends {}> {
         node._parent = this;
 
         this.children.add(node);
-        if(node.updates) this.updatingChildren.add(node);
+        if(node.updates) this._setNodeUpdating(node, true);
         if(node.id) this._setNodeId(node, node.id);
         this.indexNamedChildren(node);
 
@@ -295,6 +295,12 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
         return current;
     }
 
+    public _setNodeUpdating(node: Node<T, G>, updates: boolean): void {
+        super._setNodeUpdating(node, updates);
+        if(this.updatingChildren.size > 0) {
+            this._updates = true;
+        }
+    }
     setUpdates(updates: boolean) {
         this._updates = updates;
         if(this._parent) this._parent._setNodeUpdating(this, updates);
