@@ -5,6 +5,7 @@ import { Lanes } from "./Lanes";
 import { Line2, LineGeometry, LineMaterial } from "three/examples/jsm/Addons.js";
 import { FULL_LANES } from "./constants";
 import { MapNoteType } from "../Map";
+import type { Renderer } from "./Renderer";
 
 export class Cursor extends GameNode {
     /** In radians; doesn't wrap so we can smooth it. */
@@ -60,7 +61,7 @@ export class Cursor extends GameNode {
 
         this.cursorMesh = createCursorMesh("#ccc");
         this.secondaryCursorMesh = createCursorMesh("#fcc");
-        this.secondaryCursorMesh.position.y = 2.0;
+        this.secondaryContainer.position.y = 2.0;
         
         container.add(this.cursorMesh);
         secondaryContainer.add(this.secondaryCursorMesh);
@@ -77,12 +78,16 @@ export class Cursor extends GameNode {
         this.secondaryContainer.rotation.y = this.secondaryOffsetAngle;
     }
 
-    public move(laneDelta: number, type: MapNoteType) {
+    public slide(laneDelta: number, type: MapNoteType) {
         const angle = 2 * Math.PI / FULL_LANES * laneDelta;
         if(type === MapNoteType.Background) {
             this.targetSecondaryOffsetAngle += angle;
         } else {
             this.targetAngle += angle;
         }
+    }
+
+    public tap(tapSize: number, type: MapNoteType) {
+        this.context!.tree.get<Renderer>(NodeID.Renderer)!.debugText(`Tap ${tapSize} ${type === MapNoteType.Background ? "BG" : "Primary"} ${Date.now()}`);
     }
 }

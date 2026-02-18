@@ -46,7 +46,6 @@ export class CameraController extends GameNode {
             this.easedTarget2.clone().setComponent(1, 0).normalize()
         );
         const angleDiff = 1 - (dot * 0.5 + 0.5); // 1 when opposite, 0 when same
-        this.root.get<Renderer>(NodeID.Renderer)!.debugText(dot); //angleDiff.toFixed(3));
         this.camera.position
             .set(-angleDiff * Lanes.HIT_RADIUS, angleDiff * 50 + 10, 0)
             .applyAxisAngle(new THREE.Vector3(0, 1, 0), -this.cameraTranslateAngle);

@@ -3,8 +3,21 @@ import { Cursor } from "./Cursor";
 import type { GameScene } from "./Game";
 import { GameNode, NodeID } from "./types";
 
+/**
+ * An input layer represents a set of keys that control one type of note.  
+ * There are two primary (titular...) interactions we track:
+ * - "Sliding": moving between adjacent keys, creating movement - "sliding" on the keyboard "slides" the cursor between lanes.
+ * - "Tapping": quickly pressing two or three keys at once to hit one, two, or three notes at once.
+ */
 class InputLayer {
     private lastKeyBitmask: number = 0;
+
+    /** Positive numbers are countdowns while pressed; negative numbers count up after release. */
+    private keyPressCountdown: number[] = [];
+    private static readonly TAP_PRESS_DURATION_LIMIT = 0.2;
+    private static readonly TAP_ADJACENT_LENIENCY = 0.05;
+    private static readonly MIN_TAP_SIZE = 2;
+    private static readonly MAX_TAP_SIZE = 3;
 
     constructor(private keys: string[], private type: MapNoteType) {}
 
@@ -29,21 +42,76 @@ class InputLayer {
         }
         return count;
     }
+    private enumerate(bitmask: number): number[] {
+        const indices = [];
+        for(let i = 0; i < this.keys.length; i++) {
+            if(this.check(bitmask, i)) {
+                indices.push(i);
+            }
+        }
+        return indices;
+    }
+
+    public debugLog(bitmask: number): string {
+        const keysState = this.keys.map((key, i) => `${this.check(bitmask, i) ? "[" : " "}${key}${this.check(bitmask, i) ? "]" : " "}`).join(" ");
+        return `${this.type === MapNoteType.Primary ? "Primary" : "Background"}: ${keysState}`;
+    }
 
     public update(deltaTime: number, keysHeld: Set<string>, context: GameScene) {
         const keyBitmask = this.getKeyBitmask(keysHeld);
 
-        const pressed = keyBitmask & ~this.lastKeyBitmask;
+        const pressed  = keyBitmask & ~this.lastKeyBitmask;
         const released = ~keyBitmask & this.lastKeyBitmask;
 
-        // Pressed keys in either direction of a previously-held key create movement
-        const pressedLeft = pressed >> 1 & this.lastKeyBitmask;
-        const pressedRight = pressed << 1 & this.lastKeyBitmask;
+        // Tap logic
+        for(const key of this.enumerate(pressed)) {
+            this.keyPressCountdown[key] = InputLayer.TAP_PRESS_DURATION_LIMIT;
+        }
+        for(const key of this.enumerate(released)) {
+            if(this.keyPressCountdown[key] > 0) {
+                // Tap candidate
+                this.keyPressCountdown[key] = -InputLayer.TAP_ADJACENT_LENIENCY;
+            }
+        }
+        for(let i = 0; i < this.keyPressCountdown.length; i++) {
+            if(this.keyPressCountdown[i] > 0) {
+                this.keyPressCountdown[i] -= deltaTime;
+                if(this.keyPressCountdown[i] <= 0) {
+                    this.keyPressCountdown[i] = 0;
+                }
+            } else if(this.keyPressCountdown[i] < 0) {
+                this.keyPressCountdown[i] += deltaTime;
+                if(this.keyPressCountdown[i] >= 0) {
+                    this.keyPressCountdown[i] = 0;
+                    // Check how many adjacent keys were also tapped (negative countdowns)
+                    let tapSize = 1;
+                    for(let j = i - 1; j >= 0; j--) {
+                        if(this.keyPressCountdown[j] < 0) tapSize++;
+                        else break;
+                        this.keyPressCountdown[j] = 0;
+                    }
+                    for(let j = i + 1; j < this.keys.length; j++) {
+                        if(this.keyPressCountdown[j] < 0) tapSize++;
+                        else break;
+                        this.keyPressCountdown[j] = 0;
+                    }
 
+                    if(tapSize >= InputLayer.MIN_TAP_SIZE && tapSize <= InputLayer.MAX_TAP_SIZE) {
+                        // Valid tap!
+                        context.tree.get<Cursor>(NodeID.Cursor)!.tap(tapSize, this.type);
+                    }
+                }
+            }
+        }
+
+        // Pressed keys in either direction of a previously-held key create movement
+        const pressedLeft  = pressed & this.lastKeyBitmask << 1;
+        const pressedRight = pressed & this.lastKeyBitmask >> 1;
+        
         const movement = this.count(pressedRight) - this.count(pressedLeft);
 
         if(movement !== 0) {
-            context.tree.get<Cursor>(NodeID.Cursor)!.move(movement, this.type);
+            context.tree.get<Cursor>(NodeID.Cursor)!.slide(movement, this.type);
         }
 
         this.lastKeyBitmask = keyBitmask;
