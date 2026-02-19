@@ -1,8 +1,8 @@
 <script module lang="ts">
+    import { MenuScene } from "./scenes/Menu";
     import type { Scene } from "./scenes/Scene";
-    import { SongListScene } from "./scenes/SongList";
 
-    let activeScene: Scene = $state(new SongListScene());
+    let activeScene: Scene = $state(new MenuScene());
     const Component = $derived(activeScene.component);
 
     // Add transition state
