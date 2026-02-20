@@ -1,13 +1,21 @@
-export enum MapNoteType {
+export enum MapNoteLayer {
     Primary = 0,
     Background = 1
+};
+
+export enum MapNoteType {
+    Tap = 0,
+    Hold = 1,
+    Damage = 2
 };
 
 export type MapNote = {
     startTime: number;
     endTime: number;
     startLane: number;
+    width: number;
     endLane: number;
+    layer: MapNoteLayer;
     type: MapNoteType;
 };
 

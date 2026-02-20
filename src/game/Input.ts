@@ -1,4 +1,4 @@
-import { MapNoteType } from "../Map";
+import { MapNoteLayer } from "../Map";
 import { Cursor } from "./Cursor";
 import type { GameScene } from "./Game";
 import { GameNode, NodeID } from "./types";
@@ -19,7 +19,7 @@ class InputLayer {
     private static readonly MIN_TAP_SIZE = 2;
     private static readonly MAX_TAP_SIZE = 3;
 
-    constructor(private keys: string[], private type: MapNoteType) {}
+    constructor(private keys: string[], private layer: MapNoteLayer) {}
 
     private getKeyBitmask(keysHeld: Set<string>): number {
         let bitmask = 0;
@@ -54,7 +54,7 @@ class InputLayer {
 
     public debugLog(bitmask: number): string {
         const keysState = this.keys.map((key, i) => `${this.check(bitmask, i) ? "[" : " "}${key}${this.check(bitmask, i) ? "]" : " "}`).join(" ");
-        return `${this.type === MapNoteType.Primary ? "Primary" : "Background"}: ${keysState}`;
+        return `${this.layer === MapNoteLayer.Primary ? "Primary" : "Background"}: ${keysState}`;
     }
 
     public update(deltaTime: number, keysHeld: Set<string>, context: GameScene) {
@@ -73,6 +73,8 @@ class InputLayer {
                 this.keyPressCountdown[key] = -InputLayer.TAP_ADJACENT_LENIENCY;
             }
         }
+
+        let tapped = false;
         for(let i = 0; i < this.keyPressCountdown.length; i++) {
             if(this.keyPressCountdown[i] > 0) {
                 this.keyPressCountdown[i] -= deltaTime;
@@ -84,21 +86,32 @@ class InputLayer {
                 if(this.keyPressCountdown[i] >= 0) {
                     this.keyPressCountdown[i] = 0;
                     // Check how many adjacent keys were also tapped (negative countdowns)
+                    // If any adjacent keys were just pressed (positive countdown), cancel the tap
                     let tapSize = 1;
                     for(let j = i - 1; j >= 0; j--) {
                         if(this.keyPressCountdown[j] < 0) tapSize++;
+                        else if(this.keyPressCountdown[j] > 0) {
+                            tapSize = 0;
+                            break;
+                        }
                         else break;
                         this.keyPressCountdown[j] = 0;
                     }
+                    if(tapSize === 0) continue; // Invalid tap due to intervening key press
                     for(let j = i + 1; j < this.keys.length; j++) {
                         if(this.keyPressCountdown[j] < 0) tapSize++;
+                        else if(this.keyPressCountdown[j] > 0) {
+                            tapSize = 0;
+                            break;
+                        }
                         else break;
                         this.keyPressCountdown[j] = 0;
                     }
 
                     if(tapSize >= InputLayer.MIN_TAP_SIZE && tapSize <= InputLayer.MAX_TAP_SIZE) {
                         // Valid tap!
-                        context.tree.get<Cursor>(NodeID.Cursor)!.tap(tapSize, this.type);
+                        context.tree.get<Cursor>(NodeID.Cursor)!.tap(tapSize, this.layer);
+                        tapped = true;
                     }
                 }
             }
@@ -110,8 +123,8 @@ class InputLayer {
         
         const movement = this.count(pressedRight) - this.count(pressedLeft);
 
-        if(movement !== 0) {
-            context.tree.get<Cursor>(NodeID.Cursor)!.slide(movement, this.type);
+        if(movement !== 0 && !tapped) {
+            context.tree.get<Cursor>(NodeID.Cursor)!.slide(movement, this.layer);
         }
 
         this.lastKeyBitmask = keyBitmask;
@@ -128,8 +141,8 @@ export class Input extends GameNode {
         bottom: "SDFGHJKL".split("")
     };
 
-    private top = new InputLayer(this.keymap.top, MapNoteType.Background);
-    private bottom = new InputLayer(this.keymap.bottom, MapNoteType.Primary);
+    private top = new InputLayer(this.keymap.top, MapNoteLayer.Background);
+    private bottom = new InputLayer(this.keymap.bottom, MapNoteLayer.Primary);
 
     private keysHeld: Set<string> = new Set();
 

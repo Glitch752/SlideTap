@@ -4,7 +4,7 @@ import { expSmooth } from '../lib/timing';
 import { Lanes } from "./Lanes";
 import { Line2, LineGeometry, LineMaterial } from "three/examples/jsm/Addons.js";
 import { FULL_LANES } from "./constants";
-import { MapNoteType } from "../Map";
+import { MapNoteLayer } from "../Map";
 import type { Renderer } from "./Renderer";
 
 export class Cursor extends GameNode {
@@ -78,16 +78,16 @@ export class Cursor extends GameNode {
         this.secondaryContainer.rotation.y = this.secondaryOffsetAngle;
     }
 
-    public slide(laneDelta: number, type: MapNoteType) {
+    public slide(laneDelta: number, type: MapNoteLayer) {
         const angle = 2 * Math.PI / FULL_LANES * laneDelta;
-        if(type === MapNoteType.Background) {
+        if(type === MapNoteLayer.Background) {
             this.targetSecondaryOffsetAngle += angle;
         } else {
             this.targetAngle += angle;
         }
     }
 
-    public tap(tapSize: number, type: MapNoteType) {
-        this.context!.tree.get<Renderer>(NodeID.Renderer)!.debugText(`Tap ${tapSize} ${type === MapNoteType.Background ? "BG" : "Primary"} ${Date.now()}`);
+    public tap(tapSize: number, type: MapNoteLayer) {
+        this.context!.tree.get<Renderer>(NodeID.Renderer)!.debugText(`Tap ${tapSize} ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
     }
 }

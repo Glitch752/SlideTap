@@ -56,7 +56,7 @@ export class GameScene implements Scene {
         this.map = await this.song.getMap(this.mapIndex);
     }
 
-    private constructor(song: Song, public mapIndex: number) {
+    protected constructor(song: Song, public mapIndex: number) {
         this.song = song;
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("#060d16");

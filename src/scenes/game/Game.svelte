@@ -1,3 +1,5 @@
+<script lang="ts"></script>
+
 <canvas id="gameCanvas"></canvas>
 <canvas id="uiCanvas"></canvas>
 
