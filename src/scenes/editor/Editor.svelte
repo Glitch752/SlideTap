@@ -31,9 +31,14 @@
         "toolbar toolbar"
         "settings lanes";
     grid-template-columns: 200px 1fr;
-    grid-template-rows: 50px 1fr;
+    grid-template-rows: auto 1fr;
     
     position: absolute;
     inset: 0;
+}
+
+.toolbar {
+    grid-area: toolbar;
+    background-color: var(--panel);
 }
 </style>
