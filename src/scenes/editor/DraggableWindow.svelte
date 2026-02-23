@@ -3,13 +3,30 @@
     
     const {
         title,
-        children
+        children,
+        onclose,
+        minWidth = 300,
+        minHeight = 180
     }: {
         title: string,
-        children: Snippet
+        children: Snippet,
+        onclose?: () => void,
+        minWidth?: number,
+        minHeight?: number
     } = $props();
     
-    let position = $state({
+    const RESIZE_MARGIN = 6;
+
+    type ResizeDirection = {
+        left: boolean;
+        right: boolean;
+        top: boolean;
+        bottom: boolean;
+    };
+
+    let windowEl: HTMLDivElement | null = null;
+
+    let state = $state({
         x: 100,
         y: 100,
         width: 400,
@@ -18,101 +35,200 @@
         dragging: false,
         resizing: false,
         dragOffset: { x: 0, y: 0 },
-        resizeStart: { x: 0, y: 0, width: 0, height: 0 }
+        resizeStart: { x: 0, y: 0, width: 0, height: 0, windowX: 0, windowY: 0 },
+        resizeDirection: { left: false, right: false, top: false, bottom: false },
+        resizeCursor: "default"
     });
     
     function onTitlebarMouseDown(e: MouseEvent) {
-        position.dragging = true;
-        position.dragOffset = {
-            x: e.clientX - position.x,
-            y: e.clientY - position.y
+        if(windowEl) {
+            const direction = getResizeDirection(e, windowEl);
+            if(direction.left || direction.right || direction.top || direction.bottom) return;
+        }
+        state.dragging = true;
+        state.dragOffset = {
+            x: e.clientX - state.x,
+            y: e.clientY - state.y
         };
         window.addEventListener("mousemove", onDrag);
         window.addEventListener("mouseup", onDragEnd);
     }
     
     function onDrag(e: MouseEvent) {
-        if (!position.dragging) return;
+        if (!state.dragging) return;
 
-        const winWidth = position.width;
-        const winHeight = position.folded ? 40 : position.height;
+        const winWidth = state.width;
+        const winHeight = state.folded ? 24 : state.height;
         
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
         
-        let newX = e.clientX - position.dragOffset.x;
-        let newY = e.clientY - position.dragOffset.y;
+        let newX = e.clientX - state.dragOffset.x;
+        let newY = e.clientY - state.dragOffset.y;
         
         // clamp so window stays inside viewport
         newX = Math.max(0, Math.min(newX, screenW - winWidth));
         newY = Math.max(0, Math.min(newY, screenH - winHeight));
         
-        position.x = newX;
-        position.y = newY;
+        state.x = newX;
+        state.y = newY;
     }
     
     function onDragEnd() {
-        position.dragging = false;
+        state.dragging = false;
         window.removeEventListener("mousemove", onDrag);
         window.removeEventListener("mouseup", onDragEnd);
     }
     
-    function onResizeHandleMouseDown(e: MouseEvent) {
+    function getResizeDirection(e: MouseEvent, target: HTMLElement): ResizeDirection {
+        const rect = target.getBoundingClientRect();
+        const left = e.clientX - rect.left <= RESIZE_MARGIN;
+        const right = rect.right - e.clientX <= RESIZE_MARGIN;
+        const top = e.clientY - rect.top <= RESIZE_MARGIN;
+        const bottom = rect.bottom - e.clientY <= RESIZE_MARGIN;
+        return { left, right, top, bottom };
+    }
+
+    function getResizeCursor(direction: ResizeDirection) {
+        const { left, right, top, bottom } = direction;
+        if((left && top) || (right && bottom)) return "nwse-resize";
+        if((right && top) || (left && bottom)) return "nesw-resize";
+        if(left || right) return "ew-resize";
+        if(top || bottom) return "ns-resize";
+        return "default";
+    }
+
+    function onWindowMouseDown(e: MouseEvent) {
+        const target = e.currentTarget as HTMLElement | null;
+        if(!target) return;
+
+        const direction = getResizeDirection(e, target);
+        if(!direction.left && !direction.right && !direction.top && !direction.bottom) return;
+
         e.stopPropagation();
-        position.resizing = true;
-        position.resizeStart = {
+        e.preventDefault();
+
+        state.dragging = false;
+        state.resizing = true;
+        state.resizeDirection = direction;
+        state.resizeStart = {
             x: e.clientX,
             y: e.clientY,
-            width: position.width,
-            height: position.height
+            width: state.width,
+            height: state.height,
+            windowX: state.x,
+            windowY: state.y
         };
         window.addEventListener("mousemove", onResize);
         window.addEventListener("mouseup", onResizeEnd);
     }
+
+    function onWindowMouseMove(e: MouseEvent) {
+        if (state.dragging || state.resizing) return;
+        const target = e.currentTarget as HTMLElement | null;
+        if(!target) return;
+        
+        const direction = getResizeDirection(e, target);
+        state.resizeCursor = getResizeCursor(direction);
+    }
+
+    function onWindowMouseLeave() {
+        if (state.dragging || state.resizing) return;
+        state.resizeCursor = "default";
+    }
     
     function onResize(e: MouseEvent) {
-        if(!position.resizing) return;
+        if(!state.resizing) return;
 
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
-        
-        let newWidth = position.resizeStart.width + (e.clientX - position.resizeStart.x);
-        let newHeight = position.resizeStart.height + (e.clientY - position.resizeStart.y);
-        
-        // minimum size
-        newWidth = Math.max(150, newWidth);
-        newHeight = Math.max(40, newHeight);
-        
-        // clamp so window doesn't go outside viewport
-        newWidth = Math.min(newWidth, screenW - position.x);
-        newHeight = Math.min(newHeight, screenH - position.y);
-        
-        position.width = newWidth;
-        position.height = newHeight;
+
+        const dx = e.clientX - state.resizeStart.x;
+        const dy = e.clientY - state.resizeStart.y;
+
+        let newX = state.resizeStart.windowX;
+        let newY = state.resizeStart.windowY;
+        let newWidth = state.resizeStart.width;
+        let newHeight = state.resizeStart.height;
+
+        const { left, right, top, bottom } = state.resizeDirection;
+
+        if(right) {
+            newWidth = state.resizeStart.width + dx;
+        }
+        if(left) {
+            newWidth = state.resizeStart.width - dx;
+            newX = state.resizeStart.windowX + dx;
+        }
+        if(bottom) {
+            newHeight = state.resizeStart.height + dy;
+        }
+        if(top) {
+            newHeight = state.resizeStart.height - dy;
+            newY = state.resizeStart.windowY + dy;
+        }
+
+        if(newWidth < minWidth) {
+            if(left) newX -= minWidth - newWidth;
+            newWidth = minWidth;
+        }
+        if(newHeight < minHeight) {
+            if(top) newY -= minHeight - newHeight;
+            newHeight = minHeight;
+        }
+
+        if(newX < 0) {
+            if(left) newWidth += newX;
+            newX = 0;
+        }
+        if(newY < 0) {
+            if(top) newHeight += newY;
+            newY = 0;
+        }
+
+        if(newX + newWidth > screenW) newWidth = screenW - newX;
+        if(newY + newHeight > screenH) newHeight = screenH - newY;
+
+        newWidth = Math.max(minWidth, newWidth);
+        newHeight = Math.max(minHeight, newHeight);
+
+        state.x = newX;
+        state.y = newY;
+        state.width = newWidth;
+        state.height = newHeight;
     }
     
     function onResizeEnd() {
-        position.resizing = false;
+        state.resizing = false;
         window.removeEventListener("mousemove", onResize);
         window.removeEventListener("mouseup", onResizeEnd);
     }
     
     function toggleFold() {
-        position.folded = !position.folded;
+        state.folded = !state.folded;
     }
 </script>
 
-<div class="window" style="left: {position.x}px; top: {position.y}px; width: {position.width}px; height: {position.folded ? 40 : position.height}px;">
+<div
+    class="window"
+    bind:this={windowEl}
+    role="presentation"
+    style="left: {state.x}px; top: {state.y}px; width: {state.width}px; height: {state.folded ? "auto" : state.height + "px"}; cursor: {state.resizeCursor};"
+    onmousedown={onWindowMouseDown}
+    onmousemove={onWindowMouseMove}
+    onmouseleave={onWindowMouseLeave}
+>
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="titlebar" onmousedown={onTitlebarMouseDown}>
         <span class="title">{title}</span>
-        <button class="fold-btn" onclick={toggleFold}>{position.folded ? "▼" : "▲"}</button>
+        <button class="fold-btn" onclick={toggleFold}>{state.folded ? "▼" : "▲"}</button>
+        {#if onclose}
+            <button class="close-btn" onclick={onclose}>×</button>
+        {/if}
     </div>
-    <div class="content" class:hidden={position.folded}>
+    <div class="content" class:hidden={state.folded}>
         {@render children()}
     </div>
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resize-handle" onmousedown={onResizeHandleMouseDown}></div>
 </div>
 
 <style lang="scss">
@@ -125,46 +241,46 @@
         overflow: hidden;
         user-select: none;
         z-index: 100;
+
+        display: grid;
+        grid-template-rows: 25px 1fr;
+        grid-template-areas:
+            "titlebar"
+            "content";
     }
     .titlebar {
         display: flex;
         align-items: center;
         background-color: var(--panel);
-        height: 24px;
+        grid-area: titlebar;
         cursor: grab;
         padding: 0 12px;
         border-bottom: 1px solid var(--surface);
         font-size: 1.1em;
-    }
-    .titlebar .title {
-        flex: 1;
-    }
-    .fold-btn {
-        background-color: transparent;
-        border: none;
-        font-size: 0.5em;
-        cursor: pointer;
-        color: var(--accent);
-        margin-left: 8px;
+        
+        .title {
+            flex: 1;
+        }
+        > button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--accent);
+            margin-left: 8px;
+        }
+        .fold-btn {
+            font-size: 0.5em;
+        }
     }
     .content {
         padding: 16px;
         min-height: 60px;
         background-color: var(--panel);
         position: relative;
+        grid-area: content;
 
         &.hidden {
             display: none;
         }
-    }
-    .resize-handle {
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        width: 16px;
-        height: 16px;
-        background-color: var(--surface);
-        cursor: se-resize;
-        z-index: 2;
     }
 </style>

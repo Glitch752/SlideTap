@@ -9,12 +9,16 @@ export enum MapNoteType {
     Damage = 2
 };
 
+export type LaneRange = {
+    start: number;
+    width: number;
+};
+
 export type MapNote = {
     startTime: number;
     endTime: number;
-    startLane: number;
-    width: number;
-    endLane: number;
+    start: LaneRange;
+    end: LaneRange;
     layer: MapNoteLayer;
     type: MapNoteType;
 };

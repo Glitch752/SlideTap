@@ -42,11 +42,14 @@ export class Renderer extends GameNode {
             antialias: true,
             canvas: this.gameCanvas
         });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(this.screenWidth, this.screenHeight);
         this.renderer.setAnimationLoop(game.animate.bind(game));
 
-        window.addEventListener('resize', this.resize.bind(this));
+        // Use ResizeObserver to size viewport to the canvas element
+        const resizeObserver = new ResizeObserver(() => this.resize());
+        resizeObserver.observe(this.gameCanvas);
+
+        // initial resize to match canvas size
+        this.resize();
 
         if(Renderer.USE_CAMERA_CONTROLS) {
             this.controls = new FlyControls(this.camera, this.gameCanvas);
@@ -57,20 +60,34 @@ export class Renderer extends GameNode {
     }
 
     private resize() {
-        if(!this.camera) return;
+        if(!this.camera || !this.gameCanvas) return;
 
-        this.screenWidth = window.innerWidth;
-        this.screenHeight = window.innerHeight;
-        this.aspect = this.screenWidth / this.screenHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const width = Math.max(1, this.gameCanvas.clientWidth);
+        const height = Math.max(1, this.gameCanvas.clientHeight);
 
-        if(this.renderer) this.renderer.setSize(this.screenWidth, this.screenHeight);
+        this.screenWidth = width;
+        this.screenHeight = height;
+        this.aspect = width / height;
+
+        if(this.renderer) {
+            this.renderer.setPixelRatio(dpr);
+            // let three manage backing buffer via setPixelRatio + setSize (do not update style)
+            this.renderer.setSize(width, height, false);
+
+            this.update(0);
+        }
 
         this.camera.aspect = this.aspect;
         this.camera.updateProjectionMatrix();
 
-        if(this.uiCanvas) {
-            this.uiCanvas.width = this.screenWidth;
-            this.uiCanvas.height = this.screenHeight;
+        if(this.uiCanvas && this.ui) {
+            // scale the 2D canvas for crisp drawing on high DPI
+            this.uiCanvas.style.width = `${width}px`;
+            this.uiCanvas.style.height = `${height}px`;
+            this.uiCanvas.width = Math.round(width * dpr);
+            this.uiCanvas.height = Math.round(height * dpr);
+            this.ui.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
     }
 

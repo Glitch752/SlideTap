@@ -15,7 +15,7 @@ function startEditor() {
 <!-- TODO: less generic ahh menu -->
 <div class="menu">
     <h1>SlideTap</h1>
-    <button onclick={startGame}>Song List</button>
+    <button onclick={startGame}>Play</button>
     <button onclick={startEditor}>Editor</button>
 </div>
 

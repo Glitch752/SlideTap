@@ -48,6 +48,8 @@
         
         border: none;
         border-right: 1px solid var(--surface);
+
+        box-shadow: none;
         
         cursor: pointer;
     }
