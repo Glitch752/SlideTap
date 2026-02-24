@@ -14,8 +14,13 @@ export type LaneRange = {
     width: number;
 };
 
+/**
+ * All times are in beats, not seconds.
+ */
 export type MapNote = {
+    /** Beats */
     startTime: number;
+    /** Beats */
     endTime: number;
     start: LaneRange;
     end: LaneRange;

@@ -5,6 +5,7 @@
     "track": "badApple.opus",
     "cover": "cover.png",
     "bpm": 192,
+    "offset": 0,
     "length": 154,
     "maps": [
         {

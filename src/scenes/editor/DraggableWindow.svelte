@@ -219,7 +219,7 @@
     onmouseleave={onWindowMouseLeave}
 >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="titlebar" onmousedown={onTitlebarMouseDown}>
+    <div class="titlebar" onmousedown={onTitlebarMouseDown} ondblclick={toggleFold}>
         <span class="title">{title}</span>
         <button class="fold-btn" onclick={toggleFold}>{state.folded ? "▼" : "▲"}</button>
         {#if onclose}

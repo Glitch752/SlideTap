@@ -1,9 +1,11 @@
 :root {
     --text: #eee;
     --text-dim: #aaa;
-    --background: #060d16;
-    --panel: #1d1f29;
+    --background: #090e16;
+    --section: color-mix(in srgb, var(--background) 75%, var(--surface));
+    --panel: color-mix(in srgb, var(--background) 50%, var(--surface));
     --surface: #3c3c4c;
+
     --surface-green: color-mix(in srgb, var(--surface) 80%, #00ff00);
     --surface-red: color-mix(in srgb, var(--surface) 80%, #ff0000);
     --surface-inactive: color-mix(in srgb, var(--surface) 50%, var(--panel));

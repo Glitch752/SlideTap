@@ -5,6 +5,7 @@
     "cover": "cover.png",
     "_comment": "// TODO: I just estimated this; get the real number",
     "bpm": 192,
+    "offset": 0,
     "length": 154,
     "maps": [
         {

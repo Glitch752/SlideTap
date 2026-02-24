@@ -1,11 +1,22 @@
 import { GameMap } from "./Map";
 import { SongLeaderboard } from "./SongLeaderboard";
 
-type SongMap = {
+export type SongDataJSON = {
+    name: string;
+    artist: string;
+    track: string;
+    cover: string;
+    bpm: number;
+    offset: number;
+    length: number;
+    maps: SongMapJSON[];
+}
+
+export type SongMapJSON = {
     dataPath: string;
     name: string;
     difficulty: number;
-    notes: number
+    notes: number;
 };
 
 /**
@@ -17,8 +28,10 @@ export class Song {
     public trackPath: string = "";
     public coverPath: string = "";
     public bpm: number = 0;
+    /** Offset of the first beat, in beats */
+    public firstBeatOffset: number = 0;
     public length: number = 0; // seconds
-    public maps: SongMap[] = [];
+    public maps: SongMapJSON[] = [];
 
     public leaderboard: SongLeaderboard;
 
@@ -42,13 +55,14 @@ export class Song {
 
     private async loadMetadata() {
         const file = await fetch(this.getRelativeFile("metadata.json"));
-        const data = await file.json();
+        const data: SongDataJSON = await file.json();
 
         this.name = data["name"];
         this.artist = data["artist"];
         this.trackPath = data["track"];
         this.coverPath = data["cover"];
         this.bpm = data["bpm"];
+        this.firstBeatOffset = data["offset"];
         this.length = data["length"];
         this.maps = data["maps"];
     }
