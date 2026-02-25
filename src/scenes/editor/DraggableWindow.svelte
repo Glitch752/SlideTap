@@ -6,13 +6,15 @@
         children,
         onclose,
         minWidth = 300,
-        minHeight = 180
+        minHeight = 180,
+        id
     }: {
         title: string,
         children: Snippet,
         onclose?: () => void,
         minWidth?: number,
-        minHeight?: number
+        minHeight?: number,
+        id: string
     } = $props();
     
     const RESIZE_MARGIN = 6;
@@ -26,12 +28,20 @@
 
     let windowEl: HTMLDivElement | null = null;
 
-    let state = $state({
+    let storageKey = $derived(`draggable-window-${id}`);
+    // svelte-ignore state_referenced_locally
+    let position = $state(JSON.parse(localStorage.getItem(storageKey) ?? "null") ?? {
         x: 100,
         y: 100,
         width: 400,
         height: 300,
-        folded: false,
+        folded: false
+    });
+    $effect(() => {
+        localStorage.setItem(storageKey, JSON.stringify(position));
+    });
+
+    let windowState = $state({
         dragging: false,
         resizing: false,
         dragOffset: { x: 0, y: 0 },
@@ -39,43 +49,43 @@
         resizeDirection: { left: false, right: false, top: false, bottom: false },
         resizeCursor: "default"
     });
-    
+
     function onTitlebarMouseDown(e: MouseEvent) {
         if(windowEl) {
             const direction = getResizeDirection(e, windowEl);
             if(direction.left || direction.right || direction.top || direction.bottom) return;
         }
-        state.dragging = true;
-        state.dragOffset = {
-            x: e.clientX - state.x,
-            y: e.clientY - state.y
+        windowState.dragging = true;
+        windowState.dragOffset = {
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
         };
         window.addEventListener("mousemove", onDrag);
         window.addEventListener("mouseup", onDragEnd);
     }
     
     function onDrag(e: MouseEvent) {
-        if (!state.dragging) return;
+        if(!windowState.dragging) return;
 
-        const winWidth = state.width;
-        const winHeight = state.folded ? 24 : state.height;
+        const winWidth = position.width;
+        const winHeight = position.folded ? 24 : position.height;
         
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
         
-        let newX = e.clientX - state.dragOffset.x;
-        let newY = e.clientY - state.dragOffset.y;
+        let newX = e.clientX - windowState.dragOffset.x;
+        let newY = e.clientY - windowState.dragOffset.y;
         
         // clamp so window stays inside viewport
         newX = Math.max(0, Math.min(newX, screenW - winWidth));
         newY = Math.max(0, Math.min(newY, screenH - winHeight));
         
-        state.x = newX;
-        state.y = newY;
+        position.x = newX;
+        position.y = newY;
     }
     
     function onDragEnd() {
-        state.dragging = false;
+        windowState.dragging = false;
         window.removeEventListener("mousemove", onDrag);
         window.removeEventListener("mouseup", onDragEnd);
     }
@@ -108,64 +118,64 @@
         e.stopPropagation();
         e.preventDefault();
 
-        state.dragging = false;
-        state.resizing = true;
-        state.resizeDirection = direction;
-        state.resizeStart = {
+        windowState.dragging = false;
+        windowState.resizing = true;
+        windowState.resizeDirection = direction;
+        windowState.resizeStart = {
             x: e.clientX,
             y: e.clientY,
-            width: state.width,
-            height: state.height,
-            windowX: state.x,
-            windowY: state.y
+            width: position.width,
+            height: position.height,
+            windowX: position.x,
+            windowY: position.y
         };
         window.addEventListener("mousemove", onResize);
         window.addEventListener("mouseup", onResizeEnd);
     }
 
     function onWindowMouseMove(e: MouseEvent) {
-        if (state.dragging || state.resizing) return;
+        if (windowState.dragging || windowState.resizing) return;
         const target = e.currentTarget as HTMLElement | null;
         if(!target) return;
         
         const direction = getResizeDirection(e, target);
-        state.resizeCursor = getResizeCursor(direction);
+        windowState.resizeCursor = getResizeCursor(direction);
     }
 
     function onWindowMouseLeave() {
-        if (state.dragging || state.resizing) return;
-        state.resizeCursor = "default";
+        if (windowState.dragging || windowState.resizing) return;
+        windowState.resizeCursor = "default";
     }
     
     function onResize(e: MouseEvent) {
-        if(!state.resizing) return;
+        if(!windowState.resizing) return;
 
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
 
-        const dx = e.clientX - state.resizeStart.x;
-        const dy = e.clientY - state.resizeStart.y;
+        const dx = e.clientX - windowState.resizeStart.x;
+        const dy = e.clientY - windowState.resizeStart.y;
 
-        let newX = state.resizeStart.windowX;
-        let newY = state.resizeStart.windowY;
-        let newWidth = state.resizeStart.width;
-        let newHeight = state.resizeStart.height;
+        let newX = windowState.resizeStart.windowX;
+        let newY = windowState.resizeStart.windowY;
+        let newWidth = windowState.resizeStart.width;
+        let newHeight = windowState.resizeStart.height;
 
-        const { left, right, top, bottom } = state.resizeDirection;
+        const { left, right, top, bottom } = windowState.resizeDirection;
 
         if(right) {
-            newWidth = state.resizeStart.width + dx;
+            newWidth = windowState.resizeStart.width + dx;
         }
         if(left) {
-            newWidth = state.resizeStart.width - dx;
-            newX = state.resizeStart.windowX + dx;
+            newWidth = windowState.resizeStart.width - dx;
+            newX = windowState.resizeStart.windowX + dx;
         }
         if(bottom) {
-            newHeight = state.resizeStart.height + dy;
+            newHeight = windowState.resizeStart.height + dy;
         }
         if(top) {
-            newHeight = state.resizeStart.height - dy;
-            newY = state.resizeStart.windowY + dy;
+            newHeight = windowState.resizeStart.height - dy;
+            newY = windowState.resizeStart.windowY + dy;
         }
 
         if(newWidth < minWidth) {
@@ -192,20 +202,20 @@
         newWidth = Math.max(minWidth, newWidth);
         newHeight = Math.max(minHeight, newHeight);
 
-        state.x = newX;
-        state.y = newY;
-        state.width = newWidth;
-        state.height = newHeight;
+        position.x = newX;
+        position.y = newY;
+        position.width = newWidth;
+        position.height = newHeight;
     }
     
     function onResizeEnd() {
-        state.resizing = false;
+        windowState.resizing = false;
         window.removeEventListener("mousemove", onResize);
         window.removeEventListener("mouseup", onResizeEnd);
     }
     
     function toggleFold() {
-        state.folded = !state.folded;
+        position.folded = !position.folded;
     }
 </script>
 
@@ -213,7 +223,7 @@
     class="window"
     bind:this={windowEl}
     role="presentation"
-    style="left: {state.x}px; top: {state.y}px; width: {state.width}px; height: {state.folded ? "auto" : state.height + "px"}; cursor: {state.resizeCursor};"
+    style="left: {position.x}px; top: {position.y}px; width: {position.width}px; height: {position.folded ? "auto" : position.height + "px"}; cursor: {windowState.resizeCursor};"
     onmousedown={onWindowMouseDown}
     onmousemove={onWindowMouseMove}
     onmouseleave={onWindowMouseLeave}
@@ -221,12 +231,12 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="titlebar" onmousedown={onTitlebarMouseDown} ondblclick={toggleFold}>
         <span class="title">{title}</span>
-        <button class="fold-btn" onclick={toggleFold}>{state.folded ? "▼" : "▲"}</button>
+        <button class="fold-btn" onclick={toggleFold}>{position.folded ? "▼" : "▲"}</button>
         {#if onclose}
             <button class="close-btn" onclick={onclose}>×</button>
         {/if}
     </div>
-    <div class="content" class:hidden={state.folded}>
+    <div class="content" class:hidden={position.folded}>
         {@render children()}
     </div>
 </div>
