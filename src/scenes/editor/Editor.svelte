@@ -1,15 +1,17 @@
 <script lang="ts">
-    import Game from "../game/Game.svelte";
+    import { difficultyColor } from "../songList/SongList.svelte";
     import DraggableWindow from "./DraggableWindow.svelte";
-    import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import ToolbarDropdown from "./ToolbarDropdown.svelte";
+    
+    import Game from "../game/Game.svelte";
+    import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
 
     let editedFile: EditorFile = new EditorFile();
+    let maps = editedFile.maps;
     
     let selectedNotes: EditorNoteID[] = $state([]);
     let openMap: EditorMapID | null = $state(null);
 
-    
     const SPLIT_KEY = 'editor_settings_width';
     let settingsWidth = $state(Number(localStorage.getItem(SPLIT_KEY)) ?? 200);
     let dragging = false;
@@ -60,7 +62,14 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="splitter" onmousedown={startDrag} role="separator" aria-orientation="vertical"></div>
     <div class="map-selector">
-        
+        {#each $maps as [mapID, map] (mapID)}
+            <button
+                class="map"
+                class:selected={openMap === mapID}
+                style="--color: {difficultyColor(map.difficulty)}"
+                onmousedown={() => openMap = mapID}
+            >{map.name}</button>
+        {/each}
     </div>
     <div class="lanes">
         
@@ -101,6 +110,13 @@
 }
 .map-selector {
     grid-area: map;
+    background-color: var(--section);
+    height: 3rem;
+
+    .map {
+        --bg-color: var(--color);
+        box-shadow: none;
+    }
 }
 .lanes {
     grid-area: lanes;

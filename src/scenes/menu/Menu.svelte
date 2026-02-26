@@ -1,5 +1,5 @@
 <script lang="ts">
-import { loadScene } from "../../App.svelte";
+import { loadScene } from "../../router";
 import { EditorScene } from "../Editor";
 import { SongListScene } from "../SongList";
 

@@ -1,40 +1,23 @@
-<script module lang="ts">
-    import { MenuScene } from "./scenes/Menu";
-    import type { Scene } from "./scenes/Scene";
-
-    let activeScene: Scene = $state(new MenuScene());
-    const Component = $derived(activeScene.component);
-
-    // Add transition state
-    let transitioning = $state(false);
-
-    export function loadScene(scene: Scene) {
-        if(transitioning) return;
-        transitioning = true;
-        
-        setTimeout(() => {
-            activeScene = scene;
-            setTimeout(() => {
-                transitioning = false;
-            }, 50);
-        }, 50);
-    }
-</script>
-
 <script lang="ts">
+    import { activeScene, activeComponent, transitioning } from './router';
+
+    // $derived wraps the store value so Component stays reactive and
+    // only causes a remount when the component class itself changes.
+    const Component = $derived($activeComponent);
+
     $effect(() => {
-        activeScene.init?.();
+        $activeScene.init?.();
     });
 </script>
 
 <svelte:window
-    onkeydown={(e) => activeScene.onKeyDown?.(e)}
-    onkeyup={(e) => activeScene.onKeyUp?.(e)}
-    onwheel={(e) => activeScene.onScroll?.(e)}
+    onkeydown={(e) => $activeScene.onKeyDown?.(e)}
+    onkeyup={(e) => $activeScene.onKeyUp?.(e)}
+    onwheel={(e) => $activeScene.onScroll?.(e)}
 />
 
-<div class:fade-out={transitioning} class:fade-in={!transitioning}>
-    <Component {...(activeScene.componentProps?.() ?? {})} />
+<div class:fade-out={$transitioning} class:fade-in={!$transitioning}>
+    <Component {...($activeScene.componentProps?.() ?? {})} />
 </div>
 
 <style lang="scss">
