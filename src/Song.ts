@@ -1,14 +1,21 @@
 import { GameMap } from "./Map";
 import { SongLeaderboard } from "./SongLeaderboard";
+import { timeout } from "./utils/timing";
 
-export type SongDataJSON = {
+export type SongMetadataJSON = {
     name: string;
     artist: string;
+    
     track: string;
     cover: string;
+    
     bpm: number;
+    /** Offset of the first beat, in beats */
+    firstBeatOffset: number;
+
     offset: number;
     length: number;
+
     maps: SongMapJSON[];
 }
 
@@ -36,6 +43,7 @@ export class Song {
     public leaderboard: SongLeaderboard;
 
     public cover: HTMLImageElement = null as unknown as HTMLImageElement;
+    public track: HTMLAudioElement = null as unknown as HTMLAudioElement;
 
     private constructor(public id: string) {
         this.leaderboard = new SongLeaderboard(this.id);
@@ -44,7 +52,10 @@ export class Song {
     public static async load(id: string): Promise<Song> {
         const song = new Song(id);
         await song.loadMetadata();
-        await song.loadCover();
+        await timeout(Promise.all([
+            song.loadCover(),
+            song.loadTrack()
+        ]), 2000);
 
         return song;
     }
@@ -55,7 +66,7 @@ export class Song {
 
     private async loadMetadata() {
         const file = await fetch(this.getRelativeFile("metadata.json"));
-        const data: SongDataJSON = await file.json();
+        const data: SongMetadataJSON = await file.json();
 
         this.name = data["name"];
         this.artist = data["artist"];
@@ -68,10 +79,15 @@ export class Song {
     }
 
     private async loadCover() {
-        // this.cover = await createImageBitmap(await file.blob());
         this.cover = new Image();
         this.cover.src = this.getRelativeFile(this.coverPath);
         await new Promise(resolve => this.cover.onload = resolve);
+    }
+
+    private async loadTrack() {
+        this.track = new Audio();
+        this.track.src = this.getRelativeFile(this.trackPath);
+        await new Promise(resolve => this.track.onloadeddata = resolve);
     }
 
     public async getMap(index: number): Promise<GameMap> {

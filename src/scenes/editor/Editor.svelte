@@ -5,9 +5,12 @@
     
     import Game from "../game/Game.svelte";
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
+    import { ZipSaveHandler } from "./saveHandlers/ZipSaveHandler";
+    
+    const zipSaveHandler = new ZipSaveHandler();
 
-    let editedFile: EditorFile = new EditorFile();
-    let maps = editedFile.maps;
+    let editedFile: EditorFile = $state(new EditorFile(zipSaveHandler));
+    let maps = $derived(editedFile.maps);
     
     let selectedNotes: EditorNoteID[] = $state([]);
     let openMap: EditorMapID | null = $state(null);
@@ -50,10 +53,15 @@
 <div class="editor">
     <div class="toolbar">
         <ToolbarDropdown title="File">
-            <button onclick={() => console.log("New")}>New</button>
-            <button onclick={() => console.log("Open")}>Open from zip</button>
-            <button onclick={() => console.log("Open existing")}>Open existing</button>
-            <button onclick={() => console.log("Save")}>Save to zip</button>
+            <button onclick={() => {
+                if(editedFile.hasChanges) {
+                    if(!confirm("You have unsaved changes. Are you sure you want to create a new file?")) return;
+                }
+                editedFile = new EditorFile(zipSaveHandler);
+            }}>New</button>
+            <button onclick={async () => editedFile = await zipSaveHandler.load()}>Open from zip</button>
+            <!-- <button onclick={() => console.log("Open existing")}>Open existing</button> -->
+            <button onclick={() => editedFile.save()}>Save to zip</button>
         </ToolbarDropdown>
     </div>
     <div class="settings" style="width: {settingsWidth}px">

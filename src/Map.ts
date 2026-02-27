@@ -28,11 +28,15 @@ export type MapNote = {
     type: MapNoteType;
 };
 
+export type MapDataJSON = {
+    notes: MapNote[];
+};
+
 export class GameMap {
     /** All of the notes in this map. Sorted by start time. */
     private notes: MapNote[] = [];
 
-    constructor(mapData: any) {
-        this.notes = mapData["notes"];
+    constructor(mapData: MapDataJSON) {
+        this.notes = mapData.notes;
     }
 }

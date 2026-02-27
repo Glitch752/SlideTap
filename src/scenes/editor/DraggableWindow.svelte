@@ -213,11 +213,23 @@
         window.removeEventListener("mousemove", onResize);
         window.removeEventListener("mouseup", onResizeEnd);
     }
-    
+
+    function onWindowResize() {
+        // Make sure we're in bounds
+        if(position.x + position.width > window.innerWidth) {
+            position.x = window.innerWidth - position.width;
+        }
+        if(position.y + position.height > window.innerHeight) {
+            position.y = window.innerHeight - position.height;
+        }
+    }
+
     function toggleFold() {
         position.folded = !position.folded;
     }
 </script>
+
+<svelte:window onresize={onWindowResize}></svelte:window>
 
 <div
     class="window"

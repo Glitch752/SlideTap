@@ -1,36 +1,7 @@
 import type { MapNote } from "../../Map";
 import { writable, type Writable } from "svelte/store";
-
-function createWritableAccessor(target: any, propertyKey: string) {
-    const privateKey = Symbol(propertyKey);
-    const writableKey = propertyKey + "Writable";
-
-    Object.defineProperty(target, propertyKey, {
-        get() {
-            return this[privateKey];
-        },
-        set(value: any) {
-            this[privateKey] = value;
-            if (this[writableKey]) {
-                this[writableKey].set(value);
-            }
-        },
-        enumerable: false,
-        configurable: true,
-    });
-
-    Object.defineProperty(target, writableKey, {
-        get() {
-            if (!this["__writables__"]) this["__writables__"] = {};
-            if (!this["__writables__"][propertyKey]) {
-                this["__writables__"][propertyKey] = writable(this[propertyKey]);
-            }
-            return this["__writables__"][propertyKey];
-        },
-        enumerable: true,
-        configurable: true,
-    });
-}
+import type { SaveHandler } from "./saveHandlers/SaveHandler";
+import type { SongMetadataJSON } from "../../Song";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
 export type EditorNoteID = string & { __brand: "EditorNoteID" };
@@ -42,15 +13,20 @@ type EditorMapData = {
     notes: Map<EditorNoteID, MapNote>;
 };
 
+export type EditorFileMetadata = Omit<SongMetadataJSON, "track" | "cover" | "maps">;
+
 /**
  * The full data in a song opened in the editor. Can be exported to a zip file.
  */
 export class EditorFile {
-    public name: string = "";
-    public artist: string = "Unknown";
-    public bpm: number = 120;
-    /** Offset of the first beat, in beats */
-    public firstBeatOffset: number = 0;
+    public meta: EditorFileMetadata = {
+        name: "Untitled",
+        artist: "",
+        bpm: 0,
+        firstBeatOffset: 0,
+        offset: 0,
+        length: 0
+    };
 
     public coverImageFile: Blob | null = null;
     public audioFile: Blob | null = null;
@@ -63,15 +39,43 @@ export class EditorFile {
     }
 
     private _maps: Map<EditorMapID, EditorMapData> = new Map()
-        // .set(this.generateMapId(), {
-        //     name: "Default",
-        //     difficulty: 1,
-        //     notes: new Map()
-        // });
+        .set(this.generateMapId(), {
+            name: "Default",
+            difficulty: 1,
+            notes: new Map()
+        });
     public readonly maps: Writable<Map<EditorMapID, EditorMapData>> | null = writable(this._maps);
+
+    public getMaps(): EditorMapData[] {
+        return Array.from(this._maps.values());
+    }
 
     public hasChanges: boolean = false;
 
-    public constructor() {
+    public static load(handler: SaveHandler) {
+        return handler.load();
+    }
+    public loadMeta(metadata: SongMetadataJSON) {
+        this.meta = metadata;
+
+        for(const map of metadata.maps) {
+            const mapId = this.generateMapId();
+            this._maps.set(mapId, {
+                name: map.name,
+                difficulty: map.difficulty,
+                notes: new Map()
+            });
+        }
+        if(this.maps) {
+            this.maps.set(this._maps);
+        }
+    }
+
+    public async save() {
+        await this.saveHandler.save(this);
+    }
+
+    // Create a blank editor file with no data.
+    public constructor(public saveHandler: SaveHandler) {
     }
 }
