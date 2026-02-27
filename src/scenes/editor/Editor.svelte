@@ -111,7 +111,7 @@
 .map-selector {
     grid-area: map;
     background-color: var(--section);
-    height: 3rem;
+    height: 2rem;
 
     .map {
         --bg-color: var(--color);

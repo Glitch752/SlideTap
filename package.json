@@ -4,17 +4,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rsbuild build",
-    "dev": "rsbuild dev --open",
-    "preview": "rsbuild preview"
+    "build": "vite build",
+    "dev": "vite dev",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@rsbuild/core": "^1.7.1",
-    "@rsbuild/plugin-sass": "^1.5.0",
-    "@rsbuild/plugin-svelte": "^1.0.11",
-    "sass": "^1.97.3",
-    "svelte-check": "^4.3.5",
-    "typescript": "^5.9.3"
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "@tsconfig/svelte": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "svelte": "^5.45.2",
+    "svelte-check": "^4.3.4",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.0-beta.13"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "^8.0.0-beta.13"
+    }
   },
   "dependencies": {
     "@types/three": "^0.182.0",
