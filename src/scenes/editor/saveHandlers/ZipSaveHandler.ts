@@ -1,10 +1,12 @@
 import type { MapDataJSON } from "../../../Map";
 import type { SongMetadataJSON } from "../../../Song";
-import { EditorFile, type EditorFileMetadata } from "../EditorFile";
+import { EditorFile } from "../EditorFile";
 import type { SaveHandler } from "./SaveHandler";
 import JSZip from "jszip";
 
 export class ZipSaveHandler implements SaveHandler {
+    private file: EditorFile | null = null;
+
     async load(): Promise<EditorFile> {
         const file = await new Promise<File | null>(resolve => {
             const input = document.createElement("input");
@@ -54,11 +56,18 @@ export class ZipSaveHandler implements SaveHandler {
         let editorFile = new EditorFile(this);
         editorFile.loadMeta(metadata);
         editorFile.audioFile = track ?? null;
+        editorFile.audioUrl = track ? URL.createObjectURL(track) : null;
         editorFile.coverImageFile = cover ?? null;
+        editorFile.coverImageUrl = cover ? URL.createObjectURL(cover) : null;
+        this.file = editorFile;
+
         return editorFile;
     }
 
-    async save(file: EditorFile): Promise<void> {
+    async save(): Promise<void> {
+        const file = this.file;
+        if(!file) throw new Error("No file to save");
+
         const zip = new JSZip();
 
         let metadata: SongMetadataJSON = {
@@ -109,5 +118,12 @@ export class ZipSaveHandler implements SaveHandler {
         a.download = `${metadata.name ?? "song"}.zip`;
         a.click();
         URL.revokeObjectURL(a.href);
+    }
+
+    async close(): Promise<void> {
+        if(!this.file) return;
+
+        if(this.file.audioUrl) URL.revokeObjectURL(this.file.audioUrl);
+        if(this.file.coverImageUrl) URL.revokeObjectURL(this.file.coverImageUrl);
     }
 }

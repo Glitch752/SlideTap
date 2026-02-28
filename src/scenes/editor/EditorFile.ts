@@ -29,7 +29,9 @@ export class EditorFile {
     };
 
     public coverImageFile: Blob | null = null;
+    public coverImageUrl: string | null = null;
     public audioFile: Blob | null = null;
+    public audioUrl: string | null = null;
 
     private generateMapId(): EditorMapID {
         return (Math.random().toString(36).substring(2, 5) as unknown) as EditorMapID;
@@ -51,6 +53,9 @@ export class EditorFile {
     }
 
     public hasChanges: boolean = false;
+    public changed() {
+        this.hasChanges = true;
+    }
 
     public static load(handler: SaveHandler) {
         return handler.load();

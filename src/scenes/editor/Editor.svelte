@@ -2,17 +2,18 @@
     import { difficultyColor } from "../songList/SongList.svelte";
     import DraggableWindow from "./DraggableWindow.svelte";
     import ToolbarDropdown from "./ToolbarDropdown.svelte";
-    
     import Game from "../game/Game.svelte";
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import { ZipSaveHandler } from "./saveHandlers/ZipSaveHandler";
+    import EditorFileSettings from "./EditorFileSettings.svelte";
+    import NoteSettings from "./NoteSettings.svelte";
     
     const zipSaveHandler = new ZipSaveHandler();
 
     let editedFile: EditorFile = $state(new EditorFile(zipSaveHandler));
     let maps = $derived(editedFile.maps);
     
-    let selectedNotes: EditorNoteID[] = $state([]);
+    let selectedNotes: Set<EditorNoteID> = $state(new Set());
     let openMap: EditorMapID | null = $state(null);
 
     const SPLIT_KEY = 'editor_settings_width';
@@ -57,6 +58,7 @@
                 if(editedFile.hasChanges) {
                     if(!confirm("You have unsaved changes. Are you sure you want to create a new file?")) return;
                 }
+                zipSaveHandler.close();
                 editedFile = new EditorFile(zipSaveHandler);
             }}>New</button>
             <button onclick={async () => editedFile = await zipSaveHandler.load()}>Open from zip</button>
@@ -65,7 +67,11 @@
         </ToolbarDropdown>
     </div>
     <div class="settings" style="width: {settingsWidth}px">
-        
+        {#if selectedNotes.size == 0 || !openMap}
+            <EditorFileSettings file={editedFile} />
+        {:else}
+            <NoteSettings file={editedFile} notes={selectedNotes} />
+        {/if}
     </div>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="splitter" onmousedown={startDrag} role="separator" aria-orientation="vertical"></div>
@@ -80,7 +86,11 @@
         {/each}
     </div>
     <div class="lanes">
-        
+        {#if openMap}
+            <!-- Render lanes for the selected map -->
+        {:else}
+            <p class="placeholder">Select a map to view its lanes.</p>
+        {/if}
     </div>
 </div>
 
@@ -119,15 +129,30 @@
 .map-selector {
     grid-area: map;
     background-color: var(--section);
-    height: 2rem;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
 
     .map {
-        --bg-color: var(--color);
+        &.selected {
+            --bg-color: var(--surface);
+        }
+
+        --bg-color: var(--panel);
+        border: none;
+        color: var(--text);
+        border-bottom: 2px solid var(--color);
         box-shadow: none;
+        padding: 0.5rem 1rem;
     }
 }
 .lanes {
     grid-area: lanes;
     position: relative;
+
+    .placeholder {
+        text-align: center;
+        color: var(--text-dim);
+    }
 }
 </style>

@@ -11,7 +11,8 @@ import { EditorFile } from "../EditorFile";
  */
 export interface SaveHandler {
     load(): Promise<EditorFile>;
-    save(file: EditorFile): Promise<void>;
+    save(): Promise<void>;
+    close(): Promise<void>;
 }
 
 export class BlankSaveHandler implements SaveHandler {
@@ -19,7 +20,10 @@ export class BlankSaveHandler implements SaveHandler {
         return new EditorFile(this);
     }
 
-    async save(_file: EditorFile): Promise<void> {
+    async save(): Promise<void> {
         alert("not saving");
+    }
+
+    async close(): Promise<void> {
     }
 }
