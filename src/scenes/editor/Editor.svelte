@@ -5,7 +5,7 @@
     import Game from "../game/Game.svelte";
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import { ZipSaveHandler } from "./saveHandlers/ZipSaveHandler";
-    import EditorFileSettings from "./EditorFileSettings.svelte";
+    import EditorFileSettings from "./settings/EditorFileSettings.svelte";
     import NoteSettings from "./NoteSettings.svelte";
     
     const zipSaveHandler = new ZipSaveHandler();

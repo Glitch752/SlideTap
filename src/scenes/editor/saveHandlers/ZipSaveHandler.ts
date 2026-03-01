@@ -1,3 +1,4 @@
+import { get } from "svelte/store";
 import type { MapDataJSON } from "../../../Map";
 import type { SongMetadataJSON } from "../../../Song";
 import { EditorFile } from "../EditorFile";
@@ -55,10 +56,8 @@ export class ZipSaveHandler implements SaveHandler {
 
         let editorFile = new EditorFile(this);
         editorFile.loadMeta(metadata);
-        editorFile.audioFile = track ?? null;
-        editorFile.audioUrl = track ? URL.createObjectURL(track) : null;
-        editorFile.coverImageFile = cover ?? null;
-        editorFile.coverImageUrl = cover ? URL.createObjectURL(cover) : null;
+        editorFile.setAudioFile(track ?? null);
+        editorFile.setCoverImage(cover ?? null);
         this.file = editorFile;
 
         return editorFile;
@@ -123,7 +122,9 @@ export class ZipSaveHandler implements SaveHandler {
     async close(): Promise<void> {
         if(!this.file) return;
 
-        if(this.file.audioUrl) URL.revokeObjectURL(this.file.audioUrl);
-        if(this.file.coverImageUrl) URL.revokeObjectURL(this.file.coverImageUrl);
+        const audioUrl = get(this.file.audioUrl);
+        if(audioUrl) URL.revokeObjectURL(audioUrl);
+        const coverUrl = get(this.file.coverImageUrl);
+        if(coverUrl) URL.revokeObjectURL(coverUrl);
     }
 }

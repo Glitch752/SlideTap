@@ -1,5 +1,5 @@
 import type { MapNote } from "../../Map";
-import { writable, type Writable } from "svelte/store";
+import { get, writable, type Writable } from "svelte/store";
 import type { SaveHandler } from "./saveHandlers/SaveHandler";
 import type { SongMetadataJSON } from "../../Song";
 
@@ -29,9 +29,22 @@ export class EditorFile {
     };
 
     public coverImageFile: Blob | null = null;
-    public coverImageUrl: string | null = null;
+    public coverImageUrl: Writable<string | null> = writable(null);
     public audioFile: Blob | null = null;
-    public audioUrl: string | null = null;
+    public audioUrl: Writable<string | null> = writable(null);
+
+    public setCoverImage(file: Blob | null) {
+        this.coverImageFile = file;
+        const currentUrl = get(this.coverImageUrl);
+        if(currentUrl) URL.revokeObjectURL(currentUrl);
+        this.coverImageUrl.set(file ? URL.createObjectURL(file) : null);
+    }
+    public setAudioFile(file: Blob | null) {
+        this.audioFile = file;
+        const currentUrl = get(this.audioUrl);
+        if(currentUrl) URL.revokeObjectURL(currentUrl);
+        this.audioUrl.set(file ? URL.createObjectURL(file) : null);
+    }
 
     private generateMapId(): EditorMapID {
         return (Math.random().toString(36).substring(2, 5) as unknown) as EditorMapID;
@@ -77,7 +90,7 @@ export class EditorFile {
     }
 
     public async save() {
-        await this.saveHandler.save(this);
+        await this.saveHandler.save();
     }
 
     // Create a blank editor file with no data.
