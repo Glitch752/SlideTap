@@ -58,7 +58,7 @@
                 if(editedFile.hasChanges) {
                     if(!confirm("You have unsaved changes. Are you sure you want to create a new file?")) return;
                 }
-                zipSaveHandler.close();
+                zipSaveHandler.close(editedFile);
                 editedFile = new EditorFile(zipSaveHandler);
             }}>New</button>
             <button onclick={async () => editedFile = await zipSaveHandler.load()}>Open from zip</button>
@@ -76,6 +76,9 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="splitter" onmousedown={startDrag} role="separator" aria-orientation="vertical"></div>
     <div class="map-selector">
+        {#if $maps.size === 0}
+            <p class="placeholder">No maps available.</p>
+        {/if}
         {#each $maps as [mapID, map] (mapID)}
             <button
                 class="map"
@@ -132,6 +135,7 @@
     display: flex;
     flex-direction: row;
     gap: 1rem;
+    padding-left: 1rem;
 
     .map {
         &.selected {
@@ -144,6 +148,12 @@
         border-bottom: 2px solid var(--color);
         box-shadow: none;
         padding: 0.5rem 1rem;
+    }
+
+    .placeholder {
+        margin: 0;
+        padding: 0.5rem 1rem;
+        color: var(--text-dim);
     }
 }
 .lanes {

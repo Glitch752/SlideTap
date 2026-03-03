@@ -13,11 +13,11 @@
     const audioUrl = $derived(file.audioUrl);
 
     let bpm = $derived(file.meta.bpm);
-    let offset = $derived(file.meta.offset);
+    let offset = $derived(file.meta.firstBeatOffset);
 
     $effect(() => {
         file.meta.bpm = bpm;
-        file.meta.offset = offset;
+        file.meta.firstBeatOffset = offset;
         file.changed();
     });
 
@@ -108,6 +108,7 @@
     
     <hr />
 
+    <span>Maps</span>
     <EditorFileMapSettings {file} />
 </div>
 
@@ -120,7 +121,7 @@ h2 {
     margin: 0;
     font-size: 1.25em;
 }
-label {
+label, span {
     display: block;
     font-size: 1.1em;
     margin-top: 1.5rem;
@@ -186,6 +187,7 @@ hr {
     border: none;
     background-color: var(--surface);
     height: 2px;
+    margin: 1rem 0;
 }
 
 .placeholder-audio, audio {

@@ -59,7 +59,25 @@ export class EditorFile {
             difficulty: 1,
             notes: new Map()
         });
-    public readonly maps: Writable<Map<EditorMapID, EditorMapData>> | null = writable(this._maps);
+    public readonly maps: Writable<Map<EditorMapID, EditorMapData>> = writable(this._maps);
+
+    public addMap(): EditorMapID {
+        const mapId = this.generateMapId();
+        this._maps.set(mapId, {
+            name: `Map ${this._maps.size + 1}`,
+            difficulty: 1,
+            notes: new Map()
+        });
+        this.maps.set(this._maps);
+        this.changed();
+
+        return mapId;
+    }
+    public deleteMap(id: EditorMapID) {
+        this._maps.delete(id);
+        this.maps.set(this._maps);
+        this.changed();
+    }
 
     public getMaps(): EditorMapData[] {
         return Array.from(this._maps.values());
@@ -76,6 +94,7 @@ export class EditorFile {
     public loadMeta(metadata: SongMetadataJSON) {
         this.meta = metadata;
 
+        this._maps.clear();
         for(const map of metadata.maps) {
             const mapId = this.generateMapId();
             this._maps.set(mapId, {
@@ -90,7 +109,7 @@ export class EditorFile {
     }
 
     public async save() {
-        await this.saveHandler.save();
+        await this.saveHandler.save(this);
     }
 
     // Create a blank editor file with no data.
