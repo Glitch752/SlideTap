@@ -60,9 +60,9 @@ export class ZipSaveHandler implements SaveHandler {
         };
 
         // add audio and cover blobs if present on the editor file
-        if(file.audioFile) {
-            const mimeExt = file.audioFile.type.split('/')[1];
-            zip.file(`track.${mimeExt}`, file.audioFile);
+        if(file.audioFileData) {
+            const mimeExt = file.audioFileData.type.split('/')[1];
+            zip.file(`track.${mimeExt}`, file.audioFileData);
             metadata.track = `track.${mimeExt}`;
         }
         if(file.coverImageFile) {

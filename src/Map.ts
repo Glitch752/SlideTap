@@ -18,9 +18,9 @@ export type LaneRange = {
  * All times are in beats, not seconds.
  */
 export type MapNote = {
-    /** Beats */
+    /** Beats; based off of the beginning of the track, not the played segment */
     startTime: number;
-    /** Beats */
+    /** Beats; based off of the beginning of the track, not the played segment */
     endTime: number;
     start: LaneRange;
     end: LaneRange;

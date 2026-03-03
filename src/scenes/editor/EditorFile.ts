@@ -19,19 +19,26 @@ export type EditorFileMetadata = Omit<SongMetadataJSON, "track" | "cover" | "map
  * The full data in a song opened in the editor. Can be exported to a zip file.
  */
 export class EditorFile {
-    public meta: EditorFileMetadata = {
+    public meta: Writable<EditorFileMetadata> = writable({
         name: "Untitled",
         artist: "",
         bpm: 0,
         firstBeatOffset: 0,
-        offset: 0,
+        start: 0,
         length: 0
-    };
+    });
+    public getMeta(): EditorFileMetadata {
+        return get(this.meta);
+    }
 
     public coverImageFile: Blob | null = null;
     public coverImageUrl: Writable<string | null> = writable(null);
-    public audioFile: Blob | null = null;
-    public audioUrl: Writable<string | null> = writable(null);
+    public audioFileData: Writable<{
+        blob: Blob,
+        context: AudioContext,
+        buffer: AudioBuffer,
+        url: string
+    } | null> = writable(null);
 
     public setCoverImage(file: Blob | null) {
         this.coverImageFile = file;
@@ -39,11 +46,19 @@ export class EditorFile {
         if(currentUrl) URL.revokeObjectURL(currentUrl);
         this.coverImageUrl.set(file ? URL.createObjectURL(file) : null);
     }
-    public setAudioFile(file: Blob | null) {
-        this.audioFile = file;
-        const currentUrl = get(this.audioUrl);
+    public async setAudioFile(file: Blob | null) {
+        const currentUrl = get(this.audioFileData)?.url;
         if(currentUrl) URL.revokeObjectURL(currentUrl);
-        this.audioUrl.set(file ? URL.createObjectURL(file) : null);
+
+        if(!file) {
+            this.audioFileData.set(null);
+            return;
+        }
+
+        const audioContext = new AudioContext();
+        const buffer = await audioContext.decodeAudioData(await file.arrayBuffer());
+
+        this.audioFileData.set({ blob: file, context: audioContext, buffer, url: URL.createObjectURL(file) });
     }
 
     private generateMapId(): EditorMapID {
@@ -92,7 +107,7 @@ export class EditorFile {
         return handler.load();
     }
     public loadMeta(metadata: SongMetadataJSON) {
-        this.meta = metadata;
+        this.meta.set(metadata);
 
         this._maps.clear();
         for(const map of metadata.maps) {

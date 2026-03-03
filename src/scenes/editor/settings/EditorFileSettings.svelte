@@ -10,26 +10,58 @@
     } = $props();
 
     const coverImageUrl = $derived(file.coverImageUrl);
-    const audioUrl = $derived(file.audioUrl);
+    const audioFileData = $derived(file.audioFileData);
+    const trackDuration = $derived($audioFileData?.buffer?.duration ?? 0);
 
-    let bpm = $derived(file.meta.bpm);
-    let offset = $derived(file.meta.firstBeatOffset);
+    const meta = $derived(file.meta);
+    let bpm = $derived($meta.bpm);
+    let offset = $derived($meta.firstBeatOffset);
+    let segmentStart = $derived($meta.start);
+    let segmentEnd = $derived($meta.start + $meta.length);
 
     $effect(() => {
-        file.meta.bpm = bpm;
-        file.meta.firstBeatOffset = offset;
+        file.meta.set({
+            ...file.getMeta(),
+            bpm,
+            firstBeatOffset: offset,
+            start: segmentStart,
+            length: segmentEnd - segmentStart
+        });
         file.changed();
     });
 
+    $effect(() => {
+        if(!$audioFileData) {
+            segmentStart = 0;
+            segmentEnd = 0;
+            return;
+        } else {
+            segmentStart = 0;
+            segmentEnd = Math.round(trackDuration * 10) / 10;
+        }
+    });
+    
+    function clampSegment() {
+        if(segmentStart < 0) segmentStart = 0;
+        if(segmentEnd > trackDuration) segmentEnd = trackDuration;
+        if(segmentStart > segmentEnd) segmentStart = segmentEnd;
+        if(segmentEnd < segmentStart) segmentEnd = segmentStart;
+    }
+
+    function formatTime(t: number) {
+        if(!isFinite(t)) return '0:00';
+        const m = Math.floor(t / 60);
+        const s = Math.floor(t % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
     async function autodetectTempo() {
-        if(!file.audioFile) {
+        if(!$audioFileData) {
             alert("Please upload an audio file first.");
             return;
         }
 
-        const audioCtx = new AudioContext();
-        const buffer: AudioBuffer = await audioCtx.decodeAudioData(await file.audioFile.arrayBuffer());
-        const { bpm: guessedBpm, offset: guessedOffset } = await guess(buffer);
+        const { bpm: guessedBpm, offset: guessedOffset } = await guess($audioFileData.buffer);
         
         bpm = guessedBpm;
         offset = guessedOffset;
@@ -40,14 +72,14 @@
     <h2>File Settings</h2>
     
     <label for="name">Name</label>
-    <input id="name" value={file.meta.name} onchange={(e) => {
-        file.meta.name = (e.target as HTMLInputElement).value;
+    <input id="name" value={$meta.name} onchange={(e) => {
+        file.meta.set({ ...file.getMeta(), name: (e.target as HTMLInputElement).value });
         file.changed();
     }} placeholder="Name" type="text" />
 
     <label for="artist">Artist</label>
-    <input id="artist" value={file.meta.artist} onchange={(e) => {
-        file.meta.artist = (e.target as HTMLInputElement).value;
+    <input id="artist" value={$meta.artist} onchange={(e) => {
+        file.meta.set({ ...file.getMeta(), artist: (e.target as HTMLInputElement).value });
         file.changed();
     }} placeholder="Artist" type="text" />
     <label for="coverImage">Cover Image</label>
@@ -86,12 +118,35 @@
             file.changed();
         }}>Reset</button>
     </div>
-    {#if $audioUrl}
+    {#if $audioFileData}
         <audio controls>
-            <source src={$audioUrl} type={file.audioFile?.type} />
+            <source src={$audioFileData.url} type={$audioFileData.blob.type} />
         </audio>
     {:else}
         <div class="placeholder-audio">No Audio</div>
+    {/if}
+
+    {#if trackDuration > 0}
+        <span>Segment</span>
+        <div class="segment-section">
+            <div class="segment-bar-container">
+                <div class="bg">
+                    <div class="range" style="left: {
+                        (segmentStart/trackDuration)*100
+                    }%; width:{
+                        ((segmentEnd-segmentStart)/trackDuration)*100
+                    }%"></div>
+                </div>
+                <div class="labels">
+                    <span>{formatTime(segmentStart)} ({Math.round((segmentStart/trackDuration)*100)}%)</span>
+                    <span>{formatTime(segmentEnd)} ({Math.round((segmentEnd/trackDuration)*100)}%)</span>
+                </div>
+            </div>
+            <div class="segment-inputs-row">
+                <input id="segmentStart" type="number" min="0" max={trackDuration} step="0.01" bind:value={segmentStart} onchange={clampSegment} />
+                <input id="segmentEnd" type="number" min="0" max={trackDuration} step="0.01" bind:value={segmentEnd} onchange={clampSegment} />
+            </div>
+        </div>
     {/if}
 
     <div class="tempo-info">
@@ -212,5 +267,45 @@ hr {
     }
 
     margin-bottom: 0.5rem;
+}
+
+.segment-section {
+    margin: 0 0 1.5rem 0;
+}
+.segment-bar-container {
+    margin: 0.5rem 0 0 0;
+
+    .bg {
+        position: relative;
+        width: 100%;
+        height: 4px;
+        background: var(--surface);
+        overflow: hidden;
+
+        .range {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: var(--text);
+        }
+    }
+
+    .labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.95em;
+    }
+
+    span {
+        margin: 0.5rem 0;
+    }
+}
+
+.segment-inputs-row {
+    display: flex;
+    gap: 0.5rem;
+     > input {
+        flex: 1;
+    }
 }
 </style>

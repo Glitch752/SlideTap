@@ -13,7 +13,9 @@ export type SongMetadataJSON = {
     /** Offset of the first beat, in beats */
     firstBeatOffset: number;
 
-    offset: number;
+    /** Start time of the song from the audio file, in seconds */
+    start: number;
+    /** Length of the song, in seconds */
     length: number;
 
     maps: SongMapJSON[];
