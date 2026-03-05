@@ -97,6 +97,9 @@ export class EditorFile {
     public getMaps(): EditorMapData[] {
         return Array.from(this._maps.values());
     }
+    public getMap(id: EditorMapID) {
+        return this._maps.get(id);
+    }
 
     public hasChanges: boolean = false;
     public changed() {
