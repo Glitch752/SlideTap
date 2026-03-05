@@ -7,6 +7,7 @@
     import { ZipSaveHandler } from "./saveHandlers/ZipSaveHandler";
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
     import NoteSettings from "./NoteSettings.svelte";
+    import MapView from "./MapView.svelte";
     
     const zipSaveHandler = new ZipSaveHandler();
 
@@ -89,8 +90,9 @@
         {/each}
     </div>
     <div class="lanes">
-        {#if openMap}
+        {#if openMap && $maps.has(openMap)}
             <!-- Render lanes for the selected map -->
+            <MapView file={editedFile} map={openMap} bind:selectedNotes={selectedNotes} />
         {:else}
             <p class="placeholder">Select a map to view its lanes.</p>
         {/if}
@@ -159,6 +161,7 @@
 .lanes {
     grid-area: lanes;
     position: relative;
+    overflow: hidden;
 
     .placeholder {
         text-align: center;
