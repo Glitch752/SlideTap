@@ -64,7 +64,7 @@ export class EditorFile {
     private generateMapId(): EditorMapID {
         return (Math.random().toString(36).substring(2, 5) as unknown) as EditorMapID;
     }
-    private generateNoteId(): EditorNoteID {
+    public generateNoteId(): EditorNoteID {
         return (Math.random().toString(36).substring(2, 5) as unknown) as EditorNoteID;
     }
 

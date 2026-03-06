@@ -2,6 +2,7 @@
     import type { EditorFile, EditorMapID, EditorNoteID } from "./EditorFile";
     import { FULL_LANES } from "../../game/constants";
     import EditorNote from "./EditorNote.svelte";
+    import { type MapNote, type LaneRange, MapNoteLayer, MapNoteType } from "../../Map";
 
     const {
         file,
@@ -14,7 +15,6 @@
     } = $props();
 
     const subdivisions = 4;
-
     const lanes = Array.from({ length: FULL_LANES }, (_, i) => i + 1);
 
     // Get all times (rows) for the song
@@ -27,7 +27,6 @@
 
     const mapData = $derived(file.getMap(map));
 
-    // $: times = getSongTimes(file.song, subdivisions);
     let times = $derived.by(() => {
         const total = Math.ceil(trackLength * bpm / 60 * subdivisions);
         return Array.from({ length: total }, (_, i) => ({
@@ -38,18 +37,95 @@
     function isInPlaybackRange(time: number) {
         return time >= startTime * bpm / 60 && time < endTime * bpm / 60;
     }
+
+    // Note creation drag logic
+    let isDragging = $state(false);
+    let dragStart: { lane: number, beat: number } | null = $state(null);
+    let dragEnd: { lane: number, beat: number } | null = $state(null);
+    let dragNote: MapNote | null = $derived.by(() => {
+        if(!dragStart || !dragEnd) return null;
+        return {
+            type: MapNoteType.Hold,
+            layer: MapNoteLayer.Primary,
+            start: {
+                start: dragStart.lane,
+                width: 1
+            },
+            end: {
+                start: dragEnd.lane,
+                width: 1
+            },
+            startTime: dragStart.beat,
+            endTime: dragEnd.beat
+        } satisfies MapNote;
+    });
+
+    function getLaneFromEvent(e: MouseEvent): number {
+        // Find the lane index from the event target or coordinates
+        // For now, assume each lane column has a data-lane attribute
+        let el = e.target as HTMLElement;
+        while (el && !el.dataset.lane) el = el.parentElement as HTMLElement;
+        return el ? parseInt(el.dataset.lane!) : 1;
+    }
+    function getBeatFromEvent(e: MouseEvent): number {
+        // Find the beat from the event target or coordinates
+        // For now, assume each row has a data-beat attribute
+        let el = e.target as HTMLElement;
+        while (el && !el.dataset.beat) el = el.parentElement as HTMLElement;
+        return el ? parseFloat(el.dataset.beat!) : 0;
+    }
+
+    function onGridPointerDown(e: MouseEvent) {
+        if (e.button !== 0) return;
+        const lane = getLaneFromEvent(e);
+        const beat = getBeatFromEvent(e);
+        dragStart = { lane, beat };
+        dragEnd = { lane, beat };
+        isDragging = true;
+        window.addEventListener('pointermove', onGridPointerMove);
+        window.addEventListener('pointerup', onGridPointerUp);
+    }
+    function onGridPointerMove(e: PointerEvent) {
+        if(!isDragging) return;
+        const lane = getLaneFromEvent(e as any);
+        const beat = getBeatFromEvent(e as any);
+        dragEnd = { lane, beat };
+    }
+    function onGridPointerUp(e: PointerEvent) {
+        if(!isDragging) return;
+        isDragging = false;
+        window.removeEventListener('pointermove', onGridPointerMove);
+        window.removeEventListener('pointerup', onGridPointerUp);
+        if(dragNote && mapData) {
+            // Add to map
+            mapData.notes.set(file.generateNoteId(), dragNote);
+            file.changed();
+        }
+        dragStart = null;
+        dragEnd = null;
+    }
 </script>
 
-<div class="map-grid" style="grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+    class="map-grid"
+    style="grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);"
+    onpointerdown={onGridPointerDown}
+>
     <span class="time-column-label">Time</span>
     {#each lanes as lane}
-        <div class="lane-label">{lane}</div>
+        <div class="lane-label" data-lane={lane}>{lane}</div>
     {/each}
 
     <!-- Rows for each time -->
     {#each times as { beat }}
         {@const wholeBeat = Math.round(beat) === beat}
-        <div class="grid-row" class:greyed={!isInPlaybackRange(beat)} class:whole={wholeBeat}>
+        <div
+            class="grid-row"
+            class:greyed={!isInPlaybackRange(beat)}
+            class:whole={wholeBeat}
+            data-beat={beat}
+        >
             <div class="time-label">
                 {#if wholeBeat}{
                     beat.toString().padStart(5, String.fromCharCode(/* nbsp */ 160))
@@ -68,6 +144,11 @@
         {#each mapData.notes as [id, note]}
             <EditorNote {note} />
         {/each}
+    {/if}
+
+    <!-- Drag preview -->
+    {#if dragNote}
+        <EditorNote note={dragNote} />
     {/if}
 </div>
 
@@ -104,7 +185,8 @@
         color: var(--text);
         font-family: monospace;
         font-weight: bold;
-
+        pointer-events: none;
+        
         .decimal {
             color: var(--text-dim);
             font-weight: normal;
