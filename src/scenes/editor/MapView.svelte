@@ -64,7 +64,7 @@
         // Find the lane index from the event target or coordinates
         // For now, assume each lane column has a data-lane attribute
         let el = e.target as HTMLElement;
-        while (el && !el.dataset.lane) el = el.parentElement as HTMLElement;
+        while(el && !el.dataset.lane) el = el.parentElement as HTMLElement;
         return el ? parseInt(el.dataset.lane!) : 1;
     }
     function getBeatFromEvent(e: MouseEvent): number {
@@ -109,7 +109,10 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class="map-grid"
-    style="grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);"
+    style="
+        grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);
+        grid-template-rows: repeat({times.length}, 1fr);
+    "
     onpointerdown={onGridPointerDown}
 >
     <span class="time-column-label">Time</span>
@@ -118,26 +121,37 @@
     {/each}
 
     <!-- Rows for each time -->
-    {#each times as { beat }}
-        {@const wholeBeat = Math.round(beat) === beat}
-        <div
-            class="grid-row"
-            class:greyed={!isInPlaybackRange(beat)}
-            class:whole={wholeBeat}
-            data-beat={beat}
-        >
-            <div class="time-label">
-                {#if wholeBeat}{
-                    beat.toString().padStart(5, String.fromCharCode(/* nbsp */ 160))
-                }{:else}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/if}<span class="decimal">{
-                    (beat % 1).toFixed(3).substring(1)
-                }</span>
+    <div class="rows">
+        {#each times as { beat }}
+            {@const wholeBeat = Math.round(beat) === beat}
+            <div
+                class="grid-row"
+                class:greyed={!isInPlaybackRange(beat)}
+                class:whole={wholeBeat}
+                data-beat={beat}
+            >
+                <div class="time-label">
+                    {#if wholeBeat}{
+                        beat.toString().padStart(5, String.fromCharCode(/* nbsp */ 160))
+                    }{:else}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/if}<span class="decimal">{
+                        (beat % 1).toFixed(3).substring(1)
+                    }</span>
+                </div>
             </div>
-        </div>
-    {/each}
+        {/each}
+    </div>
     {#if times.length === 0}
         <p class="placeholder">No times available. Add a song to sequence.</p>
     {/if}
+
+    <EditorNote note={{
+        startTime: 1.5,
+        endTime: 4,
+        start: { start: 1, width: 5 },
+        end: { start: 2, width: 4 },
+        layer: MapNoteLayer.Primary,
+        type: MapNoteType.Hold
+    }} />
 
     <!-- Notes -->
     {#if mapData}
@@ -159,6 +173,14 @@
     height: 100%;
     overflow-y: auto;
     overscroll-behavior: none;
+    position: relative;
+}
+.rows {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+    grid-column: 1 / -1;
+    grid-row: 2 / -1;
 }
 .grid-row {
     display: grid;
@@ -167,6 +189,7 @@
     border-bottom: 1px solid var(--panel);
     padding-left: 0.5rem;
     grid-column: 1 / -1;
+    user-select: none;
     
     &.whole {
         border-bottom: 2px solid var(--panel);
@@ -185,7 +208,6 @@
         color: var(--text);
         font-family: monospace;
         font-weight: bold;
-        pointer-events: none;
         
         .decimal {
             color: var(--text-dim);
