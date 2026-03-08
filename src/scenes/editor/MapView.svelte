@@ -2,7 +2,8 @@
     import type { EditorFile, EditorMapID, EditorNoteID } from "./EditorFile";
     import { FULL_LANES } from "../../game/constants";
     import EditorNote from "./EditorNote.svelte";
-    import { type MapNote, type LaneRange, MapNoteLayer, MapNoteType } from "../../Map";
+    import { type MapNote, MapNoteLayer, MapNoteType } from "../../Map";
+    import { onMount } from "svelte";
 
     const {
         file,
@@ -104,6 +105,30 @@
         dragStart = null;
         dragEnd = null;
     }
+
+    let colWidthPx = $state(0);
+    let rowHeightPx = $state(0);
+    let gridRef: HTMLDivElement | null = $state(null);
+
+    onMount(() => {
+        function updateGridDimensions() {
+            if(gridRef) {
+                colWidthPx = gridRef.scrollWidth / (FULL_LANES + 1);
+                rowHeightPx = gridRef.scrollHeight / times.length;
+            }
+        }
+
+        updateGridDimensions();
+
+        const resizeObserver = new ResizeObserver(updateGridDimensions);
+        if(gridRef) {
+            resizeObserver.observe(gridRef);
+        }
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    });
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -114,6 +139,7 @@
         grid-template-rows: repeat({times.length}, 1fr);
     "
     onpointerdown={onGridPointerDown}
+    bind:this={gridRef}
 >
     <span class="time-column-label">Time</span>
     {#each lanes as lane}
@@ -144,25 +170,27 @@
         <p class="placeholder">No times available. Add a song to sequence.</p>
     {/if}
 
-    <EditorNote note={{
-        startTime: 1.5,
-        endTime: 4,
-        start: { start: 1, width: 5 },
-        end: { start: 2, width: 4 },
-        layer: MapNoteLayer.Primary,
-        type: MapNoteType.Hold
-    }} />
+    {#if colWidthPx > 0 && rowHeightPx > 0}
+        <EditorNote note={{
+            startTime: 1.5,
+            endTime: 4,
+            start: { start: 1, width: 2 },
+            end: { start: 2, width: 4 },
+            layer: MapNoteLayer.Primary,
+            type: MapNoteType.Hold
+        }} {colWidthPx} {rowHeightPx} {subdivisions} />
 
-    <!-- Notes -->
-    {#if mapData}
-        {#each mapData.notes as [id, note]}
-            <EditorNote {note} />
-        {/each}
-    {/if}
+        <!-- Notes -->
+        {#if mapData}
+            {#each mapData.notes as [id, note]}
+                <EditorNote {note} {colWidthPx} {rowHeightPx} {subdivisions} />
+            {/each}
+        {/if}
 
-    <!-- Drag preview -->
-    {#if dragNote}
-        <EditorNote note={dragNote} />
+        <!-- Drag preview -->
+        {#if dragNote}
+            <EditorNote note={dragNote} {colWidthPx} {rowHeightPx} {subdivisions} />
+        {/if}
     {/if}
 </div>
 
