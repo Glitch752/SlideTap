@@ -79,7 +79,7 @@ export class ZipSaveHandler implements SaveHandler {
             metadata.maps[i] = {
                 difficulty: map.difficulty,
                 name: map.name,
-                notes: map.notes.size,
+                notes: map._notes.size,
                 dataPath
             };
             try {

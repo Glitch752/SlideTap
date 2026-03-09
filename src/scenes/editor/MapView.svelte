@@ -26,7 +26,8 @@
     let endTime = $derived($meta.start + $meta.length);
     let trackLength = $derived($audioFileData?.buffer?.duration ?? 0);
 
-    const mapData = $derived(file.getMap(map));
+    const mapData = $derived(file.getMap(map) ?? null);
+    const notes = $derived(mapData?.notes ?? null);
 
     let times = $derived.by(() => {
         const total = Math.ceil(trackLength * bpm / 60 * subdivisions);
@@ -98,8 +99,8 @@
         window.removeEventListener('pointermove', onGridPointerMove);
         window.removeEventListener('pointerup', onGridPointerUp);
         if(dragNote && mapData) {
-            // Add to map
-            mapData.notes.set(file.generateNoteId(), dragNote);
+            // Add to map_notes
+            mapData.notes.update(n => n.set(file.generateNoteId(), dragNote));
             file.changed();
         }
         dragStart = null;
@@ -182,7 +183,7 @@
 
         <!-- Notes -->
         {#if mapData}
-            {#each mapData.notes as [id, note]}
+            {#each $notes as [id, note]}
                 <EditorNote {note} {colWidthPx} {rowHeightPx} {subdivisions} />
             {/each}
         {/if}

@@ -6,13 +6,18 @@ import type { SongMetadataJSON } from "../../Song";
 export type EditorMapID = string & { __brand: "EditorMapID" };
 export type EditorNoteID = string & { __brand: "EditorNoteID" };
 
-type EditorMapData = {
-    name: string;
-    difficulty: number;
+export class EditorMapData {
+    public name: string;
+    public difficulty: number;
 
-    notes: Map<EditorNoteID, MapNote>;
-};
+    public _notes: Map<EditorNoteID, MapNote> = new Map();
+    public notes: Writable<Map<EditorNoteID, MapNote>> = writable(this._notes);
 
+    constructor(name: string, difficulty: number) {
+        this.name = name;
+        this.difficulty = difficulty;
+    }
+}
 export type EditorFileMetadata = Omit<SongMetadataJSON, "track" | "cover" | "maps">;
 
 /**
@@ -78,11 +83,10 @@ export class EditorFile {
 
     public addMap(): EditorMapID {
         const mapId = this.generateMapId();
-        this._maps.set(mapId, {
-            name: `Map ${this._maps.size + 1}`,
-            difficulty: 1,
-            notes: new Map()
-        });
+        this._maps.set(
+            mapId,
+            new EditorMapData(`Map ${this._maps.size + 1}`, 1)
+        );
         this.maps.set(this._maps);
         this.changed();
 
@@ -115,11 +119,7 @@ export class EditorFile {
         this._maps.clear();
         for(const map of metadata.maps) {
             const mapId = this.generateMapId();
-            this._maps.set(mapId, {
-                name: map.name,
-                difficulty: map.difficulty,
-                notes: new Map()
-            });
+            this._maps.set(mapId, new EditorMapData(map.name, map.difficulty));
         }
         if(this.maps) {
             this.maps.set(this._maps);

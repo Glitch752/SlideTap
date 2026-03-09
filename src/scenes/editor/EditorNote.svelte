@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { MapNote } from "../../Map";
+    import { MapNoteType, type MapNote } from "../../Map";
 
     const {
         note = $bindable(),
@@ -12,6 +12,12 @@
         rowHeightPx: number,
         subdivisions: number
     } = $props();
+
+    const noteColor = $derived(({
+        [MapNoteType.Hold]: "#8888ff",
+        [MapNoteType.Damage]: "#ff8888",
+        [MapNoteType.Tap]: "#88ffff"
+    })[note.type]);
 
     // drag logic
     let draggingHandle: null | 'start' | 'end' | 'ctrl1' = null;
@@ -65,22 +71,26 @@
     const endLeftHandleCX = $derived(columnToCX(Math.floor(note.end.start)));
     const endRightHandleCX = $derived(columnToCX(Math.ceil(note.end.start + note.end.width)));
 
-    const getArcPath = (x1: number, y1: number, x2: number, y2: number) => {
-        console.log(rowHeightPx);
-        const xToPixels = (x: number) => x / 100 * widthColumns * colWidthPx;
-        const yToPixels = (y: number) => y / 100 * heightRows * rowHeightPx;
-        
-        const px1 = xToPixels(x1);
-        const py1 = yToPixels(y1);
-        const px2 = xToPixels(x2);
-        const py2 = yToPixels(y2);
+    const xToPixels = (x: number) => x / 100 * widthColumns * colWidthPx;
+    const yToPixels = (y: number) => y / 100 * heightRows * rowHeightPx;
+    const getArcCommand = (x1: number, y1: number, x2: number, y2: number) => {
+        const px1 = xToPixels(x1), py1 = yToPixels(y1), px2 = xToPixels(x2), py2 = yToPixels(y2);
 
-        // Control points are vertically aligned with start and end to ensure vertical tangents
+        // vertically align control points with start/end so we get vertical tangents
         const cp1y = py1 + (py2 - py1) / 2;
         const cp2y = py2 - (py2 - py1) / 2;
 
-        return `M ${px1} ${py1} C ${px1} ${cp1y}, ${px2} ${cp2y}, ${px2} ${py2}`;
+        return `C ${px1} ${cp1y}, ${px2} ${cp2y}, ${px2} ${py2}`;
     };
+    const getFillPath = () => {
+        const topLine = `M ${xToPixels(startLeftHandleCX)} ${yToPixels(0)} L ${xToPixels(startRightHandleCX)} ${yToPixels(0)}`;
+        const rightArc = getArcCommand(startRightHandleCX, 0, endRightHandleCX, 100);
+        const bottomLine = `L ${xToPixels(endLeftHandleCX)} ${yToPixels(100)}`;
+        const leftArc = getArcCommand(endLeftHandleCX, 100, startLeftHandleCX, 0);
+
+        // Draw top line, right arc down, bottom line, left arc up
+        return `${topLine} ${rightArc} ${bottomLine} ${leftArc} Z`;
+    }
 </script>
 
 <svg style="
@@ -89,6 +99,21 @@
     width: {widthColumns * colWidthPx}px;
     height: {heightRows * rowHeightPx}px;
 ">
+    <defs>
+        <linearGradient id="noteGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="{noteColor}" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="{noteColor}" stop-opacity="0.2" />
+        </linearGradient>
+    </defs>
+
+    <path
+        class="note-fill"
+        d={getFillPath()}
+        fill="url(#noteGradient)"
+        stroke={noteColor}
+        stroke-width="2"
+    />
+
     <!-- Start handles -->
     <circle 
         cx="{startLeftHandleCX}%"
@@ -123,38 +148,6 @@
         onpointerdown={e => onHandlePointerDown('ctrl2', e)}
         role="button"
         tabindex="-1"
-    />
-
-    <!-- Side arcs -->
-    <path
-        d={getArcPath(startLeftHandleCX, 0, endLeftHandleCX, 100)}
-        fill="none"
-        stroke="#fff"
-        stroke-width="2"
-    />
-    <path
-        d={getArcPath(startRightHandleCX, 0, endRightHandleCX, 100)}
-        fill="none"
-        stroke="#fff"
-        stroke-width="2"
-    />
-
-    <!-- Top/bottom lines -->
-    <line
-        x1="{startLeftHandleCX}%"
-        y1="0%"
-        x2="{startRightHandleCX}%"
-        y2="0%"
-        stroke="#fff"
-        stroke-width="2"
-    />
-    <line
-        x1="{endLeftHandleCX}%"
-        y1="100%"
-        x2="{endRightHandleCX}%"
-        y2="100%"
-        stroke="#fff"
-        stroke-width="2"
     />
 </svg>
 
