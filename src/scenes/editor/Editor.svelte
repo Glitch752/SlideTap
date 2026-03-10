@@ -8,11 +8,21 @@
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
     import NoteSettings from "./NoteSettings.svelte";
     import MapView from "./MapView.svelte";
+    import { FolderSaveHandler } from "./saveHandlers/FolderSaveHandler";
+    import type { SaveArchive } from "./saveHandlers/SaveArchive";
+    import { PlaybackType, type PlaybackState } from "./playback.svelte";
     
     const zipSaveHandler = new ZipSaveHandler();
+    const handlers: SaveArchive[] = (
+        [zipSaveHandler, new FolderSaveHandler()] satisfies SaveArchive[]
+    ).filter(h => h.isSupported())
 
     let editedFile: EditorFile = $state(new EditorFile(zipSaveHandler));
+    let playbackState: PlaybackState = $state({ playing: PlaybackType.Paused, time: 0 });
+
     let maps = $derived(editedFile.maps);
+    let meta = $derived(editedFile.meta);
+    let hasChanges = $derived(editedFile.hasChanges);
     
     let selectedNotes: Set<EditorNoteID> = $state(new Set());
     let openMap: EditorMapID | null = $state(null);
@@ -54,22 +64,42 @@
 
 <div class="editor">
     <div class="toolbar">
-        <ToolbarDropdown title="File">
-            <button onclick={() => {
-                if(editedFile.hasChanges) {
-                    if(!confirm("You have unsaved changes. Are you sure you want to create a new file?")) return;
-                }
-                zipSaveHandler.close(editedFile);
-                editedFile = new EditorFile(zipSaveHandler);
-            }}>New</button>
-            <button onclick={async () => editedFile = await zipSaveHandler.load()}>Open from zip</button>
-            <!-- <button onclick={() => console.log("Open existing")}>Open existing</button> -->
-            <button onclick={() => editedFile.save()}>Save to zip</button>
-        </ToolbarDropdown>
+        <div class="section">
+            <ToolbarDropdown title="File">
+                <button onclick={() => {
+                    if($hasChanges) {
+                        if(!confirm("You have unsaved changes. Are you sure you want to create a new file?")) return;
+                    }
+                    editedFile.saveArchive.close();
+                    editedFile = new EditorFile(zipSaveHandler);
+                }}>New</button>
+                {#each handlers as handler}
+                    <button onclick={async () => {
+                    if($hasChanges) {
+                        if(!confirm("You have unsaved changes. Are you sure you want to open a new file?")) return;
+                    }
+                        editedFile = await EditorFile.load(handler)
+                    }}>Open from {handler.getName()}</button>
+                {/each}
+                <!-- <button onclick={() => console.log("Open existing")}>Open existing</button> -->
+                <button onclick={() => editedFile.save()}>Save {editedFile.saveArchive.getName()}</button>
+            </ToolbarDropdown>
+        </div>
+
+        <div class="section">
+            <span class="title">{$meta.name}{$hasChanges ? " *" : ""}</span>
+        </div>
+
+        <div class="section">
+            <!-- Playback controls -->
+        </div>
     </div>
     <div class="settings" style="width: {settingsWidth}px">
         {#if selectedNotes.size == 0 || !openMap}
-            <EditorFileSettings file={editedFile} />
+            <!-- Full rerender when open file changes -->
+            {#key editedFile}
+                <EditorFileSettings file={editedFile} {playbackState} />
+            {/key}
         {:else}
             <NoteSettings file={editedFile} notes={selectedNotes} />
         {/if}
@@ -92,7 +122,7 @@
     <div class="lanes">
         {#if openMap && $maps.has(openMap)}
             <!-- Render lanes for the selected map -->
-            <MapView file={editedFile} map={openMap} bind:selectedNotes={selectedNotes} />
+            <MapView file={editedFile} {playbackState} map={openMap} bind:selectedNotes={selectedNotes} />
         {:else}
             <p class="placeholder">Select a map to view its lanes.</p>
         {/if}
@@ -114,6 +144,24 @@
 .toolbar {
     grid-area: toolbar;
     background-color: var(--panel);
+
+    display: flex;
+    justify-content: space-between;
+
+    .section:first-of-type, .section:last-of-type {
+        flex: 1;
+    }
+
+    .title {
+        font-weight: bold;
+        text-align: center;
+        margin: 0 auto;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        height: 100%;
+        color: var(--text);
+    }
 }
 .settings {
     grid-area: settings;
@@ -136,7 +184,7 @@
     background-color: var(--section);
     display: flex;
     flex-direction: row;
-    gap: 1rem;
+    gap: 0.5rem;
     padding-left: 1rem;
 
     .map {

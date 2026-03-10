@@ -2,11 +2,15 @@
     import type { EditorFile } from "../EditorFile";
     import { guess } from 'web-audio-beat-detector';
     import EditorFileMapSettings from "./EditorFileMapSettings.svelte";
+    import { _$lazyEffect } from "../../../utils/effect.svelte";
+    import { syncPlaybackToElement, unsyncPlayback, type PlaybackState } from "../playback.svelte";
 
     const {
-        file
+        file,
+        playbackState = $bindable()
     }: {
-        file: EditorFile
+        file: EditorFile,
+        playbackState: PlaybackState
     } = $props();
 
     const coverImageUrl = $derived(file.coverImageUrl);
@@ -19,8 +23,8 @@
     let segmentStart = $derived($meta.start);
     let segmentEnd = $derived($meta.start + $meta.length);
 
-    $effect(() => {
-        file.meta.set({
+    _$lazyEffect(() => [bpm, offset, segmentStart, segmentEnd], () => {
+        meta.set({
             ...file.getMeta(),
             bpm,
             firstBeatOffset: offset,
@@ -30,7 +34,7 @@
         file.changed();
     });
 
-    $effect(() => {
+    _$lazyEffect(() => [audioFileData], () => {
         if(!$audioFileData) {
             segmentStart = 0;
             segmentEnd = 0;
@@ -66,6 +70,17 @@
         bpm = guessedBpm;
         offset = guessedOffset;
     }
+
+    let playbackAudio: HTMLAudioElement | null = $state(null);
+    $effect(() => {
+        if(playbackAudio) {
+            syncPlaybackToElement(playbackState, playbackAudio);
+        }
+
+        return () => {
+            if(playbackAudio) unsyncPlayback(playbackState, playbackAudio);
+        };
+    });
 </script>
 
 <div class="settings">
@@ -91,6 +106,20 @@
             file.setCoverImage(el.files[0]);
             file.changed();
         }} />
+        <button onclick={async () => {
+            const images = (await Promise.all(
+                (await navigator.clipboard.read())
+                .map(async (item) => {
+                    const imgMime = item.types.find((type) => type.startsWith("image/"));
+                    return imgMime ? await item.getType(imgMime) : null;
+                })
+            )).filter(v => v != null);
+
+            if(images.length > 0) {
+                file.setCoverImage(images[0]);
+                file.changed();
+            }
+        }}>Paste</button>
         <button onclick={() => {
             file.setCoverImage(null);
             file.changed();
@@ -119,7 +148,7 @@
         }}>Reset</button>
     </div>
     {#if $audioFileData}
-        <audio controls>
+        <audio controls bind:this={playbackAudio}>
             <source src={$audioFileData.url} type={$audioFileData.blob.type} />
         </audio>
     {:else}

@@ -15,6 +15,12 @@
     box-sizing: border-box;
 }
 
+// Nicer scrollbars
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface) var(--background);
+}
+
 html {
     overflow: hidden !important;
     width: 100vw;

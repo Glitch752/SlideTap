@@ -2,11 +2,20 @@ import { get } from "svelte/store";
 import type { MapDataJSON } from "../../../Map";
 import type { SongMetadataJSON } from "../../../Song";
 import { EditorFile } from "../EditorFile";
-import type { SaveHandler } from "./SaveHandler";
+import type { SaveArchive } from "./SaveArchive";
 import JSZip from "jszip";
 
-export class ZipSaveHandler implements SaveHandler {
-    async load(): Promise<EditorFile> {
+export class ZipSaveHandler implements SaveArchive {
+    private zip: JSZip | null = null;
+
+    getName(): string {
+        return "zip";
+    }
+    isSupported(): boolean {
+        return true;
+    }
+
+    async open() {
         const file = await new Promise<File | null>(resolve => {
             const input = document.createElement("input");
             input.type = "file";
@@ -24,88 +33,36 @@ export class ZipSaveHandler implements SaveHandler {
             reader.readAsArrayBuffer(file);
         });
 
-        const zip = await JSZip.loadAsync(arrayBuffer);
-
-        const metaFile = zip.file("metadata.json");
-        if(!metaFile) throw new Error("metadata.json not found in zip");
-        const metaStr = await metaFile.async("string");
-        const metadata: SongMetadataJSON = JSON.parse(metaStr);
-
-        const getBlob = async (path?: string) => {
-            if(!path) return undefined;
-            const f = zip.file(path);
-            if(!f) return undefined;
-            return await f.async("blob");
-        };
-
-        const cover = await getBlob(metadata.cover);
-        const track = await getBlob(metadata.track);
-
-        let editorFile = new EditorFile(this);
-        editorFile.loadMeta(metadata);
-        editorFile.setAudioFile(track ?? null);
-        editorFile.setCoverImage(cover ?? null);
-
-        return editorFile;
+        this.zip = await JSZip.loadAsync(arrayBuffer);
     }
 
-    async save(file: EditorFile): Promise<void> {
-        const zip = new JSZip();
+    async readFile(path: string): Promise<Blob | null> {
+        if(!this.zip) throw new Error("No zip file open");
+        const file = this.zip.file(path);
+        if(!file) return Promise.resolve(null);
 
-        let metadata: SongMetadataJSON = {
-            ...file.meta,
-            maps: [],
-            cover: "",
-            track: ""
-        };
+        return await file.async("blob");
+    }
 
-        // add audio and cover blobs if present on the editor file
-        if(file.audioFileData) {
-            const mimeExt = file.audioFileData.type.split('/')[1];
-            zip.file(`track.${mimeExt}`, file.audioFileData);
-            metadata.track = `track.${mimeExt}`;
-        }
-        if(file.coverImageFile) {
-            const mimeExt = file.coverImageFile.type.split('/')[1];
-            zip.file(`cover.${mimeExt}`, file.coverImageFile);
-            metadata.cover = `cover.${mimeExt}`;
-        }
+    async writeFile(path: string, data: Blob | string): Promise<void> {
+        if(!this.zip) throw new Error("No zip file open");
 
-        // collect maps from editor file (try several common property names)
-        const mapsFromFile = file.getMaps();
-        for(let i = 0; i < mapsFromFile.length; i++) {
-            const map = mapsFromFile[i];
-            const dataPath = `maps/map${i+1}.json`;
-            metadata.maps[i] = {
-                difficulty: map.difficulty,
-                name: map.name,
-                notes: map._notes.size,
-                dataPath
-            };
-            try {
-                zip.file(dataPath, JSON.stringify(map, null, 2));
-            } catch {
-                console.error(`Failed to serialize map ${i+1}`);
-            }
-        }
+        this.zip.file(path, data);
+    }
 
-        // write metadata
-        zip.file("metadata.json", JSON.stringify(metadata, null, 2));
+    async close(): Promise<void> {
+        this.zip = null;
+    }
 
-        const blob = await zip.generateAsync({ type: "blob" });
+    async persist(name: string): Promise<void> {
+        if(!this.zip) throw new Error("No zip file open");
+        const blob = await this.zip.generateAsync({ type: "blob" });
 
         // trigger download
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `${metadata.name ?? "song"}.zip`;
+        a.download = `${name}.zip`;
         a.click();
         URL.revokeObjectURL(a.href);
-    }
-
-    async close(file: EditorFile): Promise<void> {
-        const audioUrl = get(file.audioUrl);
-        if(audioUrl) URL.revokeObjectURL(audioUrl);
-        const coverUrl = get(file.coverImageUrl);
-        if(coverUrl) URL.revokeObjectURL(coverUrl);
     }
 }

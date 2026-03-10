@@ -4,14 +4,17 @@
     import EditorNote from "./EditorNote.svelte";
     import { type MapNote, MapNoteLayer, MapNoteType } from "../../Map";
     import { onMount } from "svelte";
+    import type { PlaybackState } from "./playback.svelte";
 
     const {
         file,
         map,
+        playbackState,
         selectedNotes = $bindable()
     }: {
         file: EditorFile,
         map: EditorMapID,
+        playbackState: PlaybackState,
         selectedNotes: Set<EditorNoteID>
     } = $props();
 

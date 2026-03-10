@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite';
+
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import basicSsl from '@vitejs/plugin-basic-ssl'
+
 import path from 'path';
 
 export default defineConfig({
@@ -10,7 +13,7 @@ export default defineConfig({
         compilerOptions: {
             hmr: true
         }
-    })],
+    }), basicSsl()],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'src'),

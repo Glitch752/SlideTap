@@ -1,6 +1,6 @@
 import type { MapNote } from "../../Map";
 import { get, writable, type Writable } from "svelte/store";
-import type { SaveHandler } from "./saveHandlers/SaveHandler";
+import type { SaveArchive } from "./saveHandlers/SaveArchive";
 import type { SongMetadataJSON } from "../../Song";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
@@ -65,6 +65,12 @@ export class EditorFile {
 
         this.audioFileData.set({ blob: file, context: audioContext, buffer, url: URL.createObjectURL(file) });
     }
+    public async close(file: EditorFile): Promise<void> {
+        const audioUrl = get(file.audioFileData)?.url;
+        if(audioUrl) URL.revokeObjectURL(audioUrl);
+        const coverUrl = get(file.coverImageUrl);
+        if(coverUrl) URL.revokeObjectURL(coverUrl);
+    }
 
     private generateMapId(): EditorMapID {
         return (Math.random().toString(36).substring(2, 5) as unknown) as EditorMapID;
@@ -105,14 +111,11 @@ export class EditorFile {
         return this._maps.get(id);
     }
 
-    public hasChanges: boolean = false;
+    public hasChanges: Writable<boolean> = writable(false);
     public changed() {
-        this.hasChanges = true;
+        this.hasChanges.set(true);
     }
 
-    public static load(handler: SaveHandler) {
-        return handler.load();
-    }
     public loadMeta(metadata: SongMetadataJSON) {
         this.meta.set(metadata);
 
@@ -126,11 +129,80 @@ export class EditorFile {
         }
     }
 
-    public async save() {
-        await this.saveHandler.save(this);
+
+    public static async load(ar: SaveArchive) {
+        await ar.open();
+
+        const metaFile = await ar.readFile("metadata.json");
+        if(!metaFile) throw new Error("metadata.json not found in zip");
+        const decoder = new TextDecoder();
+        const metaStr = decoder.decode(await metaFile.arrayBuffer());
+        const metadata: SongMetadataJSON = JSON.parse(metaStr);
+
+        const getBlob = async (path?: string) => {
+            if(!path) return undefined;
+            return await ar.readFile(path);
+        };
+
+        const cover = await getBlob(metadata.cover);
+        const track = await getBlob(metadata.track);
+
+        let editorFile = new EditorFile(ar);
+        editorFile.loadMeta(metadata);
+        await editorFile.setAudioFile(track ?? null);
+        editorFile.setCoverImage(cover ?? null);
+
+        return editorFile;
+    }
+
+    public async save(): Promise<void> {
+        const ar = this.saveArchive;
+
+        let metadata: SongMetadataJSON = {
+            ...this.getMeta(),
+            maps: [],
+            cover: "",
+            track: ""
+        };
+
+        // add audio and cover blobs if present on the editor file
+        const audioFileData = get(this.audioFileData);
+        if(audioFileData) {
+            const mimeExt = audioFileData.blob.type.split('/')[1];
+            await ar.writeFile(`track.${mimeExt}`, audioFileData.blob);
+            metadata.track = `track.${mimeExt}`;
+        }
+        if(this.coverImageFile) {
+            const mimeExt = this.coverImageFile.type.split('/')[1];
+            await ar.writeFile(`cover.${mimeExt}`, this.coverImageFile);
+            metadata.cover = `cover.${mimeExt}`;
+        }
+
+        // collect maps from editor file (try several common property names)
+        const mapsFromFile = this.getMaps();
+        for(let i = 0; i < mapsFromFile.length; i++) {
+            const map = mapsFromFile[i];
+            const dataPath = `maps/map${i+1}.json`;
+            metadata.maps[i] = {
+                difficulty: map.difficulty,
+                name: map.name,
+                notes: map._notes.size,
+                dataPath
+            };
+            try {
+                await ar.writeFile(dataPath, JSON.stringify(map, null, 2));
+            } catch {
+                console.error(`Failed to serialize map ${i+1}`);
+            }
+        }
+
+        // write metadata
+        await ar.writeFile("metadata.json", JSON.stringify(metadata, null, 2));
+    
+        await ar.persist(this.getMeta().name);
     }
 
     // Create a blank editor file with no data.
-    public constructor(public saveHandler: SaveHandler) {
+    public constructor(public saveArchive: SaveArchive) {
     }
 }
