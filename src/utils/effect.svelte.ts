@@ -6,8 +6,6 @@ import { untrack } from "svelte";
 export function _$lazyEffect(deps: () => any[], cb: () => void) {
 	let first = true;
 	$effect(() => {
-		$inspect.trace();
-        
         // Svelte is magic because.. what. how?
 		deps();
 		if(first) {

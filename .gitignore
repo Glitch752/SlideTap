@@ -16,4 +16,6 @@ dist/
 .idea
 
 # I need to figure out how to distribute songs :skulk:
-*.opus
+public/songs/**/*.opus
+public/songs/**/*.ogg
+public/songs/**/*.png

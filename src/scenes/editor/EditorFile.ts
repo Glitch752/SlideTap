@@ -1,4 +1,4 @@
-import type { MapNote } from "../../Map";
+import type { MapDataJSON, MapNote } from "../../Map";
 import { get, writable, type Writable } from "svelte/store";
 import type { SaveArchive } from "./saveHandlers/SaveArchive";
 import type { SongMetadataJSON } from "../../Song";
@@ -16,6 +16,21 @@ export class EditorMapData {
     constructor(name: string, difficulty: number) {
         this.name = name;
         this.difficulty = difficulty;
+    }
+
+    public serialize(): MapDataJSON {
+        return {
+            notes: Array.from(this._notes.values())
+        };
+    }
+
+    public deserialize(data: MapDataJSON, editor: EditorFile) {
+        this._notes.clear();
+        console.log(data);
+        for(const note of data.notes) {
+            this._notes.set(editor.generateNoteId(), note);
+        }
+        this.notes.set(this._notes);
     }
 }
 export type EditorFileMetadata = Omit<SongMetadataJSON, "track" | "cover" | "maps">;
@@ -41,6 +56,7 @@ export class EditorFile {
     public audioFileData: Writable<{
         blob: Blob,
         context: AudioContext,
+        bufferSource: AudioBufferSourceNode,
         buffer: AudioBuffer,
         url: string
     } | null> = writable(null);
@@ -63,7 +79,17 @@ export class EditorFile {
         const audioContext = new AudioContext();
         const buffer = await audioContext.decodeAudioData(await file.arrayBuffer());
 
-        this.audioFileData.set({ blob: file, context: audioContext, buffer, url: URL.createObjectURL(file) });
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+
+        this.audioFileData.set({
+            blob: file,
+            context: audioContext,
+            buffer,
+            bufferSource: source,
+            url: URL.createObjectURL(file)
+        });
     }
     public async close(file: EditorFile): Promise<void> {
         const audioUrl = get(file.audioFileData)?.url;
@@ -111,22 +137,13 @@ export class EditorFile {
         return this._maps.get(id);
     }
 
-    public hasChanges: Writable<boolean> = writable(false);
+    public unsavedChanges: Writable<boolean> = writable(false);
     public changed() {
-        this.hasChanges.set(true);
+        this.unsavedChanges.set(true);
     }
 
     public loadMeta(metadata: SongMetadataJSON) {
         this.meta.set(metadata);
-
-        this._maps.clear();
-        for(const map of metadata.maps) {
-            const mapId = this.generateMapId();
-            this._maps.set(mapId, new EditorMapData(map.name, map.difficulty));
-        }
-        if(this.maps) {
-            this.maps.set(this._maps);
-        }
     }
 
 
@@ -151,6 +168,31 @@ export class EditorFile {
         editorFile.loadMeta(metadata);
         await editorFile.setAudioFile(track ?? null);
         editorFile.setCoverImage(cover ?? null);
+
+        // Load maps
+
+        editorFile._maps.clear();
+        for(const map of metadata.maps) {
+            const mapId = editorFile.generateMapId();
+            const editorData = new EditorMapData(map.name, map.difficulty);
+            editorFile._maps.set(mapId, editorData);
+
+            const dataFile = await ar.readFile(map.dataPath);
+            if(!dataFile) throw new Error(`Map data not found: ${map.dataPath}`);
+
+            const decoder = new TextDecoder();
+            const dataStr = decoder.decode(await dataFile.arrayBuffer());
+            const data: MapDataJSON = JSON.parse(dataStr);
+
+            try {
+                editorData.deserialize(data, editorFile);
+            } catch(e) {
+                console.error(`Failed to deserialize map ${map.name}`);
+            }
+        }
+        if(editorFile.maps) {
+            editorFile.maps.set(editorFile._maps);
+        }
 
         return editorFile;
     }
@@ -190,16 +232,18 @@ export class EditorFile {
                 dataPath
             };
             try {
-                await ar.writeFile(dataPath, JSON.stringify(map, null, 2));
+                await ar.writeFile(dataPath, JSON.stringify(map.serialize()));
             } catch {
                 console.error(`Failed to serialize map ${i+1}`);
             }
         }
 
         // write metadata
-        await ar.writeFile("metadata.json", JSON.stringify(metadata, null, 2));
+        await ar.writeFile("metadata.json", JSON.stringify(metadata));
     
         await ar.persist(this.getMeta().name);
+
+        this.unsavedChanges.set(false);
     }
 
     // Create a blank editor file with no data.

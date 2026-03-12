@@ -22,6 +22,7 @@ export class FolderSaveHandler implements SaveArchive {
         let parentDir = this.directoryHandle;
         if(filename.includes("/")) {
             const pathParts = filename.split("/");
+            filename = pathParts[pathParts.length - 1];
             for(let i = 0; i < pathParts.length - 1; i++) {
                 parentDir = await parentDir.getDirectoryHandle(pathParts[i], { create: true });
             }
@@ -40,6 +41,7 @@ export class FolderSaveHandler implements SaveArchive {
             let parentDir = this.directoryHandle;
             if(filename.includes("/")) {
                 const pathParts = filename.split("/");
+                filename = pathParts[pathParts.length - 1];
                 for(let i = 0; i < pathParts.length - 1; i++) {
                     parentDir = await parentDir.getDirectoryHandle(pathParts[i], { create: true });
                 }

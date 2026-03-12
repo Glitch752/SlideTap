@@ -27,8 +27,8 @@ async function play() {
 <span class="artist">{song.artist}</span>
 <img src={song.getRelativeFile(song.coverPath)} alt={song.name} />
 <div class="data">
-    <span>{song.bpm} bpm</span>
-    <span>{formatDuration(song.length)} long</span>
+    <span>{Math.round(song.bpm)} bpm</span>
+    <span>{formatDuration(Math.round(song.length))} long</span>
 </div>
 <div class="maps">
     {#each song.maps as map, i}

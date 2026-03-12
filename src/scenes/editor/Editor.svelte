@@ -11,6 +11,7 @@
     import { FolderSaveHandler } from "./saveHandlers/FolderSaveHandler";
     import type { SaveArchive } from "./saveHandlers/SaveArchive";
     import { PlaybackType, type PlaybackState } from "./playback.svelte";
+    import PlaybackControls from "./PlaybackControls.svelte";
     
     const zipSaveHandler = new ZipSaveHandler();
     const handlers: SaveArchive[] = (
@@ -22,7 +23,7 @@
 
     let maps = $derived(editedFile.maps);
     let meta = $derived(editedFile.meta);
-    let hasChanges = $derived(editedFile.hasChanges);
+    let unsavedChanges = $derived(editedFile.unsavedChanges);
     
     let selectedNotes: Set<EditorNoteID> = $state(new Set());
     let openMap: EditorMapID | null = $state(null);
@@ -67,7 +68,7 @@
         <div class="section">
             <ToolbarDropdown title="File">
                 <button onclick={() => {
-                    if($hasChanges) {
+                    if($unsavedChanges) {
                         if(!confirm("You have unsaved changes. Are you sure you want to create a new file?")) return;
                     }
                     editedFile.saveArchive.close();
@@ -75,7 +76,7 @@
                 }}>New</button>
                 {#each handlers as handler}
                     <button onclick={async () => {
-                    if($hasChanges) {
+                    if($unsavedChanges) {
                         if(!confirm("You have unsaved changes. Are you sure you want to open a new file?")) return;
                     }
                         editedFile = await EditorFile.load(handler)
@@ -87,12 +88,10 @@
         </div>
 
         <div class="section">
-            <span class="title">{$meta.name}{$hasChanges ? " *" : ""}</span>
+            <span class="title">{$meta.name}{$unsavedChanges ? " *" : ""}</span>
         </div>
 
-        <div class="section">
-            <!-- Playback controls -->
-        </div>
+        <div class="section"></div>
     </div>
     <div class="settings" style="width: {settingsWidth}px">
         {#if selectedNotes.size == 0 || !openMap}
@@ -106,18 +105,22 @@
     </div>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="splitter" onmousedown={startDrag} role="separator" aria-orientation="vertical"></div>
-    <div class="map-selector">
-        {#if $maps.size === 0}
-            <p class="placeholder">No maps available.</p>
-        {/if}
-        {#each $maps as [mapID, map] (mapID)}
-            <button
-                class="map"
-                class:selected={openMap === mapID}
-                style="--color: {difficultyColor(map.difficulty)}"
-                onmousedown={() => openMap = mapID}
-            >{map.name}</button>
-        {/each}
+    <div class="content-toolbar">
+        <div class="maps">
+            {#if $maps.size === 0}
+                <p class="placeholder">No maps available.</p>
+            {/if}
+            {#each $maps as [mapID, map] (mapID)}
+                <button
+                    class="map"
+                    class:selected={openMap === mapID}
+                    style="--color: {difficultyColor(map.difficulty)}"
+                    onmousedown={() => openMap = mapID}
+                >{map.name}</button>
+            {/each}
+        </div>
+        
+        <PlaybackControls {playbackState} file={editedFile} />
     </div>
     <div class="lanes">
         {#if openMap && $maps.has(openMap)}
@@ -136,7 +139,7 @@
     display: grid;
     grid-template-areas:
         "toolbar toolbar"
-        "settings map"
+        "settings content-toolbar"
         "settings lanes";
     grid-template-columns: auto 1fr;
     grid-template-rows: auto auto 1fr;
@@ -179,14 +182,20 @@
     z-index: 2;
     user-select: none;
 }
-.map-selector {
-    grid-area: map;
+.content-toolbar {
+    grid-area: content-toolbar;
     background-color: var(--section);
     display: flex;
     flex-direction: row;
     gap: 0.5rem;
     padding-left: 1rem;
 
+    .maps {
+        display: flex;
+        flex-direction: row;
+        gap: 0.25rem;
+        flex: 1;
+    }
     .map {
         &.selected {
             --bg-color: var(--surface);

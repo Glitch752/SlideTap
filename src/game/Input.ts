@@ -7,19 +7,20 @@ import { GameNode, NodeID } from "./types";
  * An input layer represents a set of keys that control one type of note.  
  * There are two primary (titular...) interactions we track:
  * - "Sliding": moving between adjacent keys, creating movement - "sliding" on the keyboard "slides" the cursor between lanes.
- * - "Tapping": quickly pressing two or three keys at once to hit one, two, or three notes at once.
+ * - "Tapping": pressing three adjacent keys at once (within a short time window)
  */
 class InputLayer {
     private lastKeyBitmask: number = 0;
 
-    /** Positive numbers are countdowns while pressed; negative numbers count up after release. */
+    /** Positive numbers are countdowns while pressed */
     private keyPressCountdown: number[] = [];
-    private static readonly TAP_PRESS_DURATION_LIMIT = 0.2;
-    private static readonly TAP_ADJACENT_LENIENCY = 0.05;
-    private static readonly MIN_TAP_SIZE = 2;
-    private static readonly MAX_TAP_SIZE = 3;
+    private keyPressOffsets: number[] = [];
+    private static readonly TAP_PRESS_DURATION_LIMIT = 0.05;
+    private static readonly TAP_KEYS = 3;
 
-    constructor(private keys: string[], private layer: MapNoteLayer) {}
+    constructor(private keys: string[], private layer: MapNoteLayer) {
+        this.keyPressCountdown = new Array(this.keys.length).fill(0);
+    }
 
     private getKeyBitmask(keysHeld: Set<string>): number {
         let bitmask = 0;
@@ -58,73 +59,68 @@ class InputLayer {
     }
 
     public update(deltaTime: number, keysHeld: Set<string>, context: GameScene) {
+        const cursor = context.tree.get<Cursor>(NodeID.Cursor)!;
         const keyBitmask = this.getKeyBitmask(keysHeld);
 
         const pressed  = keyBitmask & ~this.lastKeyBitmask;
         const released = ~keyBitmask & this.lastKeyBitmask;
 
         // Tap logic
-        for(const key of this.enumerate(pressed)) {
-            this.keyPressCountdown[key] = InputLayer.TAP_PRESS_DURATION_LIMIT;
-        }
-        for(const key of this.enumerate(released)) {
-            if(this.keyPressCountdown[key] > 0) {
-                // Tap candidate
-                this.keyPressCountdown[key] = -InputLayer.TAP_ADJACENT_LENIENCY;
-            }
-        }
-
         let tapped = false;
         for(let i = 0; i < this.keyPressCountdown.length; i++) {
             if(this.keyPressCountdown[i] > 0) {
-                this.keyPressCountdown[i] -= deltaTime;
-                if(this.keyPressCountdown[i] <= 0) {
-                    this.keyPressCountdown[i] = 0;
-                }
-            } else if(this.keyPressCountdown[i] < 0) {
-                this.keyPressCountdown[i] += deltaTime;
-                if(this.keyPressCountdown[i] >= 0) {
-                    this.keyPressCountdown[i] = 0;
-                    // Check how many adjacent keys were also tapped (negative countdowns)
-                    // If any adjacent keys were just pressed (positive countdown), cancel the tap
-                    let tapSize = 1;
-                    for(let j = i - 1; j >= 0; j--) {
-                        if(this.keyPressCountdown[j] < 0) tapSize++;
-                        else if(this.keyPressCountdown[j] > 0) {
-                            tapSize = 0;
-                            break;
-                        }
-                        else break;
-                        this.keyPressCountdown[j] = 0;
-                    }
-                    if(tapSize === 0) continue; // Invalid tap due to intervening key press
-                    for(let j = i + 1; j < this.keys.length; j++) {
-                        if(this.keyPressCountdown[j] < 0) tapSize++;
-                        else if(this.keyPressCountdown[j] > 0) {
-                            tapSize = 0;
-                            break;
-                        }
-                        else break;
-                        this.keyPressCountdown[j] = 0;
-                    }
+                this.keyPressCountdown[i] = Math.max(0, this.keyPressCountdown[i] - deltaTime);
+            }
+        }
 
-                    if(tapSize >= InputLayer.MIN_TAP_SIZE && tapSize <= InputLayer.MAX_TAP_SIZE) {
-                        // Valid tap!
-                        context.tree.get<Cursor>(NodeID.Cursor)!.tap(tapSize, this.layer);
-                        tapped = true;
+        for(const key of this.enumerate(pressed)) {
+            this.keyPressCountdown[key] = InputLayer.TAP_PRESS_DURATION_LIMIT;
+            this.keyPressOffsets[key] = 0;
+
+            // Check if there are now TAP_KEYS adjacent keys within the tap window
+            for(let start = 0; start <= this.keys.length - InputLayer.TAP_KEYS; start++) {
+                let allTapped = true;
+                for(let offset = 0; offset < InputLayer.TAP_KEYS; offset++) {
+                    if(
+                        this.keyPressCountdown[start + offset] <= 0 ||
+                        this.keyPressCountdown[start + offset] > InputLayer.TAP_PRESS_DURATION_LIMIT
+                    ) {
+                        allTapped = false;
+                        break;
                     }
+                }
+                if(allTapped) {
+                    cursor.tap(this.layer);
+
+                    // Slide back to the original based on the offsets of the tapped keys
+                    // (which show how much we've slid since the tap started)
+                    let totalOffset = 0;
+                    for(let offset = 0; offset < InputLayer.TAP_KEYS; offset++) {
+                        totalOffset += this.keyPressOffsets[start + offset];
+                    }
+                    cursor.slide(-totalOffset, this.layer);
+                    
+                    tapped = true;
+                    break;
                 }
             }
+        }
+        for(const key of this.enumerate(released)) {
+            this.keyPressCountdown[key] = 0;
         }
 
         // Pressed keys in either direction of a previously-held key create movement
         const pressedLeft  = pressed & this.lastKeyBitmask << 1;
         const pressedRight = pressed & this.lastKeyBitmask >> 1;
+
+        // Add all the left/right presses to keyPressOffsets
+        for(const key of this.enumerate(pressedLeft)) this.keyPressOffsets[key] -= 1;
+        for(const key of this.enumerate(pressedRight)) this.keyPressOffsets[key] += 1;
         
         const movement = this.count(pressedRight) - this.count(pressedLeft);
 
         if(movement !== 0 && !tapped) {
-            context.tree.get<Cursor>(NodeID.Cursor)!.slide(movement, this.layer);
+            cursor.slide(movement, this.layer);
         }
 
         this.lastKeyBitmask = keyBitmask;

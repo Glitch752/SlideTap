@@ -87,7 +87,7 @@ export class Cursor extends GameNode {
         }
     }
 
-    public tap(tapSize: number, type: MapNoteLayer) {
-        this.context!.tree.get<Renderer>(NodeID.Renderer)!.debugText(`Tap ${tapSize} ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
+    public tap(type: MapNoteLayer) {
+        this.context!.tree.get<Renderer>(NodeID.Renderer)!.debugText(`Tap ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
     }
 }
