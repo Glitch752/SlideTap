@@ -1,19 +1,9 @@
 <script module>
 import { Song } from "../../Song";
-  import SongListItemContent from "./SongListItemContent.svelte";
+import { songArchives } from "../../songs";
+import SongListItemContent from "./SongListItemContent.svelte";
 
-export const songs = await Promise.all([
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple"),
-    Song.load("kontonBoogie"),
-    Song.load("badApple")
-]);
+const songs = await Promise.all(songArchives.map(Song.load.bind(Song)));
 
 export function difficultyColor(difficulty: number): string {
     return `hsl(${240 - difficulty / 100 * 240}, 100.00%, 80.00%)`;
@@ -72,7 +62,7 @@ function onKeydown(event: KeyboardEvent) {
     <div class="list" bind:this={songListElement} style="--focus-height: {songListFocusHeight}px">
         {#each songs as song, i}
             <div class="song" class:selected={i === selectedSongIndex} data-song-idx="{i}">
-                <img src={song.getRelativeFile(song.coverPath)} alt={song.name} />
+                <img src={song.cover.src} alt={song.name} />
                 <span class="title">{song.name}</span>
                 <span class="artist">{song.artist}</span>
                 <div class="maps">

@@ -28,7 +28,7 @@ export type MapNote = {
     type: MapNoteType;
 };
 
-export type MapDataJSON = {
+export type LoadedMapDataJSON = {
     notes: MapNote[];
 };
 
@@ -36,7 +36,7 @@ export class GameMap {
     /** All of the notes in this map. Sorted by start time. */
     private notes: MapNote[] = [];
 
-    constructor(mapData: MapDataJSON) {
+    constructor(mapData: LoadedMapDataJSON) {
         this.notes = mapData.notes;
     }
 }

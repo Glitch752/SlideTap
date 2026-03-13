@@ -1,8 +1,13 @@
+import { get } from "svelte/store";
 import { GameMap } from "./Map";
+import { EditorFile, EditorMapData } from "./scenes/editor/EditorFile";
+import type { SaveArchive } from "./scenes/editor/saveHandlers/SaveArchive";
 import { SongLeaderboard } from "./SongLeaderboard";
 import { timeout } from "./utils/timing";
 
 export type SongMetadataJSON = {
+    id: string;
+
     name: string;
     artist: string;
     
@@ -29,80 +34,70 @@ export type SongMapJSON = {
 };
 
 /**
- * The metadata about a song, not including specific map data.
+ * A read-only song, used for playing in the game. The data is loaded from an EditorFile.
+ * The metadata about a song, not including specific map data.  
+ * It's kind of gross that this is separate from EditorFile but depends on it, but... oh well. This all works.
  */
 export class Song {
-    public name: string = "Unknown track";
-    public artist: string = "Unknown";
-    public trackPath: string = "";
-    public coverPath: string = "";
-    public bpm: number = 0;
-    /** Offset of the first beat, in beats */
-    public firstBeatOffset: number = 0;
-    public length: number = 0; // seconds
-    public maps: SongMapJSON[] = [];
+    public get name() {
+        return this.file.getMeta().name;
+    }
+    public get artist() {
+        return this.file.getMeta().artist;
+    }
+    public get bpm() {
+        return this.file.getMeta().bpm;
+    }
+    public get length() {
+        return this.file.getMeta().length;
+    }
 
     public leaderboard: SongLeaderboard;
 
     public cover: HTMLImageElement = null as unknown as HTMLImageElement;
     public track: HTMLAudioElement = null as unknown as HTMLAudioElement;
 
-    private constructor(public id: string) {
+    public maps: EditorMapData[] = [];
+
+    private constructor(public id: string, private file: EditorFile) {
         this.leaderboard = new SongLeaderboard(this.id);
+        this.maps = file.getMaps();
     }
 
-    public static async load(id: string): Promise<Song> {
-        const song = new Song(id);
-        await song.loadMetadata();
-        await timeout(Promise.all([
-            song.loadCover(),
-            song.loadTrack()
-        ]), 2000);
+    public static async load(ar: SaveArchive): Promise<Song> {
+        const file = await EditorFile.load(ar, false);
+        return this.loadFromFile(file);
+    }
+
+    public static async loadFromFile(file: EditorFile): Promise<Song> {
+        const meta = file.getMeta();
+        const song = new Song(meta.id, file);
+
+        const coverData = await file.coverImageFile?.arrayBuffer();
+        if(coverData) {
+            const blob = new Blob([coverData]);
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.src = url;
+            song.cover = img;
+        }
+
+        const audioData = await get(file.audioFileData);
+        if(audioData) {
+            const blob = audioData.blob;
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            song.track = audio;
+        }
 
         return song;
     }
 
-    public getRelativeFile(path: string) {
-        return `songs/${this.id}/${path}`;
-    }
-
-    private async loadMetadata() {
-        const file = await fetch(this.getRelativeFile("metadata.json"));
-        const data: SongMetadataJSON = await file.json();
-
-        this.name = data["name"];
-        this.artist = data["artist"];
-        this.trackPath = data["track"];
-        this.coverPath = data["cover"];
-        this.bpm = data["bpm"];
-        this.firstBeatOffset = data["offset"];
-        this.length = data["length"];
-        this.maps = data["maps"];
-    }
-
-    private async loadCover() {
-        this.cover = new Image();
-        this.cover.src = this.getRelativeFile(this.coverPath);
-        await new Promise(resolve => this.cover.onload = resolve);
-    }
-
-    private async loadTrack() {
-        this.track = new Audio();
-        this.track.src = this.getRelativeFile(this.trackPath);
-        await new Promise(resolve => this.track.onloadeddata = resolve);
-    }
-
     public async getMap(index: number): Promise<GameMap> {
-        const mapMeta = this.maps[index];
-        const filePath = this.getRelativeFile(mapMeta.dataPath);
-        const file = await fetch(filePath);
-        const text = await file.text();
-        if(text.startsWith("<")) {
-            // Failed to load
-            throw new Error(`Failed to load map data for ${this.name} (${this.id}), map index ${index}. Tried to fetch ${filePath}, but got HTML instead of JSON.`);
+        const map = this.maps[index];
+        if(!map.loaded) {
+            await this.file.loadMap(map);
         }
-        
-        const data = JSON.parse(text);
-        return new GameMap(data);
+        return new GameMap(map.serialize());
     }
 }

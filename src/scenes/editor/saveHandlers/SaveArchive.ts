@@ -1,3 +1,18 @@
+/* class decorator */
+export function staticImplements<T>() {
+    return <U extends T>(constructor: U) => {constructor};
+}
+
+export interface OpenableSaveArchive {
+    isSupported(): boolean;
+    /** The name of this archive type, to be included in "Save as {name}..." or "Open {name}..." */
+    getName(): string;
+    
+    open(): Promise<SaveArchive>;
+    // new(): SaveArchive;
+}
+
+
 /**
  * The file structure of song file directories is:  
  * - metadata.json (schema SongDataJSON)  
@@ -8,11 +23,7 @@
  * These can be saved in multiple ways, though, so this is a generic interface.
  */
 export interface SaveArchive {
-    isSupported(): boolean;
-    /** The name of this archive type, to be included in "Save as {name}..." or "Open {name}..." */
-    getName(): string;
-
-    open(): Promise<void>;
+    // canSave()
 
     readFile(path: string): Promise<Blob | null>;
     

@@ -1,24 +1,25 @@
 <script lang="ts">
     import { difficultyColor } from "../songList/SongList.svelte";
     import DraggableWindow from "./DraggableWindow.svelte";
-    import ToolbarDropdown from "./ToolbarDropdown.svelte";
+    import ToolbarDropdown from "./toolbar/ToolbarDropdown.svelte";
     import Game from "../game/Game.svelte";
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
-    import { ZipSaveHandler } from "./saveHandlers/ZipSaveHandler";
+    import { ZipSaveArchive } from "./saveHandlers/ZipSaveHandler";
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
     import NoteSettings from "./NoteSettings.svelte";
     import MapView from "./MapView.svelte";
-    import { FolderSaveHandler } from "./saveHandlers/FolderSaveHandler";
-    import type { SaveArchive } from "./saveHandlers/SaveArchive";
+    import { FolderSaveArchive } from "./saveHandlers/FolderSaveHandler";
+    import type { OpenableSaveArchive, SaveArchive } from "./saveHandlers/SaveArchive";
     import { PlaybackType, type PlaybackState } from "./playback.svelte";
     import PlaybackControls from "./PlaybackControls.svelte";
+    import { songArchives } from "../../songs";
+    import ToolbarDropdownSubmenu from "./toolbar/ToolbarDropdownSubmenu.svelte";
     
-    const zipSaveHandler = new ZipSaveHandler();
-    const handlers: SaveArchive[] = (
-        [zipSaveHandler, new FolderSaveHandler()] satisfies SaveArchive[]
+    const handlers: OpenableSaveArchive[] = (
+        [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
     ).filter(h => h.isSupported())
 
-    let editedFile: EditorFile = $state(new EditorFile(zipSaveHandler));
+    let editedFile: EditorFile = $state(new EditorFile(new ZipSaveArchive()));
     let playbackState: PlaybackState = $state({ playing: PlaybackType.Paused, time: 0 });
 
     let maps = $derived(editedFile.maps);
@@ -72,18 +73,34 @@
                         if(!confirm("You have unsaved changes. Are you sure you want to create a new file?")) return;
                     }
                     editedFile.saveArchive.close();
-                    editedFile = new EditorFile(zipSaveHandler);
+                    editedFile = new EditorFile(new ZipSaveArchive());
                 }}>New</button>
                 {#each handlers as handler}
                     <button onclick={async () => {
                     if($unsavedChanges) {
                         if(!confirm("You have unsaved changes. Are you sure you want to open a new file?")) return;
                     }
-                        editedFile = await EditorFile.load(handler)
+                        editedFile = await EditorFile.load(await handler.open())
                     }}>Open from {handler.getName()}</button>
                 {/each}
                 <!-- <button onclick={() => console.log("Open existing")}>Open existing</button> -->
-                <button onclick={() => editedFile.save()}>Save {editedFile.saveArchive.getName()}</button>
+                {@const saveName = editedFile.saveArchive.canSave()}
+                {#if saveName !== null}
+                    <button onclick={() => editedFile.save()}>Save {editedFile.saveArchive.getName()}</button>
+                {/if}
+                <ToolbarDropdownSubmenu title="Save as">
+                    <!-- TODO -->
+                </ToolbarDropdownSubmenu>
+                <ToolbarDropdownSubmenu title="Open existing">
+                    {#each songArchives as archive}
+                        <button onclick={async () => {
+                            if($unsavedChanges) {
+                                if(!confirm("You have unsaved changes. Are you sure you want to open a new file?")) return;
+                            }
+                            editedFile = await EditorFile.load(archive);
+                        }}>{archive.songName}</button>
+                    {/each}
+                </ToolbarDropdownSubmenu>
             </ToolbarDropdown>
         </div>
 

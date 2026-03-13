@@ -25,7 +25,7 @@ async function play() {
 
 <span class="title">{song.name}</span>
 <span class="artist">{song.artist}</span>
-<img src={song.getRelativeFile(song.coverPath)} alt={song.name} />
+<img src={song.cover.src} alt={song.name} />
 <div class="data">
     <span>{Math.round(song.bpm)} bpm</span>
     <span>{formatDuration(Math.round(song.length))} long</span>
@@ -35,7 +35,7 @@ async function play() {
         <button class="map" class:selected={i === $selectedMapIndex} style="--color: {difficultyColor(map.difficulty)}" onmousedown={() => selectedMapIndex.update(() => i)}>
             <span class="difficulty">{map.difficulty}</span>
             <span class="name">{map.name}</span>
-            <span class="notes">{map.notes} notes</span>
+            <span class="notes">{get(map.notes).size} notes</span>
         </button>
     {/each}
 </div>

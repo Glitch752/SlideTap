@@ -1,21 +1,18 @@
-import { get } from "svelte/store";
-import type { MapDataJSON } from "../../../Map";
-import type { SongMetadataJSON } from "../../../Song";
-import { EditorFile } from "../EditorFile";
-import type { SaveArchive } from "./SaveArchive";
+import { staticImplements, type SaveArchive, type OpenableSaveArchive } from "./SaveArchive";
 import JSZip from "jszip";
 
-export class ZipSaveHandler implements SaveArchive {
-    private zip: JSZip | null = null;
-
-    getName(): string {
-        return "zip";
-    }
-    isSupported(): boolean {
+@staticImplements<OpenableSaveArchive>()
+export class ZipSaveArchive implements SaveArchive {
+    public static isSupported(): boolean {
         return true;
     }
+    public static getName(): string {
+        return "zip";
+    }
 
-    async open() {
+    public constructor(private zip: JSZip | null = null) {}
+
+    static async open(): Promise<ZipSaveArchive> {
         const file = await new Promise<File | null>(resolve => {
             const input = document.createElement("input");
             input.type = "file";
@@ -33,7 +30,9 @@ export class ZipSaveHandler implements SaveArchive {
             reader.readAsArrayBuffer(file);
         });
 
-        this.zip = await JSZip.loadAsync(arrayBuffer);
+        return new ZipSaveArchive(
+            await JSZip.loadAsync(arrayBuffer)
+        );
     }
 
     async readFile(path: string): Promise<Blob | null> {

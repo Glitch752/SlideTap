@@ -1,18 +1,22 @@
-import type { SaveArchive } from "./SaveArchive";
+import { staticImplements, type SaveArchive, type OpenableSaveArchive } from "./SaveArchive";
 
-export class FolderSaveHandler implements SaveArchive {
-    private directoryHandle: FileSystemDirectoryHandle | null = null;
-
-    getName(): string {
-        return "folder";
-    }
-    isSupported(): boolean {
+@staticImplements<OpenableSaveArchive>()
+export class FolderSaveArchive implements SaveArchive {
+    public static isSupported(): boolean {
         return !!(window as any).showDirectoryPicker;
     }
+    public static getName(): string {
+        return "folder";
+    }
 
-    async open(): Promise<void> {
+    private constructor(private directoryHandle: FileSystemDirectoryHandle | null) {
+    }
+
+    static async open(): Promise<FolderSaveArchive> {
         // Prompt the user to select a folder
-        this.directoryHandle = await (window as any).showDirectoryPicker();      
+        return new FolderSaveArchive(
+            await (window as any).showDirectoryPicker()
+        );     
     }
 
     async writeFile(filename: string, data: Blob | string): Promise<void> {

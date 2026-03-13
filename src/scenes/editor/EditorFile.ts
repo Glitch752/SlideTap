@@ -1,36 +1,42 @@
-import type { MapDataJSON, MapNote } from "../../Map";
+import type { LoadedMapDataJSON, MapNote } from "../../Map";
 import { get, writable, type Writable } from "svelte/store";
 import type { SaveArchive } from "./saveHandlers/SaveArchive";
-import type { SongMetadataJSON } from "../../Song";
+import type { SongMapJSON, SongMetadataJSON } from "../../Song";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
 export type EditorNoteID = string & { __brand: "EditorNoteID" };
 
 export class EditorMapData {
-    public name: string;
-    public difficulty: number;
+    get name() { return this.data.name; }
+    get difficulty() { return this.data.difficulty; }
+    get dataPath() { return this.data.dataPath; }
 
     public _notes: Map<EditorNoteID, MapNote> = new Map();
     public notes: Writable<Map<EditorNoteID, MapNote>> = writable(this._notes);
 
-    constructor(name: string, difficulty: number) {
-        this.name = name;
-        this.difficulty = difficulty;
+    public loaded = false;
+
+    constructor(private data: SongMapJSON) {
     }
 
-    public serialize(): MapDataJSON {
+    public serialize(): LoadedMapDataJSON {
+        if(!this.loaded) {
+            throw new Error("Cannot serialize map that hasn't been loaded");
+        }
+
         return {
             notes: Array.from(this._notes.values())
         };
     }
 
-    public deserialize(data: MapDataJSON, editor: EditorFile) {
+    public deserialize(data: LoadedMapDataJSON, editor: EditorFile) {
         this._notes.clear();
-        console.log(data);
         for(const note of data.notes) {
             this._notes.set(editor.generateNoteId(), note);
         }
         this.notes.set(this._notes);
+
+        this.loaded = true;
     }
 }
 export type EditorFileMetadata = Omit<SongMetadataJSON, "track" | "cover" | "maps">;
@@ -40,6 +46,7 @@ export type EditorFileMetadata = Omit<SongMetadataJSON, "track" | "cover" | "map
  */
 export class EditorFile {
     public meta: Writable<EditorFileMetadata> = writable({
+        id: Math.random().toString(36).substring(2, 7),
         name: "Untitled",
         artist: "",
         bpm: 0,
@@ -117,7 +124,12 @@ export class EditorFile {
         const mapId = this.generateMapId();
         this._maps.set(
             mapId,
-            new EditorMapData(`Map ${this._maps.size + 1}`, 1)
+            new EditorMapData({
+                name: `Map ${this._maps.size + 1}`,
+                difficulty: 1,
+                notes: 0,
+                dataPath: `maps/map${this._maps.size + 1}.json`
+            })
         );
         this.maps.set(this._maps);
         this.changed();
@@ -147,9 +159,7 @@ export class EditorFile {
     }
 
 
-    public static async load(ar: SaveArchive) {
-        await ar.open();
-
+    public static async load(ar: SaveArchive, loadMaps: boolean = true): Promise<EditorFile> {
         const metaFile = await ar.readFile("metadata.json");
         if(!metaFile) throw new Error("metadata.json not found in zip");
         const decoder = new TextDecoder();
@@ -174,20 +184,11 @@ export class EditorFile {
         editorFile._maps.clear();
         for(const map of metadata.maps) {
             const mapId = editorFile.generateMapId();
-            const editorData = new EditorMapData(map.name, map.difficulty);
+            const editorData = new EditorMapData(map);
             editorFile._maps.set(mapId, editorData);
 
-            const dataFile = await ar.readFile(map.dataPath);
-            if(!dataFile) throw new Error(`Map data not found: ${map.dataPath}`);
-
-            const decoder = new TextDecoder();
-            const dataStr = decoder.decode(await dataFile.arrayBuffer());
-            const data: MapDataJSON = JSON.parse(dataStr);
-
-            try {
-                editorData.deserialize(data, editorFile);
-            } catch(e) {
-                console.error(`Failed to deserialize map ${map.name}`);
+            if(loadMaps) {
+                editorFile.loadMap(editorData);
             }
         }
         if(editorFile.maps) {
@@ -195,6 +196,21 @@ export class EditorFile {
         }
 
         return editorFile;
+    }
+
+    public async loadMap(editorData: EditorMapData) {
+        const dataFile = await this.saveArchive.readFile(editorData.dataPath);
+        if(!dataFile) throw new Error(`Map data not found: ${editorData.dataPath}`);
+
+        const decoder = new TextDecoder();
+        const dataStr = decoder.decode(await dataFile.arrayBuffer());
+        const data: LoadedMapDataJSON = JSON.parse(dataStr);
+
+        try {
+            editorData.deserialize(data, this);
+        } catch(e) {
+            console.error(`Failed to deserialize map ${editorData.name}`);
+        }
     }
 
     public async save(): Promise<void> {
