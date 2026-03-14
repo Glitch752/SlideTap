@@ -26,6 +26,12 @@ export default defineConfig({
     build: {
         outDir: 'dist',
     },
+    oxc: {
+        target: 'es2020'
+    },
+    publicDir: 'public',
+    // Just lie to vite lol
+    appType: 'mpa',
     css: {
         preprocessorOptions: {
             scss: {

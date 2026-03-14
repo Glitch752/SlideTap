@@ -25,7 +25,7 @@ async function play() {
 
 <span class="title">{song.name}</span>
 <span class="artist">{song.artist}</span>
-<img src={song.cover.src} alt={song.name} />
+<img src={song.cover?.src ?? "/default-cover.jpg"} alt={song.name} />
 <div class="data">
     <span>{Math.round(song.bpm)} bpm</span>
     <span>{formatDuration(Math.round(song.length))} long</span>

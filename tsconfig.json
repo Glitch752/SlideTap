@@ -18,7 +18,9 @@
     /* type checking */
     "strict": true,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+
+    "experimentalDecorators": true
   },
   "include": ["src"]
 }

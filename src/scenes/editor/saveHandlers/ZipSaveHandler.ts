@@ -12,6 +12,10 @@ export class ZipSaveArchive implements SaveArchive {
 
     public constructor(private zip: JSZip | null = null) {}
 
+    openable() {
+        return ZipSaveArchive;
+    }
+    
     static async open(): Promise<ZipSaveArchive> {
         const file = await new Promise<File | null>(resolve => {
             const input = document.createElement("input");
@@ -44,7 +48,9 @@ export class ZipSaveArchive implements SaveArchive {
     }
 
     async writeFile(path: string, data: Blob | string): Promise<void> {
-        if(!this.zip) throw new Error("No zip file open");
+        if(!this.zip) {
+            this.zip = new JSZip();
+        }
 
         this.zip.file(path, data);
     }

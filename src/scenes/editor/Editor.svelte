@@ -75,23 +75,23 @@
                     editedFile.saveArchive.close();
                     editedFile = new EditorFile(new ZipSaveArchive());
                 }}>New</button>
-                {#each handlers as handler}
-                    <button onclick={async () => {
-                    if($unsavedChanges) {
-                        if(!confirm("You have unsaved changes. Are you sure you want to open a new file?")) return;
-                    }
-                        editedFile = await EditorFile.load(await handler.open())
-                    }}>Open from {handler.getName()}</button>
-                {/each}
                 <!-- <button onclick={() => console.log("Open existing")}>Open existing</button> -->
-                {@const saveName = editedFile.saveArchive.canSave()}
-                {#if saveName !== null}
-                    <button onclick={() => editedFile.save()}>Save {editedFile.saveArchive.getName()}</button>
+                {@const saveClass = editedFile.saveArchive.openable()}
+                {#if saveClass !== null}
+                    <button onclick={() => editedFile.save()}>Save {saveClass.getName()}</button>
                 {/if}
-                <ToolbarDropdownSubmenu title="Save as">
-                    <!-- TODO -->
+                <hr />
+                <ToolbarDropdownSubmenu title="Open from...">
+                    {#each handlers as handler}
+                        <button onclick={async () => {
+                        if($unsavedChanges) {
+                            if(!confirm("You have unsaved changes. Are you sure you want to open a new file?")) return;
+                        }
+                            editedFile = await EditorFile.load(await handler.open())
+                        }}>Open from {handler.getName()}</button>
+                    {/each}
                 </ToolbarDropdownSubmenu>
-                <ToolbarDropdownSubmenu title="Open existing">
+                <ToolbarDropdownSubmenu title="Open built-in">
                     {#each songArchives as archive}
                         <button onclick={async () => {
                             if($unsavedChanges) {
@@ -99,6 +99,12 @@
                             }
                             editedFile = await EditorFile.load(archive);
                         }}>{archive.songName}</button>
+                    {/each}
+                </ToolbarDropdownSubmenu>
+                <ToolbarDropdownSubmenu title="Save as...">
+                    <!-- TODO -->
+                    {#each handlers as handler}
+                        <button onclick={() => editedFile.saveAs(handler)}>Save as {handler.getName()}</button>
                     {/each}
                 </ToolbarDropdownSubmenu>
             </ToolbarDropdown>

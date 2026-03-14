@@ -8,47 +8,46 @@
 		title: string,
 		children: Snippet
 	} = $props();
-
-	let open = $state(false);
-
-	function handleClickOutside(event: MouseEvent) {
-		if(open) {
-			const submenu = document.querySelector('.submenu-dropdown');
-			const menu = document.querySelector('.submenu-menu');
-			if(
-				submenu && !submenu.contains(event.target as Node) &&
-				menu && !menu.contains(event.target as Node)
-			) {
-				open = false;
-			}
-		}
-	}
 </script>
 
-<svelte:window onmousedown={handleClickOutside} />
-
-<button class="submenu-dropdown" onclick={() => open = !open}>
+<div class="submenu-item --button-like">
 	<span class="title">{title}</span>
-	{#if open}
-	<div class="submenu-menu">
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+		<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/>
+	</svg>
+
+	<div class="submenu">
 		{@render children()}
 	</div>
-	{/if}
-</button>
+</div>
 
 <style lang="scss">
-	.submenu-dropdown {
+	.submenu-item {
 		--bg-color: var(--panel);
+		text-align: left;
 		font-size: 1rem;
 		padding: 0.2em 1em;
 		color: var(--text);
 		position: relative;
 		border: none;
-		border-right: 1px solid var(--surface);
 		box-shadow: none;
 		cursor: pointer;
+
+		svg {
+			position: absolute;
+			right: 0.5em;
+			top: 50%;
+			transform: translateY(-50%);
+			color: white;
+		}
+
+		&:hover .submenu {
+			opacity: 1;
+			pointer-events: auto;
+		}
 	}
-	.submenu-menu {
+
+	.submenu {
 		background-color: var(--panel);
 		position: absolute;
 		top: 0;
@@ -57,20 +56,19 @@
 		z-index: 201;
 		box-shadow: 0 0 8px #00000066;
 		border-radius: 5px;
-		margin: 0 0 0 5px;
-		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-		> :global(button) {
-			border: none;
-			text-align: left;
-			padding: 0.25em 1em;
-			color: var(--text);
-			font-size: 1rem;
-			--bg-color: var(--panel);
-			&:not(:first-child) {
-				border-top: 1px solid var(--surface);
-			}
-		}
+
+		opacity: 0;
+		pointer-events: none;
+		
+        > :global(*):first-child {
+            border-top-left-radius: 5px;
+			border-top-right-radius: 5px;
+        }
+        > :global(*):last-child {
+			border-bottom-left-radius: 5px;
+			border-bottom-right-radius: 5px;
+        }
 	}
 </style>

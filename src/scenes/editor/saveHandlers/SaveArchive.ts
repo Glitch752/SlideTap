@@ -9,7 +9,7 @@ export interface OpenableSaveArchive {
     getName(): string;
     
     open(): Promise<SaveArchive>;
-    // new(): SaveArchive;
+    new(): SaveArchive;
 }
 
 
@@ -23,7 +23,8 @@ export interface OpenableSaveArchive {
  * These can be saved in multiple ways, though, so this is a generic interface.
  */
 export interface SaveArchive {
-    // canSave()
+    /** Returns null if this archive can't be re-saved, otherwise the class. */
+    openable(): OpenableSaveArchive | null;
 
     readFile(path: string): Promise<Blob | null>;
     

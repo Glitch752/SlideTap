@@ -1,4 +1,4 @@
-<script module>
+<script module lang="ts">
 import { Song } from "../../Song";
 import { songArchives } from "../../songs";
 import SongListItemContent from "./SongListItemContent.svelte";
@@ -62,7 +62,7 @@ function onKeydown(event: KeyboardEvent) {
     <div class="list" bind:this={songListElement} style="--focus-height: {songListFocusHeight}px">
         {#each songs as song, i}
             <div class="song" class:selected={i === selectedSongIndex} data-song-idx="{i}">
-                <img src={song.cover.src} alt={song.name} />
+                <img src={song.cover?.src ?? "/default-cover.jpg"} alt={song.name} />
                 <span class="title">{song.name}</span>
                 <span class="artist">{song.artist}</span>
                 <div class="maps">

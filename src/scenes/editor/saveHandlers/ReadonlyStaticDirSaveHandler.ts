@@ -1,20 +1,19 @@
 import type { SaveArchive } from "./SaveArchive";
 
 export class ReadonlyStaticDirSaveHandler implements SaveArchive {
-    getName(): string {
-        return "static directory";
-    }
-
-    isSupported(): boolean {
-        return true;
-    }
-
     constructor(private songPath: string, public songName: string) {}
+
+    openable() {
+        return null;
+    }
 
     async readFile(path: string): Promise<Blob | null> {
         try {
-            const response = await fetch(`${this.songPath}/${path}`);
-            if(!response.ok) return null;
+            const response = await fetch(`${this.songPath}/${path}`, {
+                credentials: "omit"
+            });
+            if(!response || !response.ok) return null;
+
             const blob = await response.blob();
             return blob;
         } catch(e) {

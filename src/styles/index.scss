@@ -38,7 +38,7 @@ body {
     height: 100vh;
 }
 
-input, button {
+input, button, .--button-like {
     background-color: var(--bg-color);
     box-shadow: 0 4px color-mix(in srgb, black 20%, var(--bg-color));
 
@@ -46,11 +46,11 @@ input, button {
         outline: 1px solid #777;
     }
 }
-button:hover {
+button:hover, .--button-like:hover {
     background-color: color-mix(in srgb, white 5%, var(--bg-color));
     box-shadow: 0 4px color-mix(in srgb, black 15%, var(--bg-color));
 }
-button:active {
+button:active, .--button-like:active {
     background-color: color-mix(in srgb, white 10%, var(--bg-color));
     box-shadow: 0 4px color-mix(in srgb, black 10%, var(--bg-color));
 }

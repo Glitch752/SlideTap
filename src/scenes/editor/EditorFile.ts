@@ -1,6 +1,6 @@
 import type { LoadedMapDataJSON, MapNote } from "../../Map";
 import { get, writable, type Writable } from "svelte/store";
-import type { SaveArchive } from "./saveHandlers/SaveArchive";
+import type { OpenableSaveArchive, SaveArchive } from "./saveHandlers/SaveArchive";
 import type { SongMapJSON, SongMetadataJSON } from "../../Song";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
@@ -174,6 +174,9 @@ export class EditorFile {
         const cover = await getBlob(metadata.cover);
         const track = await getBlob(metadata.track);
 
+        if(!cover) console.warn(`Cover image not found for track ${metadata.name}, continuing without it`);
+        if(!track) console.warn(`Audio track not found for track ${metadata.name}, continuing without it`);
+
         let editorFile = new EditorFile(ar);
         editorFile.loadMeta(metadata);
         await editorFile.setAudioFile(track ?? null);
@@ -211,6 +214,11 @@ export class EditorFile {
         } catch(e) {
             console.error(`Failed to deserialize map ${editorData.name}`);
         }
+    }
+
+    public async saveAs(ar: OpenableSaveArchive): Promise<void> {
+        this.saveArchive = new ar();
+        await this.save();
     }
 
     public async save(): Promise<void> {

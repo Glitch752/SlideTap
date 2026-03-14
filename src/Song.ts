@@ -54,8 +54,8 @@ export class Song {
 
     public leaderboard: SongLeaderboard;
 
-    public cover: HTMLImageElement = null as unknown as HTMLImageElement;
-    public track: HTMLAudioElement = null as unknown as HTMLAudioElement;
+    public cover: HTMLImageElement | null = null;
+    public track: HTMLAudioElement | null = null;
 
     public maps: EditorMapData[] = [];
 

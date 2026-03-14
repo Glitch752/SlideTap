@@ -9,7 +9,11 @@ export class FolderSaveArchive implements SaveArchive {
         return "folder";
     }
 
-    private constructor(private directoryHandle: FileSystemDirectoryHandle | null) {
+    constructor(private directoryHandle: FileSystemDirectoryHandle | null = null) {
+    }
+
+    openable() {
+        return FolderSaveArchive;
     }
 
     static async open(): Promise<FolderSaveArchive> {
@@ -20,6 +24,9 @@ export class FolderSaveArchive implements SaveArchive {
     }
 
     async writeFile(filename: string, data: Blob | string): Promise<void> {
+        if(!this.directoryHandle) {
+            this.directoryHandle = await (window as any).showDirectoryPicker();
+        }
         if(!this.directoryHandle) throw new Error("No folder selected");
         
         // Create parent folders if they don't exist

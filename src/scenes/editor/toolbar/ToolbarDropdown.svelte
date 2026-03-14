@@ -30,9 +30,9 @@
 <button class="dropdown" onclick={() => open = !open}>
     <span class="title">{title}</span>
     {#if open}
-    <div class="menu">
-        {@render children()}
-    </div>
+        <div class="menu">
+            {@render children()}
+        </div>
     {/if}
 </button>
 
@@ -64,23 +64,37 @@
         box-shadow: 0 0 8px #00000066;
         border-radius: 5px;
         margin: 5px;
-        overflow: hidden;
 
         display: flex;
         flex-direction: column;
-        
-        > :global(button) {
+
+        :global(button) {
             border: none;
             text-align: left;
             padding: 0.25em 1em;
+            box-shadow: none;
             color: var(--text);
             font-size: 1rem;
             --bg-color: var(--panel);
+        }
+        
+        > :global(*):first-child {
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        > :global(*):last-child {
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+        
+        :global button:not(:global(hr + button)):not(:first-child) {
+            border-top: 1px solid var(--surface);
+        }
 
-            &:not(:first-child) {
-                border-top: 1px solid var(--surface);
-            }
+        :global(hr) {
+            border: none;
+            border-top: 2px solid var(--surface);
+            margin: 0.25em 0;
         }
     }
-
 </style>
