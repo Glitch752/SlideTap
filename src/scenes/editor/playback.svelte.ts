@@ -6,6 +6,7 @@ export enum PlaybackType {
 
 export type PlaybackState = {
     playing: PlaybackType;
+    /** Time in seconds */
     time: number;
 };
 

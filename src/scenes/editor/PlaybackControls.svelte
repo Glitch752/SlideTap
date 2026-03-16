@@ -15,18 +15,33 @@
     let updateInterval: ReturnType<typeof setInterval> | null = $state(null);
 
     const audioFileData = $derived(file.audioFileData);
-
-    let player: HTMLAudioElement | null = $state(null);
+    const trackDuration = $derived($audioFileData?.buffer?.duration ?? 0);
 
     onMount(() => {
         return () => { // on unmount
             if(updateInterval) clearInterval(updateInterval);
         };
     });
+
+    function formatTime(t: number) {
+        if(!isFinite(t)) return '0:00';
+        const m = Math.floor(t / 60);
+        const s = Math.floor(t % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function pause() {
+        playbackState.playing = PlaybackType.Paused;
+        if(updateInterval) clearInterval(updateInterval);
+        file.stopPlayback();
+    }
 </script>
 
 <div class="controls">
+    <span>{formatTime(playbackState.time)} / {formatTime(trackDuration)}</span>
+
     <button disabled={playbackState.time === 0} title="Skip to beginning" onclick={() => {
+        if(playbackState.playing !== PlaybackType.Paused) pause();
         playbackState.time = 0;
     }}>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M20 5v14l-7-7M6 5v14H4V5m9 0v14l-7-7"/></svg>
@@ -37,23 +52,24 @@
         const playbackStartTime = performance.now();
         const timeAtStart = playbackState.time;
         updateInterval = setInterval(() => {
-            playbackState.time = timeAtStart + performance.now() - playbackStartTime;
+            playbackState.time = timeAtStart + (performance.now() - playbackStartTime) / 1000;
+            if(playbackState.time >= (trackDuration - 0.1)) {
+                playbackState.time = trackDuration;
+                pause();
+            }
         }, updateIntervalMs);
-        $audioFileData?.bufferSource?.start($audioFileData?.context.currentTime, playbackStartTime);
+
+        file.beginPlayback(playbackState.time);
     }}>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.14v14l11-7z"/></svg>
     </button>
-    <button disabled={playbackState.playing === PlaybackType.Paused} title="Pause" onclick={() => {
-        playbackState.playing = PlaybackType.Paused;
-        if(updateInterval) clearInterval(updateInterval);
-        $audioFileData?.bufferSource?.stop();
-    }}>
+    <button disabled={playbackState.playing === PlaybackType.Paused} title="Pause" onclick={() => pause()}>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M14 19h4V5h-4M6 19h4V5H6z"/></svg>
     </button>
 
-    <button disabled={playbackState.time >= ($audioFileData?.buffer.duration ?? 0) - 0.1} title="Skip to end" onclick={() => {
+    <button disabled={playbackState.time >= (trackDuration - 0.1)} title="Skip to end" onclick={() => {
         if($audioFileData) {
-            playbackState.time = $audioFileData.buffer.duration;
+            playbackState.time = trackDuration;
         }
     }}>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M4 5v14l7-7m7-7v14h2V5m-9 0v14l7-7"/></svg>
@@ -67,6 +83,13 @@
     gap: 0.25rem;
     flex: 0;
     justify-content: flex-end;
+    align-items: center;
+}
+span {
+    font-family: monospace;
+    color: var(--text);
+    flex-shrink: 0;
+    margin-right: 0.5rem;
 }
 button {
     padding: 0;
@@ -74,6 +97,7 @@ button {
     color: var(--text);
     transition: background-color 0.3s ease, opacity 0.3s ease;
     background-color: transparent;
+    margin-top: 2px; // visually centers the icons more
 
     &[disabled] {
         opacity: 0.5;

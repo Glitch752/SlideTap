@@ -11,13 +11,14 @@
     
     let open = $state(false);
 
+    let dropdownEl: HTMLElement | null = null;
+    let menuEl: HTMLElement | null = $state(null);
+
     function handleClickOutside(event: MouseEvent) {
         if(open) {
-            const dropdown = document.querySelector('.dropdown');
-            const menu = document.querySelector('.menu');
             if(
-                dropdown && !dropdown.contains(event.target as Node) &&
-                menu && !menu.contains(event.target as Node)
+                !dropdownEl?.contains(event.target as Node) &&
+                menuEl && !menuEl?.contains(event.target as Node)
             ) {
                 open = false;
             }
@@ -27,10 +28,10 @@
 
 <svelte:window onmousedown={handleClickOutside} />
 
-<button class="dropdown" onclick={() => open = !open}>
+<button class="dropdown" onclick={() => open = !open} bind:this={dropdownEl}>
     <span class="title">{title}</span>
     {#if open}
-        <div class="menu">
+        <div class="menu" bind:this={menuEl}>
             {@render children()}
         </div>
     {/if}
@@ -64,6 +65,7 @@
         box-shadow: 0 0 8px #00000066;
         border-radius: 5px;
         margin: 5px;
+        cursor: default;
 
         display: flex;
         flex-direction: column;
@@ -77,6 +79,11 @@
             font-size: 1rem;
             --bg-color: var(--panel);
         }
+        > :global(span) {
+            color: var(--text-dim);
+            font-size: 0.9em;
+            padding: 0.5em 1em;
+        }
         
         > :global(*):first-child {
             border-top-left-radius: 5px;
@@ -87,7 +94,7 @@
             border-bottom-right-radius: 5px;
         }
         
-        :global button:not(:global(hr + button)):not(:first-child) {
+        :global > :not(hr):not(:global(hr + *)):not(:first-child) {
             border-top: 1px solid var(--surface);
         }
 

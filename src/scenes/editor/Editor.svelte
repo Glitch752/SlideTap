@@ -9,11 +9,12 @@
     import NoteSettings from "./NoteSettings.svelte";
     import MapView from "./MapView.svelte";
     import { FolderSaveArchive } from "./saveHandlers/FolderSaveHandler";
-    import type { OpenableSaveArchive, SaveArchive } from "./saveHandlers/SaveArchive";
+    import type { OpenableSaveArchive } from "./saveHandlers/SaveArchive";
     import { PlaybackType, type PlaybackState } from "./playback.svelte";
     import PlaybackControls from "./PlaybackControls.svelte";
     import { songArchives } from "../../songs";
     import ToolbarDropdownSubmenu from "./toolbar/ToolbarDropdownSubmenu.svelte";
+  import { WakatimeHandler } from "./WakatimeHandler";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -33,6 +34,21 @@
     let settingsWidth = $state(Number(localStorage.getItem(SPLIT_KEY)) ?? 200);
     let dragging = false;
 
+    let wakatimeHandler: WakatimeHandler = new WakatimeHandler();
+    const wakatimeStatus = wakatimeHandler.status;
+
+    $effect(() => {
+        wakatimeHandler.filename = editedFile.getMeta().name || "untitled";
+        
+        const unsubscribe = editedFile.audioFileData.subscribe((data) => {
+            wakatimeHandler.totalBeats = Math.floor((data?.buffer?.duration ?? 0) * editedFile.getMeta().bpm / 60);
+        });
+        
+        wakatimeHandler.save();
+
+        return () => unsubscribe();
+    });
+
     function startDrag(_e: MouseEvent) {
         dragging = true;
         document.body.style.cursor = 'col-resize';
@@ -43,6 +59,7 @@
 
     function onDrag(e: MouseEvent) {
         if(!dragging) return;
+
         const min = 100, max = 800;
         let newWidth = e.clientX;
         if(newWidth < min) newWidth = min;
@@ -64,7 +81,8 @@
     <Game />
 </DraggableWindow>
 
-<div class="editor">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="editor" onkeydown={() => wakatimeHandler.keypress()} onmousedown={() => wakatimeHandler.click()}>
     <div class="toolbar">
         <div class="section">
             <ToolbarDropdown title="File">
@@ -78,7 +96,10 @@
                 <!-- <button onclick={() => console.log("Open existing")}>Open existing</button> -->
                 {@const saveClass = editedFile.saveArchive.openable()}
                 {#if saveClass !== null}
-                    <button onclick={() => editedFile.save()}>Save {saveClass.getName()}</button>
+                    <button onclick={() => {
+                        editedFile.save();
+                        wakatimeHandler.save();
+                    }}>Save {saveClass.getName()}</button>
                 {/if}
                 <hr />
                 <ToolbarDropdownSubmenu title="Open from...">
@@ -104,9 +125,24 @@
                 <ToolbarDropdownSubmenu title="Save as...">
                     <!-- TODO -->
                     {#each handlers as handler}
-                        <button onclick={() => editedFile.saveAs(handler)}>Save as {handler.getName()}</button>
+                        <button onclick={() => {
+                            editedFile.saveAs(handler);
+                            wakatimeHandler.save();
+                        }}>Save as {handler.getName()}</button>
                     {/each}
                 </ToolbarDropdownSubmenu>
+            </ToolbarDropdown>
+            <ToolbarDropdown title="Wakatime">
+                <button onclick={() => {
+                    alert(`API Key: ${wakatimeHandler.apiKey.value}\nAPI URL: ${wakatimeHandler.apiUrl.value}`);
+                }}>Show info</button>
+                <button onclick={() => {
+                    wakatimeHandler.setApiKey(prompt("Enter your Wakatime API key:") ?? "");
+                }}>Set API key</button>
+                <button onclick={() => {
+                    wakatimeHandler.setApiUrl(prompt("Enter your Wakatime API url:", "https://wakatime.com/api/v1") ?? "");
+                }}>Set API url</button>
+                <span>Status: {$wakatimeStatus}</span>
             </ToolbarDropdown>
         </div>
 
@@ -143,12 +179,15 @@
             {/each}
         </div>
         
-        <PlaybackControls {playbackState} file={editedFile} />
+        <PlaybackControls bind:playbackState={playbackState} file={editedFile} />
     </div>
     <div class="lanes">
         {#if openMap && $maps.has(openMap)}
             <!-- Render lanes for the selected map -->
-            <MapView file={editedFile} {playbackState} map={openMap} bind:selectedNotes={selectedNotes} />
+            <MapView file={editedFile} {playbackState} map={openMap} bind:selectedNotes={selectedNotes} onmousemove={(beat, lane) => {
+                wakatimeHandler.mouseBeat = beat;
+                wakatimeHandler.mouseLane = lane;
+            }} />
         {:else}
             <p class="placeholder">Select a map to view its lanes.</p>
         {/if}

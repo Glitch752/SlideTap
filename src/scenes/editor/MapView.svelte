@@ -11,12 +11,14 @@
         file,
         map,
         playbackState,
-        selectedNotes = $bindable()
+        selectedNotes = $bindable(),
+        onmousemove
     }: {
         file: EditorFile,
         map: EditorMapID,
         playbackState: PlaybackState,
-        selectedNotes: Set<EditorNoteID>
+        selectedNotes: Set<EditorNoteID>,
+        onmousemove?: (beat: number, lane: number) => void
     } = $props();
 
     const subdivisions = 4;
@@ -121,8 +123,14 @@
     }
     function onGridPointerMove(e: PointerEvent) {
         if(!isDragging) return;
+
         const lane = getLaneFromEvent(e as any);
         const beat = getBeatFromEvent(e as any);
+
+        if(lane >= 0 && lane <= FULL_LANES && beat >= 0) {
+            onmousemove?.(beat, lane);
+        }
+
         dragEnd = { lane, beat };
     }
     function onGridPointerUp(e: PointerEvent) {
@@ -149,7 +157,7 @@
     onMount(() => {
         function updateGridDimensions() {
             if(gridRef) {
-                colWidthPx = gridRef.scrollWidth / (FULL_LANES + 1);
+                colWidthPx = gridRef.clientWidth / (FULL_LANES + 1);
                 rowHeightPx = gridRef.scrollHeight / times.length;
             }
         }
@@ -166,6 +174,8 @@
         };
     });
 </script>
+
+<svelte:window onpointermove={onGridPointerMove}></svelte:window>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -208,7 +218,7 @@
     {#if colWidthPx > 0 && rowHeightPx > 0}
         <!-- Notes -->
         {#if mapData}
-            {#each $notes as [id, note]}
+            {#each $notes as [id, note] (id)}
                 <EditorNote {note} onchange={(updatedNote) => {
                     mapData.notes.update(n => n.set(id, updatedNote));
                     file.changed();
@@ -229,6 +239,7 @@
     width: 100%;
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: none;
     position: relative;
 }

@@ -2,6 +2,7 @@ import type { LoadedMapDataJSON, MapNote } from "../../Map";
 import { get, writable, type Writable } from "svelte/store";
 import type { OpenableSaveArchive, SaveArchive } from "./saveHandlers/SaveArchive";
 import type { SongMapJSON, SongMetadataJSON } from "../../Song";
+import { tween } from "../../lib/timing";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
 export type EditorNoteID = string & { __brand: "EditorNoteID" };
@@ -66,10 +67,52 @@ export class EditorFile {
     public audioFileData: Writable<{
         blob: Blob,
         context: AudioContext,
-        bufferSource: AudioBufferSourceNode,
+        source?: AudioBufferSourceNode,
+        globalGain: GainNode,
+        fadeGain: GainNode,
         buffer: AudioBuffer,
         url: string
     } | null> = writable(null);
+
+    public beginPlayback(atTime: number) {
+        const audioFileData = get(this.audioFileData);
+        if(!audioFileData) return;
+        
+        const { context: audioContext, buffer, fadeGain } = audioFileData;
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(fadeGain);
+        source.start(0, atTime);
+
+        tween(fadeGain.gain.value, 1, 0.1, 16, value => {
+            fadeGain.gain.value = value;
+        });
+
+        this.audioFileData.update(data => {
+            if(!data) return data;
+            return {
+                ...data,
+                source
+            };
+        });
+    }
+    public stopPlayback() {
+        const audioFileData = get(this.audioFileData);
+        if(!audioFileData) return;
+        
+        audioFileData.source?.stop(audioFileData.context.currentTime + 0.1);
+        tween(audioFileData.fadeGain.gain.value, 0, 0.1, 16, value => {
+            audioFileData.fadeGain.gain.value = value;
+        });
+
+        this.audioFileData.update(data => {
+            if(!data) return data;
+            return {
+                ...data,
+                source: undefined
+            };
+        });
+    }
 
     public setCoverImage(file: Blob | null) {
         this.coverImageFile = file;
@@ -89,15 +132,20 @@ export class EditorFile {
         const audioContext = new AudioContext();
         const buffer = await audioContext.decodeAudioData(await file.arrayBuffer());
 
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
+        const sourceGain = audioContext.createGain();
+        sourceGain.gain.value = 0.5;
+        sourceGain.connect(audioContext.destination);
+
+        const fadeGain = audioContext.createGain();
+        fadeGain.gain.value = 1;
+        fadeGain.connect(sourceGain);
 
         this.audioFileData.set({
             blob: file,
             context: audioContext,
             buffer,
-            bufferSource: source,
+            globalGain: sourceGain,
+            fadeGain,
             url: URL.createObjectURL(file)
         });
     }

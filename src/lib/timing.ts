@@ -20,6 +20,17 @@ export function expSmooth(current: number, target: number, smoothing: number, de
     return current + getExpSmoothAlpha(smoothing, deltaTime) * (target - current);
 }
 
+export function tween(current: number, target: number, duration: number, interval: number, callback: (value: number) => void): void {
+    const startTime = performance.now();
+    const _interval = setInterval(() => {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const t = Math.min(elapsed / duration, 1);
+        const value = current + t * (target - current);
+        callback(value);
+        if(t === 1) clearInterval(_interval);
+    }, interval);
+}
+
 export function debounce<T extends (...args: any[]) => void>(func: T, delayMs: number): T {
     let timeout: NodeJS.Timeout | null = null;
     return function(this: any, ...args: Parameters<T>) {

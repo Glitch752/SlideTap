@@ -32,20 +32,22 @@
     // drag logic
     let draggingHandle: DragHandle | null = null;
     let dragOrigin = { x: 0, y: 0 };
-    let noteOrigin = { startLane: 0, startBeat: 0, endLane: 0, endBeat: 0 };
+    let noteOrigin = { startSpan: { start: 0, width: 0 }, endSpan: { start: 0, width: 0 }, startBeat: 0, endBeat: 0 };
 
     function onHandlePointerDown(which: DragHandle, e: PointerEvent) {
         draggingHandle = which as any;
         dragOrigin = { x: e.clientX, y: e.clientY };
         noteOrigin = {
-            startLane: note.start.start,
+            startSpan: { ...note.start },
+            endSpan: { ...note.end },
             startBeat: note.startTime,
-            endLane: note.end.start,
-            endBeat: note.endTime,
+            endBeat: note.endTime
         };
 
         window.addEventListener('pointermove', onHandlePointerMove);
         window.addEventListener('pointerup', onHandlePointerUp);
+
+        onHandlePointerMove(e);
 
         e.stopPropagation();
     }
@@ -56,29 +58,35 @@
         const deltaX = e.clientX - dragOrigin.x;
         const deltaY = e.clientY - dragOrigin.y;
 
-        const laneDelta = Math.round(deltaX / colWidthPx);
+        const laneDelta = deltaX / colWidthPx;
         const beatDelta = deltaY / rowHeightPx / subdivisions;
+
+        const clampLane = (lane: number) => e.shiftKey ? lane : Math.round(lane);
+        const clampBeat = (beat: number) => e.shiftKey ? beat : Math.round(beat * subdivisions) / subdivisions;
 
         switch(draggingHandle) {
             case DragHandle.TopLeft:
-                note.start.start = noteOrigin.startLane + laneDelta;
-                note.startTime = noteOrigin.startBeat + beatDelta;
+                note.start.start = clampLane(noteOrigin.startSpan.start + laneDelta);
+                if(!e.ctrlKey) note.start.width = noteOrigin.startSpan.start + noteOrigin.startSpan.width - note.start.start;
+                note.startTime = clampBeat(noteOrigin.startBeat + beatDelta);
                 break;
             case DragHandle.TopRight:
-                note.start.width = noteOrigin.endLane - noteOrigin.startLane + laneDelta;
-                note.startTime = noteOrigin.startBeat + beatDelta;
+                if(e.ctrlKey) note.start.start = clampLane(noteOrigin.startSpan.start + laneDelta);
+                else note.start.width = clampLane(noteOrigin.startSpan.width + laneDelta);
+                note.startTime = clampBeat(noteOrigin.startBeat + beatDelta);
                 break;
             case DragHandle.BottomLeft:
-                note.end.start = noteOrigin.endLane + laneDelta;
-                note.endTime = noteOrigin.endBeat + beatDelta;
+                note.end.start = clampLane(noteOrigin.endSpan.start + laneDelta);
+                if(!e.ctrlKey) note.end.width = noteOrigin.endSpan.start + noteOrigin.endSpan.width - note.end.start;
+                note.endTime = clampBeat(noteOrigin.endBeat + beatDelta);
                 break;
             case DragHandle.BottomRight:
-                note.end.width = noteOrigin.endLane - noteOrigin.startLane + laneDelta;
-                note.endTime = noteOrigin.endBeat + beatDelta;
+                note.end.width = clampLane(noteOrigin.endSpan.width + laneDelta);
+                note.endTime = clampBeat(noteOrigin.endBeat + beatDelta);
                 break;
         }
 
-        onchange(note);
+        onchange({ ...note });
     }
 
     function onHandlePointerUp(e: PointerEvent) {
