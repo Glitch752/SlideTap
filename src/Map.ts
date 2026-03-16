@@ -24,6 +24,7 @@ export type MapNote = {
     endTime: number;
     start: LaneRange;
     end: LaneRange;
+    
     layer: MapNoteLayer;
     type: MapNoteType;
 };

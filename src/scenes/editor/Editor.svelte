@@ -6,7 +6,7 @@
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import { ZipSaveArchive } from "./saveHandlers/ZipSaveHandler";
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
-    import NoteSettings from "./NoteSettings.svelte";
+    import NoteSettings from "./settings/NoteSettings.svelte";
     import MapView from "./MapView.svelte";
     import { FolderSaveArchive } from "./saveHandlers/FolderSaveHandler";
     import type { OpenableSaveArchive } from "./saveHandlers/SaveArchive";
@@ -28,7 +28,7 @@
     let meta = $derived(editedFile.meta);
     let unsavedChanges = $derived(editedFile.unsavedChanges);
     
-    let selectedNotes: Set<EditorNoteID> = $state(new SvelteSet());
+    let selectedNotes: SvelteSet<EditorNoteID> = $state(new SvelteSet());
     let openMap: EditorMapID | null = $state(null);
 
     const SPLIT_KEY = 'editor_settings_width';
@@ -154,14 +154,14 @@
         <div class="section"></div>
     </div>
     <div class="settings" style="width: {settingsWidth}px">
-        {#if selectedNotes.size == 0 || !openMap}
-            <!-- Full rerender when open file changes -->
-            {#key editedFile}
+        <!-- Full rerender when open file changes -->
+        {#key editedFile}
+            {#if selectedNotes.size == 0 || !openMap}
                 <EditorFileSettings file={editedFile} {playbackState} />
-            {/key}
-        {:else}
-            <NoteSettings file={editedFile} notes={selectedNotes} />
-        {/if}
+            {:else}
+                <NoteSettings file={editedFile} map={openMap} selection={selectedNotes} />
+            {/if}
+        {/key}
     </div>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="splitter" onmousedown={startDrag} role="separator" aria-orientation="vertical"></div>

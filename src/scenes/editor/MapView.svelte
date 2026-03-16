@@ -20,6 +20,11 @@
         onmousemove?: (beat: number, lane: number) => void
     } = $props();
 
+    let colWidthPx = $state(0);
+    let rowHeightPx = $state(0);
+    let leftOffset = $state(0);
+    let topOffset = $state(0);
+
     const subdivisions = 4;
     const lanes = Array.from({ length: FULL_LANES }, (_, i) => i + 1);
 
@@ -73,16 +78,17 @@
     function getBeatFromEvent(e: MouseEvent): number {
         if(!gridRef) return 0;
         const rect = gridRef?.getBoundingClientRect();
-        const y = e.clientY - rect.top + gridRef.scrollTop;
-        const beat = Math.round(y / rowHeightPx) / subdivisions;
+        const y = e.clientY - rect.top - topOffset + gridRef.scrollTop;
+        const beat = Math.round(y / rowHeightPx - 1 / subdivisions) / subdivisions;
         return beat;
     }
+    
     function getLaneFromEvent(e: MouseEvent): number {
         if(!gridRef) return 0;
         const rect = gridRef.getBoundingClientRect();
-        const x = e.clientX - rect.left - colWidthPx + gridRef.scrollLeft;
-        const lane = Math.round(x / colWidthPx) + 1;
-        return Math.max(1, Math.min(FULL_LANES, lane));
+        const x = e.clientX - rect.left - leftOffset;
+        const lane = Math.floor(x / colWidthPx);
+        return Math.max(0, Math.min(FULL_LANES, lane));
     }
 
     function onGridPointerDown(e: MouseEvent) {
@@ -130,11 +136,6 @@
         dragStart = null;
         dragEnd = null;
     }
-
-    let colWidthPx = $state(0);
-    let rowHeightPx = $state(0);
-    let leftOffset = $state(0);
-    let topOffset = $state(0);
 
     let gridRef: HTMLDivElement | null = $state(null);
 

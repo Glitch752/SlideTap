@@ -334,6 +334,11 @@ svg {
     overflow: visible;
 
     position: absolute;
+
+    pointer-events: none;
+}
+svg path {
+    pointer-events: all;
 }
 svg.selected circle {
     stroke-width: 3;
