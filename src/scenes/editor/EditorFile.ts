@@ -157,10 +157,10 @@ export class EditorFile {
     }
 
     private generateMapId(): EditorMapID {
-        return (Math.random().toString(36).substring(2, 5) as unknown) as EditorMapID;
+        return (Math.random().toString(36).substring(2, 7) as unknown) as EditorMapID;
     }
     public generateNoteId(): EditorNoteID {
-        return (Math.random().toString(36).substring(2, 5) as unknown) as EditorNoteID;
+        return (Math.random().toString(36).substring(2, 7) as unknown) as EditorNoteID;
     }
 
     private _maps: Map<EditorMapID, EditorMapData> = new Map()

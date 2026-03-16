@@ -1,20 +1,73 @@
+<script lang="ts" module>
+    export enum SelectionType {
+        Add,
+        Set,
+        Remove
+    }
+
+    export function normalizeNote(note: MapNote, subdivisions: number): MapNote {
+        if(note.start.width === 0) note.start.width = 1;
+        if(note.end.width === 0) note.end.width = 1;
+        if(note.endTime === note.startTime) {
+            note.endTime += 1 / subdivisions;
+        }
+
+        if(note.endTime < note.startTime) {
+            [note.startTime, note.endTime] = [note.endTime, note.startTime];
+            [note.start, note.end] = [note.end, note.start];
+        }
+
+        if(note.startTime < 0) note.startTime = 0;
+        if(note.endTime < 1 / subdivisions) note.endTime = 1 / subdivisions;
+
+        if(note.start.width < 0) {
+            note.start.width = -note.start.width;
+            note.start.start -= note.start.width;
+        }
+        if(note.end.width < 0) {
+            note.end.width = -note.end.width;
+            note.end.start -= note.end.width;
+        }
+
+        return note;
+    }
+</script>
+
 <script lang="ts">
     import { MapNoteType, type MapNote } from "../../Map";
     import { _$lazyEffect } from "../../utils/effect.svelte";
+    import ContextMenu from "./menus/ContextMenu.svelte";
 
-    const {
+    const id = $props.id();
+
+    let {
         note,
         onchange,
+        ondelete,
+        onselect,
+        ondrag,
         colWidthPx,
         rowHeightPx,
-        subdivisions
+        leftOffset,
+        topOffset,
+        subdivisions,
+        selected,
     }: {
         note: MapNote,
         onchange: (note: MapNote) => void,
+        ondelete?: () => void,
+        onselect?: (type: SelectionType) => void,
+        ondrag?: (deltaBeats: number, deltaLanes: number) => void,
         colWidthPx: number,
         rowHeightPx: number,
-        subdivisions: number
+        leftOffset: number,
+        topOffset: number,
+        subdivisions: number,
+        selected?: boolean
     } = $props();
+
+    let wasSelectedOnPress = false;
+    let dragged = false;
 
     const noteColor = $derived(({
         [MapNoteType.Hold]: "#8888ff",
@@ -32,6 +85,7 @@
     // drag logic
     let draggingHandle: DragHandle | null = null;
     let dragOrigin = { x: 0, y: 0 };
+    let dragAccumulated = { x: 0, y: 0 };
     let noteOrigin = { startSpan: { start: 0, width: 0 }, endSpan: { start: 0, width: 0 }, startBeat: 0, endBeat: 0 };
 
     function onHandlePointerDown(which: DragHandle, e: PointerEvent) {
@@ -86,6 +140,8 @@
                 break;
         }
 
+        note = normalizeNote(note, subdivisions);
+
         onchange({ ...note });
     }
 
@@ -94,6 +150,38 @@
 
         window.removeEventListener('pointermove', onHandlePointerMove);
         window.removeEventListener('pointerup', onHandlePointerUp);
+    }
+
+    function onDragPointerMove(e: PointerEvent) {
+        dragged = true;
+
+        // Calculate delta from last event
+        const deltaX = e.clientX - dragOrigin.x - dragAccumulated.x;
+        const deltaY = e.clientY - dragOrigin.y - dragAccumulated.y;
+    
+        // Snap to grid
+        const snappedDeltaX = e.shiftKey ? deltaX : Math.round(deltaX / colWidthPx) * colWidthPx;
+        const snappedDeltaY = e.shiftKey ? deltaY : Math.round(deltaY / rowHeightPx) * rowHeightPx;
+    
+        // Update accumulated drag
+        dragAccumulated.x += snappedDeltaX;
+        dragAccumulated.y += snappedDeltaY;
+    
+        // Convert snapped pixel deltas to logical deltas
+        const dx = snappedDeltaX / colWidthPx;
+        const dy = snappedDeltaY / rowHeightPx / subdivisions;
+    
+        if(dx !== 0 || dy !== 0) {
+            ondrag?.(dy, dx);
+        }
+    }
+    function onDragPointerUp(e: PointerEvent) {
+        window.removeEventListener('pointermove', onDragPointerMove);
+        window.removeEventListener('pointerup', onDragPointerUp);
+
+        if(dragged) {
+            onchange({ ...note });
+        }
     }
 
     const leftColumn = $derived(Math.min(note.start.start, note.end.start));
@@ -131,58 +219,113 @@
     }
 </script>
 
-<svg style="left: {leftColumn * colWidthPx}px; top: {note.startTime * subdivisions * rowHeightPx}px; width: {(rightColumn - leftColumn) * colWidthPx}px; height: {(note.endTime * subdivisions - note.startTime * subdivisions) * rowHeightPx}px;">
-    <defs>
-        <linearGradient id="noteGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="{noteColor}" stop-opacity="0.3" />
-            <stop offset="100%" stop-color="{noteColor}" stop-opacity="0.2" />
-        </linearGradient>
-    </defs>
+{#snippet noteMenu()}
+    <button onclick={() => {
+        ondelete?.();
+    }}>Delete</button>
+    <button onclick={() => {
+        note = normalizeNote({
+            ...note,
+            startTime: Math.round(note.startTime * subdivisions) / subdivisions,
+            endTime: Math.round(note.endTime * subdivisions) / subdivisions,
+            start: {
+                start: Math.round(note.start.start),
+                width: Math.round(note.start.width)
+            },
+            end: {
+                start: Math.round(note.end.start),
+                width: Math.round(note.end.width)
+            }
+        }, subdivisions);
+        onchange({ ...note });
+    }}>Snap to grid</button>
+{/snippet}
 
-    <path
-        class="note-fill"
-        d={getFillPath()}
-        fill="url(#noteGradient)"
-        stroke={noteColor}
-        stroke-width="2"
-    />
+<ContextMenu menu={noteMenu}>
+    <svg
+        style="left: {leftColumn * colWidthPx + leftOffset}px; top: {note.startTime * subdivisions * rowHeightPx + topOffset}px; width: {(rightColumn - leftColumn) * colWidthPx}px; height: {(note.endTime * subdivisions - note.startTime * subdivisions) * rowHeightPx}px;"
+        class:selected={selected}
+    >
+        <defs>
+            <linearGradient id="noteGradient-{id}" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="{noteColor}" stop-opacity="{selected ? 0.5 : 0.3}" />
+                <stop offset="100%" stop-color="{noteColor}" stop-opacity="{selected ? 0.35 : 0.2}" />
+            </linearGradient>
+        </defs>
 
-    <!-- Start handles -->
-    <circle 
-        cx="{startLeftHandleCX}%"
-        cy="0%"
-        r="5"
-        onpointerdown={e => onHandlePointerDown(DragHandle.TopLeft, e)}
-        role="button"
-        tabindex="-1"
-    />
-    <circle 
-        cx="{startRightHandleCX}%"
-        cy="0%"
-        r="5"
-        onpointerdown={e => onHandlePointerDown(DragHandle.TopRight, e)}
-        role="button"
-        tabindex="-1"
-    />
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <path
+            class="note-fill"
+            d={getFillPath()}
+            fill="url(#noteGradient-{id})"
+            stroke={noteColor}
+            stroke-width="2"
+            
+            onpointerdowncapture={(e) => {
+                if(e.button !== 0) return; // Only left click
+                
+                e.stopPropagation();
 
-    <!-- End handles -->
-    <circle 
-        cx="{endLeftHandleCX}%"
-        cy="100%"
-        r="5"
-        onpointerdown={e => onHandlePointerDown(DragHandle.BottomLeft, e)}
-        role="button"
-        tabindex="-1"
-    />
-    <circle 
-        cx="{endRightHandleCX}%"
-        cy="100%"
-        r="5"
-        onpointerdown={e => onHandlePointerDown(DragHandle.BottomRight, e)}
-        role="button"
-        tabindex="-1"
-    />
-</svg>
+                if(selected) {
+                    // Allow dragging
+                    dragged = false;
+                    dragOrigin = { x: e.clientX, y: e.clientY };
+                    dragAccumulated = { x: 0, y: 0 };
+                    window.addEventListener('pointermove', onDragPointerMove);
+                    window.addEventListener('pointerup', onDragPointerUp, { once: true });
+                    
+                    return;
+                }
+                wasSelectedOnPress = selected ?? false;
+
+                onselect?.(e?.shiftKey ? SelectionType.Add : SelectionType.Set);
+            }}
+            onpointerup={(e) => {
+                if(e.button !== 0) return; // Only left click
+
+                if(wasSelectedOnPress && !dragged) {
+                    onselect?.(SelectionType.Remove);
+                }
+            }}
+        />
+
+        <!-- Start handles -->
+        <circle 
+            cx="{startLeftHandleCX}%"
+            cy="0%"
+            r="5"
+            onpointerdown={e => onHandlePointerDown(DragHandle.TopLeft, e)}
+            role="button"
+            tabindex="-1"
+        />
+        <circle 
+            cx="{startRightHandleCX}%"
+            cy="0%"
+            r="5"
+            onpointerdown={e => onHandlePointerDown(DragHandle.TopRight, e)}
+            role="button"
+            tabindex="-1"
+        />
+
+        <!-- End handles -->
+        <circle 
+            cx="{endLeftHandleCX}%"
+            cy="100%"
+            r="5"
+            onpointerdown={e => onHandlePointerDown(DragHandle.BottomLeft, e)}
+            role="button"
+            tabindex="-1"
+        />
+        <circle 
+            cx="{endRightHandleCX}%"
+            cy="100%"
+            r="5"
+            onpointerdown={e => onHandlePointerDown(DragHandle.BottomRight, e)}
+            role="button"
+            tabindex="-1"
+        />
+    </svg>
+</ContextMenu>
 
 <style lang="scss">
 svg {
@@ -191,6 +334,9 @@ svg {
     overflow: visible;
 
     position: absolute;
+}
+svg.selected circle {
+    stroke-width: 3;
 }
 circle {
     cursor: pointer;

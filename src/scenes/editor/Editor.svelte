@@ -1,7 +1,7 @@
 <script lang="ts">
     import { difficultyColor } from "../songList/SongList.svelte";
     import DraggableWindow from "./DraggableWindow.svelte";
-    import ToolbarDropdown from "./toolbar/ToolbarDropdown.svelte";
+    import ToolbarDropdown from "./menus/ToolbarDropdown.svelte";
     import Game from "../game/Game.svelte";
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import { ZipSaveArchive } from "./saveHandlers/ZipSaveHandler";
@@ -13,8 +13,9 @@
     import { PlaybackType, type PlaybackState } from "./playback.svelte";
     import PlaybackControls from "./PlaybackControls.svelte";
     import { songArchives } from "../../songs";
-    import ToolbarDropdownSubmenu from "./toolbar/ToolbarDropdownSubmenu.svelte";
-  import { WakatimeHandler } from "./WakatimeHandler";
+    import ToolbarDropdownSubmenu from "./menus/DropdownSubmenu.svelte";
+    import { WakatimeHandler } from "./WakatimeHandler";
+    import { SvelteSet } from "svelte/reactivity";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -27,7 +28,7 @@
     let meta = $derived(editedFile.meta);
     let unsavedChanges = $derived(editedFile.unsavedChanges);
     
-    let selectedNotes: Set<EditorNoteID> = $state(new Set());
+    let selectedNotes: Set<EditorNoteID> = $state(new SvelteSet());
     let openMap: EditorMapID | null = $state(null);
 
     const SPLIT_KEY = 'editor_settings_width';
@@ -185,7 +186,7 @@
         {#if openMap && $maps.has(openMap)}
             <!-- Render lanes for the selected map -->
             <MapView file={editedFile} {playbackState} map={openMap} bind:selectedNotes={selectedNotes} onmousemove={(beat, lane) => {
-                wakatimeHandler.mouseBeat = beat;
+                wakatimeHandler.mouseBeat = Math.round(beat);
                 wakatimeHandler.mouseLane = lane;
             }} />
         {:else}

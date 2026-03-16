@@ -1,11 +1,10 @@
 <script lang="ts">
     import type { EditorFile, EditorMapID, EditorNoteID } from "./EditorFile";
     import { FULL_LANES } from "../../game/constants";
-    import EditorNote from "./EditorNote.svelte";
+    import EditorNote, { normalizeNote, SelectionType } from "./EditorNote.svelte";
     import { type MapNote, MapNoteLayer, MapNoteType } from "../../Map";
     import { onMount } from "svelte";
     import type { PlaybackState } from "./playback.svelte";
-    import { debounce } from "../../lib/timing";
 
     const {
         file,
@@ -68,31 +67,7 @@
             endTime: dragEnd.beat
         };
 
-        if(note.start.width === 0 || note.end.width === 0) {
-            return null;
-        }
-        if(note.endTime === note.startTime) {
-            note.endTime += 1 / subdivisions;
-        }
-
-        if(note.endTime < note.startTime) {
-            [note.startTime, note.endTime] = [note.endTime, note.startTime];
-            [note.start, note.end] = [note.end, note.start];
-        }
-
-        if(note.startTime < 0) note.startTime = 0;
-        if(note.endTime < 1 / subdivisions) note.endTime = 1 / subdivisions;
-
-        if(note.start.width < 0) {
-            note.start.width = -note.start.width;
-            note.start.start -= note.start.width;
-        }
-        if(note.end.width < 0) {
-            note.end.width = -note.end.width;
-            note.end.start -= note.end.width;
-        }
-
-        return note;
+        return normalizeNote(note, subdivisions);
     });
 
     function getBeatFromEvent(e: MouseEvent): number {
@@ -111,7 +86,13 @@
     }
 
     function onGridPointerDown(e: MouseEvent) {
-        if (e.button !== 0) return;
+        if(selectedNotes.size > 0) {
+            selectedNotes.clear();
+            return;
+        }
+        
+        if(e.button !== 0) return;
+
         const lane = getLaneFromEvent(e);
         const beat = getBeatFromEvent(e);
         dragStart = { lane, beat };
@@ -152,13 +133,20 @@
 
     let colWidthPx = $state(0);
     let rowHeightPx = $state(0);
+    let leftOffset = $state(0);
+    let topOffset = $state(0);
+
     let gridRef: HTMLDivElement | null = $state(null);
 
     onMount(() => {
         function updateGridDimensions() {
             if(gridRef) {
-                colWidthPx = gridRef.clientWidth / (FULL_LANES + 1);
-                rowHeightPx = gridRef.scrollHeight / times.length;
+                const reference = gridRef.querySelector('.note-grid-reference') as HTMLElement;
+                const style = getComputedStyle(reference);
+                colWidthPx = parseFloat(style.width) / FULL_LANES;
+                rowHeightPx = parseFloat(style.height) / times.length;
+                leftOffset = reference.offsetLeft;
+                topOffset = reference.offsetTop;
             }
         }
 
@@ -177,6 +165,8 @@
 
 <svelte:window onpointermove={onGridPointerMove}></svelte:window>
 
+<!-- TODO: wrapping notes around 0 :c -->
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class="map-grid"
@@ -191,6 +181,8 @@
     {#each lanes as lane}
         <div class="lane-label">{lane}</div>
     {/each}
+
+    <div class="note-grid-reference" style="grid-column: 2 / -1; grid-row: 2 / -1;"></div>
 
     <!-- Rows for each time -->
     <div class="rows">
@@ -219,16 +211,75 @@
         <!-- Notes -->
         {#if mapData}
             {#each $notes as [id, note] (id)}
-                <EditorNote {note} onchange={(updatedNote) => {
-                    mapData.notes.update(n => n.set(id, updatedNote));
-                    file.changed();
-                }} {colWidthPx} {rowHeightPx} {subdivisions} />
+                <EditorNote
+                    {note}
+                    onchange={(updatedNote) => {
+                        mapData.notes.update(n => n.set(id, updatedNote));
+                        file.changed();
+                    }}
+                    ondelete={() => {
+                        mapData.notes.update(n => {
+                            n.delete(id);
+                            return n;
+                        });
+                        if(selectedNotes.has(id)) {
+                            selectedNotes.delete(id);
+                        }
+                        file.changed();
+                    }}
+                    onselect={(type) => {
+                        switch(type) {
+                            case SelectionType.Add:
+                                selectedNotes.add(id);
+                                break;
+                            case SelectionType.Set:
+                                selectedNotes.clear();
+                                selectedNotes.add(id);
+                                break;
+                            case SelectionType.Remove:
+                                selectedNotes.delete(id);
+                                break;
+                        }
+                    }}
+                    ondrag={(beat, lane) => {
+                        if(!$notes) return;
+
+                        // Drag all selected notes by the same amount
+                        mapData.notes.update(n => {
+                            for(const selectedId of selectedNotes) {
+                                const selectedNote = $notes.get(selectedId);
+                                if(!selectedNote) continue;
+
+                                const newNote: MapNote = {
+                                    ...selectedNote,
+                                    start: {
+                                        ...selectedNote.start,
+                                        start: selectedNote.start.start + lane
+                                    },
+                                    end: {
+                                        ...selectedNote.end,
+                                        start: selectedNote.end.start + lane
+                                    },
+                                    startTime: selectedNote.startTime + beat,
+                                    endTime: selectedNote.endTime + beat
+                                };
+
+                                n.set(selectedId, normalizeNote(newNote, subdivisions));
+                            }
+
+                            return n;
+                        });
+                        file.changed();
+                    }}
+                    {rowHeightPx} {colWidthPx} {subdivisions} {leftOffset} {topOffset}
+                    selected={selectedNotes.has(id)}
+                />
             {/each}
         {/if}
 
         <!-- Drag preview -->
         {#if dragNote}
-            <EditorNote note={dragNote} onchange={() => {}} {colWidthPx} {rowHeightPx} {subdivisions} />
+            <EditorNote note={dragNote} onchange={() => {}} {colWidthPx} {rowHeightPx} {subdivisions} {leftOffset} {topOffset} />
         {/if}
     {/if}
 </div>
