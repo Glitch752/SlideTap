@@ -5,6 +5,7 @@
     import { type MapNote, MapNoteLayer, MapNoteType } from "../../Map";
     import { onMount } from "svelte";
     import type { PlaybackState } from "./playback.svelte";
+    import { debounce } from "../../lib/timing";
 
     const {
         file,
@@ -49,7 +50,8 @@
     let dragEnd: { lane: number, beat: number } | null = $state(null);
     let dragNote: MapNote | null = $derived.by(() => {
         if(!dragStart || !dragEnd) return null;
-        return {
+
+        const note: MapNote = {
             type: MapNoteType.Hold,
             layer: MapNoteLayer.Primary,
             start: {
@@ -62,22 +64,48 @@
             },
             startTime: dragStart.beat,
             endTime: dragEnd.beat
-        } satisfies MapNote;
+        };
+
+        if(note.start.width === 0 || note.end.width === 0) {
+            return null;
+        }
+        if(note.endTime === note.startTime) {
+            note.endTime += 1 / subdivisions;
+        }
+
+        if(note.endTime < note.startTime) {
+            [note.startTime, note.endTime] = [note.endTime, note.startTime];
+            [note.start, note.end] = [note.end, note.start];
+        }
+
+        if(note.startTime < 0) note.startTime = 0;
+        if(note.endTime < 1 / subdivisions) note.endTime = 1 / subdivisions;
+
+        if(note.start.width < 0) {
+            note.start.width = -note.start.width;
+            note.start.start -= note.start.width;
+        }
+        if(note.end.width < 0) {
+            note.end.width = -note.end.width;
+            note.end.start -= note.end.width;
+        }
+
+        return note;
     });
 
-    function getLaneFromEvent(e: MouseEvent): number {
-        // Find the lane index from the event target or coordinates
-        // For now, assume each lane column has a data-lane attribute
-        let el = e.target as HTMLElement;
-        while(el && !el.dataset.lane) el = el.parentElement as HTMLElement;
-        return el ? parseInt(el.dataset.lane!) : 1;
-    }
     function getBeatFromEvent(e: MouseEvent): number {
-        // Find the beat from the event target or coordinates
-        // For now, assume each row has a data-beat attribute
-        let el = e.target as HTMLElement;
-        while (el && !el.dataset.beat) el = el.parentElement as HTMLElement;
-        return el ? parseFloat(el.dataset.beat!) : 0;
+        if(!gridRef) return 0;
+        const rect = gridRef?.getBoundingClientRect();
+        const y = e.clientY - rect.top + gridRef.scrollTop;
+        const beat = Math.round(y / rowHeightPx) / subdivisions;
+        return beat;
+    }
+    function getLaneFromEvent(e: MouseEvent): number {
+        if(!gridRef) return 0;
+        const rect = gridRef.getBoundingClientRect();
+        const x = e.clientX - rect.left - colWidthPx + gridRef.scrollLeft;
+        const lane = Math.round(x / colWidthPx) + 1;
+        return Math.max(1, Math.min(FULL_LANES, lane));
     }
 
     function onGridPointerDown(e: MouseEvent) {
@@ -87,6 +115,7 @@
         dragStart = { lane, beat };
         dragEnd = { lane, beat };
         isDragging = true;
+
         window.addEventListener('pointermove', onGridPointerMove);
         window.addEventListener('pointerup', onGridPointerUp);
     }
@@ -99,13 +128,16 @@
     function onGridPointerUp(e: PointerEvent) {
         if(!isDragging) return;
         isDragging = false;
+
         window.removeEventListener('pointermove', onGridPointerMove);
         window.removeEventListener('pointerup', onGridPointerUp);
+
         if(dragNote && mapData) {
             // Add to map_notes
             mapData.notes.update(n => n.set(file.generateNoteId(), dragNote));
             file.changed();
         }
+
         dragStart = null;
         dragEnd = null;
     }
@@ -147,7 +179,7 @@
 >
     <span class="time-column-label">Time</span>
     {#each lanes as lane}
-        <div class="lane-label" data-lane={lane}>{lane}</div>
+        <div class="lane-label">{lane}</div>
     {/each}
 
     <!-- Rows for each time -->
@@ -158,7 +190,6 @@
                 class="grid-row"
                 class:greyed={!isInPlaybackRange(beat)}
                 class:whole={wholeBeat}
-                data-beat={beat}
             >
                 <div class="time-label">
                     {#if wholeBeat}{
@@ -175,25 +206,19 @@
     {/if}
 
     {#if colWidthPx > 0 && rowHeightPx > 0}
-        <EditorNote note={{
-            startTime: 1.5,
-            endTime: 4,
-            start: { start: 1, width: 2 },
-            end: { start: 2, width: 4 },
-            layer: MapNoteLayer.Primary,
-            type: MapNoteType.Hold
-        }} {colWidthPx} {rowHeightPx} {subdivisions} />
-
         <!-- Notes -->
         {#if mapData}
             {#each $notes as [id, note]}
-                <EditorNote {note} {colWidthPx} {rowHeightPx} {subdivisions} />
+                <EditorNote {note} onchange={(updatedNote) => {
+                    mapData.notes.update(n => n.set(id, updatedNote));
+                    file.changed();
+                }} {colWidthPx} {rowHeightPx} {subdivisions} />
             {/each}
         {/if}
 
         <!-- Drag preview -->
         {#if dragNote}
-            <EditorNote note={dragNote} {colWidthPx} {rowHeightPx} {subdivisions} />
+            <EditorNote note={dragNote} onchange={() => {}} {colWidthPx} {rowHeightPx} {subdivisions} />
         {/if}
     {/if}
 </div>

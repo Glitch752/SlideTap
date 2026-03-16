@@ -6,7 +6,7 @@
     import { syncPlaybackToElement, unsyncPlayback, type PlaybackState } from "../playback.svelte";
 
     const {
-        file,
+        file, // Constant; safe to take values of initially since the entire editor is re-rendered on file change
         playbackState = $bindable()
     }: {
         file: EditorFile,
@@ -17,14 +17,14 @@
     const audioFileData = $derived(file.audioFileData);
     const trackDuration = $derived($audioFileData?.buffer?.duration ?? 0);
 
-    const meta = $derived(file.meta);
-    let bpm = $derived($meta.bpm);
-    let offset = $derived($meta.firstBeatOffset);
-    let segmentStart = $derived($meta.start);
-    let segmentEnd = $derived($meta.start + $meta.length);
+    const meta = $derived(file.getMeta());
+    let bpm = $derived(meta.bpm);
+    let offset = $derived(meta.firstBeatOffset);
+    let segmentStart = $derived(meta.start);
+    let segmentEnd = $derived(meta.start + meta.length);
 
     _$lazyEffect(() => [bpm, offset, segmentStart, segmentEnd], () => {
-        meta.set({
+        file.meta.set({
             ...file.getMeta(),
             bpm,
             firstBeatOffset: offset,
@@ -87,13 +87,13 @@
     <h2>File Settings</h2>
     
     <label for="name">Name</label>
-    <input id="name" value={$meta.name} onchange={(e) => {
+    <input id="name" value={meta.name} onchange={(e) => {
         file.meta.set({ ...file.getMeta(), name: (e.target as HTMLInputElement).value });
         file.changed();
     }} placeholder="Name" type="text" />
 
     <label for="artist">Artist</label>
-    <input id="artist" value={$meta.artist} onchange={(e) => {
+    <input id="artist" value={meta.artist} onchange={(e) => {
         file.meta.set({ ...file.getMeta(), artist: (e.target as HTMLInputElement).value });
         file.changed();
     }} placeholder="Artist" type="text" />

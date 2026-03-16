@@ -19,3 +19,14 @@ export function getExpSmoothAlpha(smoothing: number, deltaTime: number): number 
 export function expSmooth(current: number, target: number, smoothing: number, deltaTime: number): number {
     return current + getExpSmoothAlpha(smoothing, deltaTime) * (target - current);
 }
+
+export function debounce<T extends (...args: any[]) => void>(func: T, delayMs: number): T {
+    let timeout: NodeJS.Timeout | null = null;
+    return function(this: any, ...args: Parameters<T>) {
+        if(timeout) clearTimeout(timeout);
+        
+        timeout = setTimeout(() => {
+            func.apply(this, args);
+        }, delayMs);
+    } as T;
+}

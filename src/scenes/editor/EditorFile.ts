@@ -11,6 +11,9 @@ export class EditorMapData {
     get difficulty() { return this.data.difficulty; }
     get dataPath() { return this.data.dataPath; }
 
+    set name(value: string) { this.data.name = value; }
+    set difficulty(value: number) { this.data.difficulty = value; }
+
     public _notes: Map<EditorNoteID, MapNote> = new Map();
     public notes: Writable<Map<EditorNoteID, MapNote>> = writable(this._notes);
 
@@ -203,7 +206,11 @@ export class EditorFile {
 
     public async loadMap(editorData: EditorMapData) {
         const dataFile = await this.saveArchive.readFile(editorData.dataPath);
-        if(!dataFile) throw new Error(`Map data not found: ${editorData.dataPath}`);
+        if(!dataFile) {
+            console.error(`Data file for map ${editorData.name} not found; resetting to empty map`);
+            editorData.deserialize({ notes: [] }, this);
+            return;
+        }
 
         const decoder = new TextDecoder();
         const dataStr = decoder.decode(await dataFile.arrayBuffer());

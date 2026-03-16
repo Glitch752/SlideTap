@@ -1,13 +1,16 @@
 <script lang="ts">
     import { MapNoteType, type MapNote } from "../../Map";
+    import { _$lazyEffect } from "../../utils/effect.svelte";
 
     const {
-        note = $bindable(),
+        note,
+        onchange,
         colWidthPx,
         rowHeightPx,
         subdivisions
     }: {
         note: MapNote,
+        onchange: (note: MapNote) => void,
         colWidthPx: number,
         rowHeightPx: number,
         subdivisions: number
@@ -19,12 +22,19 @@
         [MapNoteType.Tap]: "#88ffff"
     })[note.type]);
 
+    enum DragHandle {
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight
+    }
+
     // drag logic
-    let draggingHandle: null | 'start' | 'end' | 'ctrl1' = null;
+    let draggingHandle: DragHandle | null = null;
     let dragOrigin = { x: 0, y: 0 };
     let noteOrigin = { startLane: 0, startBeat: 0, endLane: 0, endBeat: 0 };
 
-    function onHandlePointerDown(which: string, e: PointerEvent) {
+    function onHandlePointerDown(which: DragHandle, e: PointerEvent) {
         draggingHandle = which as any;
         dragOrigin = { x: e.clientX, y: e.clientY };
         noteOrigin = {
@@ -33,43 +43,63 @@
             endLane: note.end.start,
             endBeat: note.endTime,
         };
+
         window.addEventListener('pointermove', onHandlePointerMove);
         window.addEventListener('pointerup', onHandlePointerUp);
+
         e.stopPropagation();
     }
 
     function onHandlePointerMove(e: PointerEvent) {
-        if(!draggingHandle) return;
-        // Convert delta to lane/beat changes (1 lane per 5px, 1 beat per 10px)
-        const dx = e.clientX - dragOrigin.x;
-        const dy = e.clientY - dragOrigin.y;
-        if(draggingHandle === 'start') {
-            note.start.start = Math.round(noteOrigin.startLane + dx / 5);
-            note.startTime = Math.round(noteOrigin.startBeat + dy / 10);
-        } else if(draggingHandle === 'end') {
-            note.end.start = Math.round(noteOrigin.endLane + dx / 5);
-            note.endTime = Math.round(noteOrigin.endBeat + dy / 10);
+        if(draggingHandle === null) return;
+        
+        const deltaX = e.clientX - dragOrigin.x;
+        const deltaY = e.clientY - dragOrigin.y;
+
+        const laneDelta = Math.round(deltaX / colWidthPx);
+        const beatDelta = deltaY / rowHeightPx / subdivisions;
+
+        switch(draggingHandle) {
+            case DragHandle.TopLeft:
+                note.start.start = noteOrigin.startLane + laneDelta;
+                note.startTime = noteOrigin.startBeat + beatDelta;
+                break;
+            case DragHandle.TopRight:
+                note.start.width = noteOrigin.endLane - noteOrigin.startLane + laneDelta;
+                note.startTime = noteOrigin.startBeat + beatDelta;
+                break;
+            case DragHandle.BottomLeft:
+                note.end.start = noteOrigin.endLane + laneDelta;
+                note.endTime = noteOrigin.endBeat + beatDelta;
+                break;
+            case DragHandle.BottomRight:
+                note.end.width = noteOrigin.endLane - noteOrigin.startLane + laneDelta;
+                note.endTime = noteOrigin.endBeat + beatDelta;
+                break;
         }
+
+        onchange(note);
     }
 
     function onHandlePointerUp(e: PointerEvent) {
         draggingHandle = null;
+
         window.removeEventListener('pointermove', onHandlePointerMove);
         window.removeEventListener('pointerup', onHandlePointerUp);
     }
 
-    const leftColumn = $derived(Math.floor(Math.min(note.start.start, note.end.start)));
-    const rightColumn = $derived(Math.ceil(Math.max(note.start.start + note.start.width, note.end.start + note.end.width)));
+    const leftColumn = $derived(Math.min(note.start.start, note.end.start));
+    const rightColumn = $derived(Math.max(note.start.start + note.start.width, note.end.start + note.end.width));
     
     const widthColumns = $derived(rightColumn - leftColumn);
-    const heightRows = $derived(Math.ceil(note.endTime * subdivisions) - Math.floor(note.startTime * subdivisions));
+    const heightRows = $derived(note.endTime * subdivisions - note.startTime * subdivisions);
 
     const columnToCX = (col: number) => (col - leftColumn) / (rightColumn - leftColumn) * 100;
 
-    const startLeftHandleCX = $derived(columnToCX(Math.floor(note.start.start)));
-    const startRightHandleCX = $derived(columnToCX(Math.ceil(note.start.start + note.start.width)));
-    const endLeftHandleCX = $derived(columnToCX(Math.floor(note.end.start)));
-    const endRightHandleCX = $derived(columnToCX(Math.ceil(note.end.start + note.end.width)));
+    const startLeftHandleCX = $derived(columnToCX(note.start.start));
+    const startRightHandleCX = $derived(columnToCX(note.start.start + note.start.width));
+    const endLeftHandleCX = $derived(columnToCX(note.end.start));
+    const endRightHandleCX = $derived(columnToCX(note.end.start + note.end.width));
 
     const xToPixels = (x: number) => x / 100 * widthColumns * colWidthPx;
     const yToPixels = (y: number) => y / 100 * heightRows * rowHeightPx;
@@ -93,12 +123,7 @@
     }
 </script>
 
-<svg style="
-    grid-column: {leftColumn + 2};
-    grid-row: {Math.floor(note.startTime * subdivisions) + 2};
-    width: {widthColumns * colWidthPx}px;
-    height: {heightRows * rowHeightPx}px;
-">
+<svg style="left: {leftColumn * colWidthPx}px; top: {note.startTime * subdivisions * rowHeightPx}px; width: {(rightColumn - leftColumn) * colWidthPx}px; height: {(note.endTime * subdivisions - note.startTime * subdivisions) * rowHeightPx}px;">
     <defs>
         <linearGradient id="noteGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stop-color="{noteColor}" stop-opacity="0.3" />
@@ -119,7 +144,7 @@
         cx="{startLeftHandleCX}%"
         cy="0%"
         r="5"
-        onpointerdown={e => onHandlePointerDown('start', e)}
+        onpointerdown={e => onHandlePointerDown(DragHandle.TopLeft, e)}
         role="button"
         tabindex="-1"
     />
@@ -127,7 +152,7 @@
         cx="{startRightHandleCX}%"
         cy="0%"
         r="5"
-        onpointerdown={e => onHandlePointerDown('ctrl1', e)}
+        onpointerdown={e => onHandlePointerDown(DragHandle.TopRight, e)}
         role="button"
         tabindex="-1"
     />
@@ -137,7 +162,7 @@
         cx="{endLeftHandleCX}%"
         cy="100%"
         r="5"
-        onpointerdown={e => onHandlePointerDown('end', e)}
+        onpointerdown={e => onHandlePointerDown(DragHandle.BottomLeft, e)}
         role="button"
         tabindex="-1"
     />
@@ -145,7 +170,7 @@
         cx="{endRightHandleCX}%"
         cy="100%"
         r="5"
-        onpointerdown={e => onHandlePointerDown('ctrl2', e)}
+        onpointerdown={e => onHandlePointerDown(DragHandle.BottomRight, e)}
         role="button"
         tabindex="-1"
     />
@@ -153,7 +178,6 @@
 
 <style lang="scss">
 svg {
-    pointer-events: none;
     position: absolute;
 
     overflow: visible;

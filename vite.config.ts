@@ -9,7 +9,9 @@ export default defineConfig({
     plugins: [svelte({
         // Consult https://svelte.dev/docs#compile-time-svelte-preprocess
         // for more information about preprocessors
-        preprocess: vitePreprocess(),
+        preprocess: vitePreprocess({
+            script: true
+        }),
         compilerOptions: {
             hmr: true
         }
