@@ -34,7 +34,7 @@
 </script>
 
 <script lang="ts">
-    import { MapNoteType, type MapNote } from "../../Map";
+    import { getNoteColor, MapNoteType, type MapNote } from "../../Map";
     import { _$lazyEffect } from "../../utils/effect.svelte";
     import ContextMenu from "./menus/ContextMenu.svelte";
 
@@ -69,11 +69,7 @@
     let wasSelectedOnPress = false;
     let dragged = false;
 
-    const noteColor = $derived(({
-        [MapNoteType.Hold]: "#8888ff",
-        [MapNoteType.Damage]: "#ff8888",
-        [MapNoteType.Tap]: "#88ffff"
-    })[note.type]);
+    const noteColor = $derived(getNoteColor(note.type, note.layer));
 
     enum DragHandle {
         TopLeft,

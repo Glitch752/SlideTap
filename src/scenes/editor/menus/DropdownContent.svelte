@@ -30,7 +30,7 @@
     display: flex;
     flex-direction: column;
 
-    :global(button) {
+    :global button {
         border: none;
         text-align: left;
         padding: 0.25em 1em;
@@ -38,6 +38,10 @@
         color: var(--text);
         font-size: 1rem;
         --bg-color: var(--panel);
+
+        &.active {
+            --bg-color: var(--surface);
+        }
     }
     > :global(span) {
         color: var(--text-dim);

@@ -19,7 +19,7 @@
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
-    ).filter(h => h.isSupported())
+    ).filter(h => h.isSupported());
 
     let editedFile: EditorFile = $state(new EditorFile(new ZipSaveArchive()));
     let playbackState: PlaybackState = $state({ playing: PlaybackType.Paused, time: 0 });
@@ -37,6 +37,8 @@
 
     let wakatimeHandler: WakatimeHandler = new WakatimeHandler();
     const wakatimeStatus = wakatimeHandler.status;
+    
+    let subdivisions = $state(8);
 
     $effect(() => {
         wakatimeHandler.filename = editedFile.getMeta().name || "untitled";
@@ -133,6 +135,15 @@
                     {/each}
                 </ToolbarDropdownSubmenu>
             </ToolbarDropdown>
+            <ToolbarDropdown title="View">
+                <ToolbarDropdownSubmenu title="Subdivisions">
+                    <button onclick={() => subdivisions = 2} class:active={subdivisions === 2}>2</button>
+                    <button onclick={() => subdivisions = 4} class:active={subdivisions === 4}>4</button>
+                    <button onclick={() => subdivisions = 6} class:active={subdivisions === 6}>6</button>
+                    <button onclick={() => subdivisions = 8} class:active={subdivisions === 8}>8</button>
+                    <button onclick={() => subdivisions = 12} class:active={subdivisions === 12}>12</button>
+                </ToolbarDropdownSubmenu>
+            </ToolbarDropdown>
             <ToolbarDropdown title="Wakatime">
                 <button onclick={() => {
                     alert(`API Key: ${wakatimeHandler.apiKey.value}\nAPI URL: ${wakatimeHandler.apiUrl.value}`);
@@ -185,7 +196,7 @@
     <div class="lanes">
         {#if openMap && $maps.has(openMap)}
             <!-- Render lanes for the selected map -->
-            <MapView file={editedFile} {playbackState} map={openMap} bind:selectedNotes={selectedNotes} onmousemove={(beat, lane) => {
+            <MapView file={editedFile} {subdivisions} {playbackState} map={openMap} bind:selectedNotes={selectedNotes} onmousemove={(beat, lane) => {
                 wakatimeHandler.mouseBeat = Math.round(beat);
                 wakatimeHandler.mouseLane = lane;
             }} />

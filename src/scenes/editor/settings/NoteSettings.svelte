@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { SvelteSet } from "svelte/reactivity";
     import type { EditorFile, EditorMapID, EditorNoteID } from "../EditorFile";
-    import { MapNoteLayer, MapNoteType, type MapNote } from "../../../Map";
+    import { getNoteColor, MapNoteLayer, MapNoteType, type MapNote } from "../../../Map";
 
     const {
         file,
@@ -39,6 +39,22 @@
     //     }
     //     return true;
     // });
+
+    function mode<T>(arr: T[]): T | null {
+        const counts = new Map<T, number>();
+        for(const item of arr) {
+            counts.set(item, (counts.get(item) ?? 0) + 1);
+        }
+        let maxCount = 0;
+        let modeItem: T | null = null;
+        for(const [item, count] of counts) {
+            if(count > maxCount) {
+                maxCount = count;
+                modeItem = item;
+            }
+        }
+        return modeItem;
+    }
 </script>
 
 <div class="settings">
@@ -79,7 +95,7 @@
                     return n;
                 });
                 file.changed();
-            }}>{label}</button>
+            }} style="--color: {getNoteColor(type, mode(notes.map(n => n.layer)) ?? MapNoteLayer.Primary)}">{label}</button>
         {/each}
     </div>
 </div>
@@ -109,19 +125,18 @@ label, span {
 
     button {
         background-color: var(--panel);
-        border: 2px solid var(--surface);
+        border: 2px solid var(--color, var(--surface));
         color: var(--text);
         font-size: 1em;
-        padding: 2px 4px;
+        padding: 0.5rem 1rem;
 
         &:hover {
             background-color: var(--surface);
         }
 
         &.selected {
-            background-color: var(--accent);
+            background-color: var(--surface);
             color: var(--accent-text);
-            border-color: var(--accent);
         }
     }
 }

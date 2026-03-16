@@ -77,12 +77,19 @@ export class EditorFile {
     public beginPlayback(atTime: number) {
         const audioFileData = get(this.audioFileData);
         if(!audioFileData) return;
-        
+
+        let time = atTime + this.getMeta().firstBeatOffset * (60 / this.getMeta().bpm);
+        let offset = 0;
+        if(time < 0) {
+            offset = -time;
+            time = 0;
+        }
+
         const { context: audioContext, buffer, fadeGain } = audioFileData;
         const source = audioContext.createBufferSource();
         source.buffer = buffer;
         source.connect(fadeGain);
-        source.start(0, atTime);
+        source.start(audioContext.currentTime + offset, time);
 
         tween(fadeGain.gain.value, 1, 0.1, 16, value => {
             fadeGain.gain.value = value;

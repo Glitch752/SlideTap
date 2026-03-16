@@ -9,6 +9,21 @@ export enum MapNoteType {
     Damage = 2
 };
 
+export function getNoteColor(type: MapNoteType, layer: MapNoteLayer) {
+    if(layer === MapNoteLayer.Background) {
+        return ({
+            [MapNoteType.Hold]: "#4444ff",
+            [MapNoteType.Damage]: "#ff4444",
+            [MapNoteType.Tap]: "#44ffff"
+        })[type];
+    }
+    return ({
+        [MapNoteType.Hold]: "#8888ff",
+        [MapNoteType.Damage]: "#ff8888",
+        [MapNoteType.Tap]: "#88ffff"
+    })[type];
+}
+
 export type LaneRange = {
     start: number;
     width: number;

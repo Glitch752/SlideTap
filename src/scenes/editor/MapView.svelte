@@ -10,12 +10,14 @@
         file,
         map,
         playbackState,
+        subdivisions,
         selectedNotes = $bindable(),
         onmousemove
     }: {
         file: EditorFile,
         map: EditorMapID,
         playbackState: PlaybackState,
+        subdivisions: number,
         selectedNotes: Set<EditorNoteID>,
         onmousemove?: (beat: number, lane: number) => void
     } = $props();
@@ -25,7 +27,6 @@
     let leftOffset = $state(0);
     let topOffset = $state(0);
 
-    const subdivisions = 4;
     const lanes = Array.from({ length: FULL_LANES }, (_, i) => i + 1);
 
     // Get all times (rows) for the song
@@ -194,7 +195,11 @@
                 class:greyed={!isInPlaybackRange(beat)}
                 class:whole={wholeBeat}
             >
-                <div class="time-label">
+                <div class="time-label" onpointerdown={(e) => {
+                    e.stopPropagation();
+                    // Set playback position to this time
+                    playbackState.time = beat * 60 / bpm;
+                }}>
                     {#if wholeBeat}{
                         beat.toString().padStart(5, String.fromCharCode(/* nbsp */ 160))
                     }{:else}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/if}<span class="decimal">{
@@ -283,6 +288,8 @@
             <EditorNote note={dragNote} onchange={() => {}} {colWidthPx} {rowHeightPx} {subdivisions} {leftOffset} {topOffset} />
         {/if}
     {/if}
+    
+    <div class="playback-head" style="--position: {playbackState.time / trackLength * rowHeightPx * times.length}px;"></div>
 </div>
 
 <style lang="scss">
@@ -358,5 +365,17 @@
     grid-column: 1 / -1;
     text-align: center;
     color: var(--text-dim);
+}
+
+
+.playback-head {
+    position: absolute;
+    left: 0;
+    grid-row: 2;
+    width: 100%;
+    height: 2px;
+    background-color: var(--surface-red);
+    transform: translateY(var(--position));
+    pointer-events: none;
 }
 </style>
