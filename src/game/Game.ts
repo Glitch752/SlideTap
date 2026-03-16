@@ -15,8 +15,8 @@ import { NodeID } from "./types";
 export class GameScene implements Scene {
     public component = Game;
 
-    public song: Song;
-    public map: GameMap = null as any;
+    public song: Song | null;
+    public map: GameMap | null = null;
 
     public scene: THREE.Scene;
     public tree: NodeTree<THREE.Object3D, GameScene> = new NodeTree(this as GameScene, true);
@@ -53,10 +53,10 @@ export class GameScene implements Scene {
     }
 
     private async loadMap(): Promise<void> {
-        this.map = await this.song.getMap(this.mapIndex);
+        this.map = (await this.song?.getMap(this.mapIndex)) ?? null;
     }
 
-    protected constructor(song: Song, public mapIndex: number) {
+    constructor(song: Song | null, public mapIndex: number) {
         this.song = song;
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("#060d16");

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { difficultyColor } from "../songList/SongList.svelte";
-    import DraggableWindow from "./DraggableWindow.svelte";
+    import DraggableWindow, { resetAllWindows } from "./DraggableWindow.svelte";
     import ToolbarDropdown from "./menus/ToolbarDropdown.svelte";
     import Game from "../game/Game.svelte";
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
@@ -16,6 +16,8 @@
     import ToolbarDropdownSubmenu from "./menus/DropdownSubmenu.svelte";
     import { WakatimeHandler } from "./WakatimeHandler";
     import { SvelteSet } from "svelte/reactivity";
+    import InlineScene from "../InlineScene.svelte";
+  import { GameScene } from "../../game/Game";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -39,6 +41,8 @@
     const wakatimeStatus = wakatimeHandler.status;
     
     let subdivisions = $state(8);
+
+    const gameScene = new GameScene(null, 0);
 
     $effect(() => {
         wakatimeHandler.filename = editedFile.getMeta().name || "untitled";
@@ -81,7 +85,7 @@
 </script>
 
 <DraggableWindow title="Preview" id="preview">
-    <Game />
+    <InlineScene scene={gameScene} />
 </DraggableWindow>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -143,6 +147,7 @@
                     <button onclick={() => subdivisions = 8} class:active={subdivisions === 8}>8</button>
                     <button onclick={() => subdivisions = 12} class:active={subdivisions === 12}>12</button>
                 </ToolbarDropdownSubmenu>
+                <button onclick={() => resetAllWindows()}>Reset windows</button>
             </ToolbarDropdown>
             <ToolbarDropdown title="Wakatime">
                 <button onclick={() => {

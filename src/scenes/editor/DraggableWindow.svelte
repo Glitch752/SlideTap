@@ -1,3 +1,16 @@
+<script lang="ts" module>
+    export const resetHandlers: Set<(() => void)> = new Set();
+
+    export function resetAllWindows() {
+        for(const key in localStorage) {
+            if(key.startsWith("draggable-window-")) {
+                localStorage.removeItem(key);
+            }
+        }
+        resetHandlers.forEach(handler => handler());
+    }
+</script>
+
 <script lang="ts">
     import type { Snippet } from "svelte";
     
@@ -39,6 +52,22 @@
     });
     $effect(() => {
         localStorage.setItem(storageKey, JSON.stringify(position));
+    });
+
+    $effect(() => {
+        const reset = () => {
+            position = {
+                x: 100,
+                y: 100,
+                width: 400,
+                height: 300,
+                folded: false
+            };
+        };
+        resetHandlers.add(reset);
+        return () => {
+            resetHandlers.delete(reset);
+        };
     });
 
     let windowState = $state({
