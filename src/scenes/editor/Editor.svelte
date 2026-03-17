@@ -2,7 +2,6 @@
     import { difficultyColor } from "../songList/SongList.svelte";
     import DraggableWindow, { resetAllWindows } from "./DraggableWindow.svelte";
     import ToolbarDropdown from "./menus/ToolbarDropdown.svelte";
-    import Game from "../game/Game.svelte";
     import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import { ZipSaveArchive } from "./saveHandlers/ZipSaveHandler";
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
@@ -17,7 +16,7 @@
     import { WakatimeHandler } from "./WakatimeHandler";
     import { SvelteSet } from "svelte/reactivity";
     import InlineScene from "../InlineScene.svelte";
-  import { GameScene } from "../../game/Game";
+    import { GameScene } from "../../game/Game";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -100,7 +99,6 @@
                     editedFile.saveArchive.close();
                     editedFile = new EditorFile(new ZipSaveArchive());
                 }}>New</button>
-                <!-- <button onclick={() => console.log("Open existing")}>Open existing</button> -->
                 {@const saveClass = editedFile.saveArchive.openable()}
                 {#if saveClass !== null}
                     <button onclick={() => {
@@ -175,7 +173,24 @@
             {#if selectedNotes.size == 0 || !openMap}
                 <EditorFileSettings file={editedFile} {playbackState} />
             {:else}
-                <NoteSettings file={editedFile} map={openMap} selection={selectedNotes} />
+                <NoteSettings
+                    file={editedFile} map={openMap}
+                    selection={selectedNotes}
+                    ondelete={() => {
+                        if(!openMap) return;
+                        const map = editedFile.getMap(openMap);
+                        if(!map) return;
+                        map.notes.update(notes => {
+                            for(const noteID of selectedNotes) {
+                                notes.delete(noteID);
+                            }
+                            return notes;
+                        });
+                        editedFile.changed();
+                        
+                        selectedNotes.clear();
+                    }}
+                />
             {/if}
         {/key}
     </div>

@@ -6,11 +6,13 @@
     const {
         file,
         map,
-        selection
+        selection,
+        ondelete
     }: {
         file: EditorFile,
         map: EditorMapID,
-        selection: SvelteSet<EditorNoteID>
+        selection: SvelteSet<EditorNoteID>,
+        ondelete: () => void
     } = $props();
 
     const mapData = $derived(file.getMap(map) ?? null);
@@ -98,6 +100,9 @@
             }} style="--color: {getNoteColor(type, mode(notes.map(n => n.layer)) ?? MapNoteLayer.Primary)}">{label}</button>
         {/each}
     </div>
+
+    <span>Other</span>
+    <button onclick={ondelete}>Delete</button>
 </div>
 
 
@@ -122,22 +127,22 @@ label, span {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 0.5rem;
+}
 
-    button {
-        background-color: var(--panel);
-        border: 2px solid var(--color, var(--surface));
-        color: var(--text);
-        font-size: 1em;
-        padding: 0.5rem 1rem;
+button {
+    background-color: var(--panel);
+    border: 2px solid var(--color, var(--surface));
+    color: var(--text);
+    font-size: 1em;
+    padding: 0.5rem 1rem;
 
-        &:hover {
-            background-color: var(--surface);
-        }
+    &:hover {
+        background-color: var(--surface);
+    }
 
-        &.selected {
-            background-color: var(--surface);
-            color: var(--accent-text);
-        }
+    &.selected {
+        background-color: var(--surface);
+        color: var(--accent-text);
     }
 }
 </style>

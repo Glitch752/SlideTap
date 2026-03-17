@@ -194,7 +194,7 @@
     <!-- Rows for each time -->
     <div class="rows">
         {#each times as { beat }}
-            {@const wholeBeat = Math.round(beat) === beat}
+            {@const wholeBeat = Math.floor(beat) === beat}
             <div
                 class="grid-row"
                 class:greyed={!isInPlaybackRange(beat)}
@@ -318,13 +318,13 @@
     display: grid;
     grid-template-columns: subgrid;
     min-height: 24px;
-    border-bottom: 1px solid var(--panel);
+    border-top: 1px solid var(--panel);
     padding-left: 0.5rem;
     grid-column: 1 / -1;
     user-select: none;
     
     &.whole {
-        border-bottom: 2px solid var(--panel);
+        border-top: 2px solid var(--panel);
     }
     &.greyed {
         background: var(--section);
