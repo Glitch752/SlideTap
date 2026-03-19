@@ -3,6 +3,7 @@ import { get, writable, type Writable } from "svelte/store";
 import type { OpenableSaveArchive, SaveArchive } from "./saveHandlers/SaveArchive";
 import type { SongMapJSON, SongMetadataJSON } from "../../Song";
 import { tween } from "../../lib/timing";
+import { Signal } from "../../lib/miniNodeTree";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
 export type EditorNoteID = string & { __brand: "EditorNoteID" };
@@ -20,7 +21,7 @@ export class EditorMapData {
 
     public loaded = false;
 
-    constructor(private data: SongMapJSON) {
+    constructor(private data: SongMapJSON, public id: EditorMapID) {
     }
 
     public serialize(): LoadedMapDataJSON {
@@ -187,7 +188,7 @@ export class EditorFile {
                 difficulty: 1,
                 notes: 0,
                 dataPath: `maps/map${this._maps.size + 1}.json`
-            })
+            }, mapId)
         );
         this.maps.set(this._maps);
         this.changed();
@@ -208,14 +209,11 @@ export class EditorFile {
     }
 
     public unsavedChanges: Writable<boolean> = writable(false);
-    public changed() {
-        this.unsavedChanges.set(true);
-    }
+    public changed: Signal<[]>;
 
     public loadMeta(metadata: SongMetadataJSON) {
         this.meta.set(metadata);
     }
-
 
     public static async load(ar: SaveArchive, loadMaps: boolean = true): Promise<EditorFile> {
         const metaFile = await ar.readFile("metadata.json");
@@ -245,7 +243,7 @@ export class EditorFile {
         editorFile._maps.clear();
         for(const map of metadata.maps) {
             const mapId = editorFile.generateMapId();
-            const editorData = new EditorMapData(map);
+            const editorData = new EditorMapData(map, mapId);
             editorFile._maps.set(mapId, editorData);
 
             if(loadMaps) {
@@ -334,5 +332,9 @@ export class EditorFile {
 
     // Create a blank editor file with no data.
     public constructor(public saveArchive: SaveArchive) {
+        this.changed = new Signal();
+        this.changed.connect(() => {
+            this.unsavedChanges.set(true);
+        });
     }
 }

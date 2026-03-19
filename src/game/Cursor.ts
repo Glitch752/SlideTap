@@ -6,6 +6,7 @@ import { Line2, LineGeometry, LineMaterial } from "three/examples/jsm/Addons.js"
 import { FULL_LANES } from "./constants";
 import { MapNoteLayer } from "../Map";
 import type { Renderer } from "./Renderer";
+import { Signal } from "../lib/miniNodeTree";
 
 export class Cursor extends GameNode {
     /** In radians; doesn't wrap so we can smooth it. */
@@ -18,10 +19,17 @@ export class Cursor extends GameNode {
     /** In radians */
     public targetSecondaryOffsetAngle: number = 0;
 
+    public get lane() {
+        return Math.round(this.angle / (2 * Math.PI) * FULL_LANES) % FULL_LANES;
+    }
+
     private cursorMesh: Line2;
     private secondaryCursorMesh: Line2;
     private container: THREE.Object3D;
     private secondaryContainer: THREE.Object3D;
+
+    /** Signal<[lane]> */
+    public tapped: Signal<[number]> = new Signal();
 
     public getCursorPositions(primaryTarget: THREE.Vector3, secondaryTarget: THREE.Vector3) {
         this.cursorMesh.getWorldPosition(primaryTarget);
@@ -66,7 +74,6 @@ export class Cursor extends GameNode {
         container.add(this.cursorMesh);
         secondaryContainer.add(this.secondaryCursorMesh);
 
-        this.setUpdates(true);
         this.setId(NodeID.Cursor);
     }
 
@@ -88,6 +95,8 @@ export class Cursor extends GameNode {
     }
 
     public tap(type: MapNoteLayer) {
-        this.context!.tree.get<Renderer>(NodeID.Renderer)!.debugText(`Tap ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
+        this.context!.tree.get<Renderer>(NodeID.Renderer)!
+            .debugText(`Tap ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
+        this.tapped(this.lane);
     }
 }

@@ -17,6 +17,9 @@
     import { SvelteSet } from "svelte/reactivity";
     import InlineScene from "../InlineScene.svelte";
     import { GameScene } from "../../game/Game";
+    import { Song } from "../../Song";
+    import { _$debouncedEffect, _$explicitEffect } from "../../utils/effect.svelte";
+    import { debounce } from "../../lib/timing";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -42,6 +45,16 @@
     let subdivisions = $state(8);
 
     const gameScene = new GameScene(null, 0);
+    const updateGameScene = debounce(async () => {
+        const song = await Song.loadFromFile(editedFile);
+        gameScene.setSong(song, song.maps.findIndex(m => m.id === openMap));
+    }, 100);
+
+    _$explicitEffect(() => [editedFile], () => {
+        editedFile.changed.connect(updateGameScene);
+        updateGameScene();
+    });
+    _$explicitEffect(() => [openMap], updateGameScene);
 
     $effect(() => {
         wakatimeHandler.filename = editedFile.getMeta().name || "untitled";

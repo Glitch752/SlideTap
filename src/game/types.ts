@@ -8,5 +8,7 @@ export const GameNode = Node<THREE.Object3D, GameScene>;
 export enum NodeID {
     Renderer = "renderer",
     Cursor = "cursor",
-    Input = "input"
+    Input = "input",
+    Timer = "timer",
+    Lanes = "lanes",
 }

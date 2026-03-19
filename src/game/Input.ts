@@ -144,9 +144,6 @@ export class Input extends GameNode {
 
     constructor() {
         super(null);
-
-        this.setUpdates(true);
-        this.setId(NodeID.Input);
     }
 
     update(deltaTime: number): void {

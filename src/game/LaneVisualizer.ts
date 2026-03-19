@@ -1,8 +1,14 @@
 import { FULL_LANES } from "./constants";
-import { GameNode } from "./types";
+import { Cursor } from "./Cursor";
+import type { GameScene } from "./Game";
+import type { Renderer } from "./Renderer";
+import { Tween } from "./Tween";
+import { GameNode, NodeID } from "./types";
 import * as THREE from "three";
 
 export class LaneVisualizer extends GameNode {
+    private material: THREE.MeshBasicMaterial;
+
     constructor(public index: number) {
         const angle = (2 * Math.PI) / FULL_LANES;
         const radius = 500;
@@ -47,5 +53,18 @@ export class LaneVisualizer extends GameNode {
         surface.position.y = -5;
 
         super(surface);
+
+        this.material = material;
+    }
+
+    init(context: GameScene): void {
+        const renderer = context.tree.get<Renderer>(NodeID.Renderer)!;
+        context.tree.get<Cursor>(NodeID.Cursor)!.tapped.connect((lane) => {
+            if(lane === this.index) {
+                // Flash the lane when tapped
+                this.material.opacity = 0.5;
+                this.add(new Tween(this.material, "opacity", 0.0, 0.5));
+            }
+        })
     }
 }

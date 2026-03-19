@@ -1,15 +1,39 @@
 /**
  * I like GDScript, okay?
  */
+
+export interface Signal<T extends [...any[]]> {
+    (...args: T): void;
+}
+
+/**
+ * A simple signal implementation for handling events.  
+ * Supports connecting and disconnecting listeners, as well as emitting events with arguments.
+ * A signal, as constructed, is actuaally a function, so it can be emitted either using `signal(args)` or `signal.emit(args)`.
+ */
 export class Signal<T extends[...any[]]> {
-    private listeners: Array<(...args: T) => void> = [];
+    private listeners!: Set<(...args: T) => void>;
+    public boundEmit!: (...args: T) => void;
+
+    public constructor() {
+        let self!: Signal<T>;
+        const callable = ((...args: T) => self.emit(...args)) as unknown as Signal<T>;
+        self = callable;
+
+        Object.setPrototypeOf(callable, new.target.prototype);
+
+        callable.listeners = new Set();
+        callable.boundEmit = callable.emit.bind(callable);
+
+        return callable;
+    }
 
     public connect(listener: ((...args: T) => void) | Signal<T>) {
         if(listener instanceof Signal) {
-            this.listeners.push(listener.boundEmit);
+            this.listeners.add(listener.boundEmit);
             return () => this.disconnect(listener);
         }
-        this.listeners.push(listener);
+        this.listeners.add(listener);
         return () => this.disconnect(listener);
     }
 
@@ -21,7 +45,6 @@ export class Signal<T extends[...any[]]> {
         return this.connect(wrapper);
     }
 
-    public boundEmit = this.emit.bind(this);
     public emit(...args: T) {
         for(const listener of this.listeners) {
             listener(...args);
@@ -30,14 +53,14 @@ export class Signal<T extends[...any[]]> {
 
     public disconnect(listener: ((...args: T) => void) | Signal<T>) {
         if(listener instanceof Signal) {
-            this.listeners = this.listeners.filter(l => l !== listener.boundEmit);
+            this.listeners.delete(listener.boundEmit);
             return;
         }
-        this.listeners = this.listeners.filter(l => l !== listener);
+        this.listeners.delete(listener);
     }
 
     public clear() {
-        this.listeners = [];
+        this.listeners.clear();
     }
 }
 
@@ -180,7 +203,7 @@ export class NodeTree<T, G extends {}> {
         node.onEvent.disconnect(this.onEvent);
 
         // Emit the node removed event for the removed node and all its descendants
-        this.onNodeRemoved.emit(node);
+        this.onNodeRemoved(node);
         node.forEachRecursive(this.onNodeRemoved.boundEmit);
     }
 
@@ -198,7 +221,7 @@ export class NodeTree<T, G extends {}> {
         node.onEvent.connect(this.onEvent);
 
         // Emit the node added event for the newly added node and all its descendants
-        this.onNodeAdded.emit(node);
+        this.onNodeAdded(node);
         node.forEachRecursive(this.onNodeAdded.boundEmit);
 
         if(this.initialized && !node.initialized) {
@@ -217,7 +240,7 @@ export class NodeTree<T, G extends {}> {
     }
     public _setNodeId(node: Node<T, G>, id: string | null): void {
         const oldId = node.id === id ? null : node.id;
-        this.onIdChanged.emit(node, oldId, id);
+        this.onIdChanged(node, oldId, id);
     }
 
     public updateRecursive(deltaTime: number): void {
@@ -240,7 +263,7 @@ export class NodeTree<T, G extends {}> {
     }
 
     public emitEvent(event: CustomEvent): void {
-        this.onEvent.emit(event);
+        this.onEvent(event);
     }
 }
 
@@ -260,7 +283,7 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
 
     value: T | null = null;
 
-    private _updates: boolean = false;
+    private _updates: boolean = true;
     get updates() {
         return this._updates;
     }
@@ -273,6 +296,8 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
     constructor(value: T | null = null) {
         super(null);
         this.value = value;
+
+        this.update(0);
     }
 
     reparent(newParent: NodeTree<T, G>) {
@@ -301,6 +326,7 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
             this._updates = true;
         }
     }
+    /** Nodes will be automatically configured for updates if `update()` is overridden. */
     setUpdates(updates: boolean) {
         this._updates = updates;
         if(this._parent) this._parent._setNodeUpdating(this, updates);
@@ -314,5 +340,8 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
 
     init(_context: G): void {}
 
-    update(_deltaTime: number): void {}
+    /** Don't call super.update if overridden! */
+    update(_deltaTime: number): void {
+        this.setUpdates(false);
+    }
 }

@@ -15,8 +15,6 @@ export class CameraController extends GameNode {
 
     constructor() {
         super(null);
-
-        this.setUpdates(true);
     }
 
     private targetPos: THREE.Vector3 = new THREE.Vector3();

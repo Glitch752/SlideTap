@@ -1,6 +1,6 @@
 import { CameraController } from "./CameraController";
 import type { GameScene } from "./Game";
-import { GameNode, NodeID } from "./types";
+import { GameNode } from "./types";
 import * as THREE from "three";
 import { FlyControls } from "three/examples/jsm/Addons.js";
 
@@ -22,8 +22,6 @@ export class Renderer extends GameNode {
 
     constructor() {
         super();
-        this.setId(NodeID.Renderer);
-        this.setUpdates(true);
 
         this.add(new CameraController());
     }

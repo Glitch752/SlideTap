@@ -11,6 +11,7 @@ import { Lighting } from "./environment/Lighting";
 import { Lanes } from "./Lanes";
 import { Input } from "./Input";
 import { NodeID } from "./types";
+import { Timer } from "./Timer";
 
 export class GameScene implements Scene {
     public component = Game;
@@ -20,30 +21,30 @@ export class GameScene implements Scene {
 
     public scene: THREE.Scene;
     public tree: NodeTree<THREE.Object3D, GameScene> = new NodeTree(this as GameScene, true);
-
-    private startTime: number = 0;
-    public get elapsed(): number {
-        return Date.now() - this.startTime;
-    }
     
     public init(): void {
-        this.startTime = Date.now();
         connectParenting(this.tree, this.scene);
 
         this.tree.addChildren(
             // Logic
-            new Input(),
+            new Timer().start().setId(NodeID.Timer),
+            new Input().setId(NodeID.Input),
 
             // Rendering
             new Lighting(),
             new Platforms(),
             new Skybox(),
 
-            new Lanes(),
+            new Lanes(this.map).setId(NodeID.Lanes),
 
             // Renderer must be last so we update before drawing
-            new Renderer()
+            new Renderer().setId(NodeID.Renderer)
         );
+    }
+
+    private async loadMap(): Promise<void> {
+        this.map = (await this.song?.getMap(this.mapIndex)) ?? null;
+        this.tree.get<Lanes>(NodeID.Lanes)?.setMap(this.map);
     }
 
     public static async load(song: Song, mapIndex: number): Promise<GameScene> {
@@ -52,14 +53,16 @@ export class GameScene implements Scene {
         return scene;
     }
 
-    private async loadMap(): Promise<void> {
-        this.map = (await this.song?.getMap(this.mapIndex)) ?? null;
-    }
-
     constructor(song: Song | null, public mapIndex: number) {
         this.song = song;
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("#060d16");
+    }
+
+    public setSong(song: Song, mapIndex: number) {
+        this.song = song;
+        this.mapIndex = mapIndex;
+        this.loadMap();
     }
 
     private lastTime: number = 0;

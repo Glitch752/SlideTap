@@ -82,7 +82,7 @@ export class Song {
             song.cover = img;
         }
 
-        const audioData = await get(file.audioFileData);
+        const audioData = get(file.audioFileData);
         if(audioData) {
             const blob = audioData.blob;
             const url = URL.createObjectURL(blob);
