@@ -7,6 +7,7 @@ import { FULL_LANES } from "./constants";
 import { MapNoteLayer } from "../Map";
 import type { Renderer } from "./Renderer";
 import { Signal } from "../lib/miniNodeTree";
+import { wrappingMod } from "../utils/math";
 
 export class Cursor extends GameNode {
     /** In radians; doesn't wrap so we can smooth it. */
@@ -20,7 +21,10 @@ export class Cursor extends GameNode {
     public targetSecondaryOffsetAngle: number = 0;
 
     public get lane() {
-        return Math.round(this.angle / (2 * Math.PI) * FULL_LANES) % FULL_LANES;
+        return wrappingMod(Math.round(this.angle / (2 * Math.PI) * FULL_LANES), FULL_LANES);
+    }
+    public get secondaryLane() {
+        return wrappingMod(Math.round((this.angle + this.secondaryOffsetAngle) / (2 * Math.PI) * FULL_LANES), FULL_LANES);
     }
 
     private cursorMesh: Line2;
@@ -97,6 +101,6 @@ export class Cursor extends GameNode {
     public tap(type: MapNoteLayer) {
         this.context!.tree.get<Renderer>(NodeID.Renderer)!
             .debugText(`Tap ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
-        this.tapped(this.lane);
+        this.tapped(type === MapNoteLayer.Background ? this.secondaryLane : this.lane);
     }
 }

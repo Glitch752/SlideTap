@@ -5,12 +5,11 @@
     import { type MapNote, MapNoteLayer, MapNoteType } from "../../Map";
     import { onMount } from "svelte";
     import type { PlaybackState } from "./playback.svelte";
-  import { writable } from "svelte/store";
-
+    
     const {
         file,
         map,
-        playbackState,
+        playbackState = $bindable(),
         subdivisions,
         selectedNotes = $bindable(),
         onmousemove
@@ -39,11 +38,7 @@
     let trackLength = $derived($audioFileData?.buffer?.duration ?? 0);
 
     const mapData = $derived(file.getMap(map) ?? null);
-    const notes = $derived(mapData?.notes);
-
-    $effect(() => {
-        console.log(notes);
-    });
+    const notes = $derived(mapData?.notes ?? null);
 
     let times = $derived.by(() => {
         const total = Math.ceil(trackLength * bpm / 60 * subdivisions);
@@ -220,7 +215,7 @@
 
     {#if colWidthPx > 0 && rowHeightPx > 0}
         <!-- Notes -->
-        {#if mapData}
+        {#if mapData && notes}
             {#each $notes as [id, note] (id)}
                 <EditorNote
                     {note}

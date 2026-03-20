@@ -10,7 +10,7 @@ export class LaneVisualizer extends GameNode {
     private material: THREE.MeshBasicMaterial;
 
     constructor(public index: number) {
-        const angle = (2 * Math.PI) / FULL_LANES;
+        const angleWidth = (2 * Math.PI) / FULL_LANES;
         const radius = 500;
 
         // Construct a arc slice for this lane
@@ -23,8 +23,8 @@ export class LaneVisualizer extends GameNode {
         colors.push(1, 1, 1, 1);
         
         // arc vertices
-        for (let i = 0; i <= segments; i++) {
-            const theta = (angle * i) / segments;
+        for(let i = 0; i <= segments; i++) {
+            const theta = (angleWidth * i) / segments;
             const x = radius * Math.cos(theta);
             const y = radius * Math.sin(theta);
             vertices.push(x, y, 0);
@@ -51,6 +51,7 @@ export class LaneVisualizer extends GameNode {
         });
         const surface = new THREE.Mesh(geometry, material);
         surface.position.y = -5;
+        surface.rotation.y = (2 * Math.PI * (index - 0.5)) / FULL_LANES;
 
         super(surface);
 
@@ -58,8 +59,8 @@ export class LaneVisualizer extends GameNode {
     }
 
     init(context: GameScene): void {
-        const renderer = context.tree.get<Renderer>(NodeID.Renderer)!;
         context.tree.get<Cursor>(NodeID.Cursor)!.tapped.connect((lane) => {
+            console.log(lane);
             if(lane === this.index) {
                 // Flash the lane when tapped
                 this.material.opacity = 0.5;

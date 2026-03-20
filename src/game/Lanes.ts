@@ -28,7 +28,6 @@ export class Lanes extends GameNode {
     private addLanes() {
         for(let i = 0; i < FULL_LANES; i++) {
             const visualizer = new LaneVisualizer(i);
-            visualizer.value!.rotation.y = (2 * Math.PI * i) / FULL_LANES;
             this.add(visualizer);
         }
     }

@@ -121,6 +121,34 @@ export class NodeTree<T, G extends {}> {
     public onEvent: Signal<[CustomEvent]> = new Signal();
 
     private initialized: boolean = false;
+
+    public debug: {
+        printTree: () => void;
+    } = {
+        printTree: () => {
+            function printNode(node: Node<T, G>) {
+                console.group(
+                    `%c${
+                        node.constructor.name
+                    }%c${
+                        node.id ? ` (id: ${node.id})` : ""
+                    }${
+                        node.updates ? " [updates]" : ""
+                    }`,
+                    "color: #fff; font-weight: normal",
+                    "color: #ccc; font-weight: normal"
+                );
+                for(const child of node.children) {
+                    printNode(child);
+                }
+                console.groupEnd();
+            }
+
+            for(const child of this.children) {
+                printNode(child);
+            }
+        }
+    }
     
     private _context: G | null;
     get context() {
@@ -283,6 +311,9 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
 
     value: T | null = null;
 
+    /** If this node updates itself. */
+    private _updatesSelf: boolean = true;
+    /** If this node updates, either because of itself or its children. */
     private _updates: boolean = true;
     get updates() {
         return this._updates;
@@ -297,7 +328,17 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
         super(null);
         this.value = value;
 
-        this.update(0);
+        // yay for javascript
+        this._updatesSelf = this.update !== Node.prototype.update;
+        this._updates = this._updatesSelf;
+    }
+
+    remove(node: Node<T, G>): void {
+        super.remove(node);
+        if(this.updatingChildren.size === 0 && !this._updatesSelf) {
+            this._updates = false;
+            if(this._parent) this._parent._setNodeUpdating(this, false);
+        }
     }
 
     reparent(newParent: NodeTree<T, G>) {
@@ -322,13 +363,16 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
 
     public _setNodeUpdating(node: Node<T, G>, updates: boolean): void {
         super._setNodeUpdating(node, updates);
-        if(this.updatingChildren.size > 0) {
-            this._updates = true;
+        const shouldUpdate = this._updatesSelf || this.updatingChildren.size > 0;
+        if(this._updates !== shouldUpdate) {
+            this._updates = shouldUpdate;
+            if(this._parent) this._parent._setNodeUpdating(this, shouldUpdate);
         }
     }
     /** Nodes will be automatically configured for updates if `update()` is overridden. */
     setUpdates(updates: boolean) {
-        this._updates = updates;
+        this._updatesSelf = updates;
+        this._updates = updates || this.updatingChildren.size > 0;
         if(this._parent) this._parent._setNodeUpdating(this, updates);
         return this;
     }
@@ -339,9 +383,5 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
     }
 
     init(_context: G): void {}
-
-    /** Don't call super.update if overridden! */
-    update(_deltaTime: number): void {
-        this.setUpdates(false);
-    }
+    update(_deltaTime: number): void {}
 }

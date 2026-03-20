@@ -40,11 +40,21 @@ export class GameScene implements Scene {
             // Renderer must be last so we update before drawing
             new Renderer().setId(NodeID.Renderer)
         );
+
+        // @ts-expect-error
+        window["tree"] = this.tree; // for debugging
     }
 
     private async loadMap(): Promise<void> {
+        if(this.mapIndex < 0 || this.mapIndex >= (this.song?.maps.length ?? 0)) {
+            console.warn("Invalid map index, not loading map");
+            this.tree.get<Lanes>(NodeID.Lanes)?.setMap(null);
+            return;
+        }
+
         this.map = (await this.song?.getMap(this.mapIndex)) ?? null;
         this.tree.get<Lanes>(NodeID.Lanes)?.setMap(this.map);
+        console.log("Map loaded:", this.map);
     }
 
     public static async load(song: Song, mapIndex: number): Promise<GameScene> {
