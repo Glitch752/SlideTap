@@ -74,7 +74,8 @@ const keyCodeMap: Record<string, string> = {
     "MetaR": "MetaRight",
     '`': "Backquote",
     '-': "Minus",
-    '=': "Equal"
+    '=': "Equal",
+    "CapsLk": "CapsLock",
 };
 for(let i = 0; i < 26; i++) {
     const char = String.fromCharCode(65 + i);
@@ -87,7 +88,7 @@ for(let i = 0; i < 10; i++) {
 
 const keyboard = [
     ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"],
-    ["CapsLock", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "Enter"],
+    ["CapsLk", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "Enter"],
     ["Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "Shift"],
     ["CtrlL", "MetaL", "AltL", " ", "AltR", "MetaR", "CtrlR"]
 ];
@@ -199,49 +200,88 @@ input, button {
 .keyboard-layout-preview {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    --key-size: 2rem;
+    gap: 0.4rem;
+    --key-size: 1.8rem;
+    --key-gap: 0.2rem;
     margin: 0 auto;
     width: fit-content;
 
     .row {
         display: flex;
         flex-direction: row;
-        gap: 0.5rem;
+        gap: var(--key-gap);
 
-        &:nth-child(2) {
-            margin-left: calc(var(--key-size) / 3)
+        &:nth-child(4) {
+            margin-left: calc(var(--key-size) * 0.2);
         }
     }
 
     span {
         display: grid;
         place-items: center;
-        width: var(--key-size);
-        aspect-ratio: 1;
+        min-width: var(--key-size);
+        height: var(--key-size);
+        padding: 0 0.35rem;
         font-family: monospace;
+        font-size: 0.78rem;
+        line-height: 1;
+        white-space: nowrap;
         background-color: var(--surface);
-        // border: 2px solid var(--surface-green);
+        border: 1px solid #ffffff33;
 
-        // &.inactive {
-        //     background-color: var(--surface-inactive);
-        //     border: none;
-        // }
+        &.flex {
+            min-width: calc(var(--key-size) * 5.4);
+        }
 
-        // TODO
         &.fgSlide {
-            background-color: green;
+            background-color: var(--surface-green);
         }
         &.bgSlide {
-            background-color: blue;
+            background-color: var(--surface-blue);
         }
         &.fgTap {
-            background-color: green;
-            border: 2px solid white;
+            background-color: color-mix(in oklab, var(--surface-green), var(--text) 30%);
         }
         &.bgTap {
-            background-color: blue;
-            border: 2px solid white;
+            background-color: color-mix(in oklab, var(--surface-blue), var(--text) 30%);
+        }
+    }
+
+    .row:nth-child(1) {
+        span:first-child {
+            min-width: calc(var(--key-size) * 1.5); // Tab
+        }
+
+        span:last-child {
+            min-width: calc(var(--key-size) * 1.5); // Backslash
+        }
+    }
+
+    .row:nth-child(2) {
+        span:first-child {
+            min-width: calc(var(--key-size) * 1.8); // CapsLk
+        }
+
+        span:last-child {
+            min-width: calc(var(--key-size) * 2.2); // Enter
+        }
+    }
+
+    .row:nth-child(3) {
+        span:first-child,
+        span:last-child {
+            min-width: calc(var(--key-size) * 2.35); // Shift keys
+        }
+    }
+
+    .row:nth-child(4) {
+        span:nth-child(1),
+        span:nth-child(2),
+        span:nth-child(3),
+        span:nth-child(5),
+        span:nth-child(6),
+        span:nth-child(7) {
+            min-width: calc(var(--key-size) * 1.3); // Ctrl/Meta/Alt
         }
     }
 }
