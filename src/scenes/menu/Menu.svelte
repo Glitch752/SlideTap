@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { slide } from "svelte/transition";
+import Settings from "../../lib/Settings.svelte";
 import { loadScene } from "../../router";
 import { EditorScene } from "../Editor";
 import { SongListScene } from "../SongList";
@@ -10,14 +12,23 @@ function startGame() {
 function startEditor() {
     loadScene(new EditorScene());
 }
+
+let settingsOpen = $state(false);
 </script>
 
 <!-- TODO: less generic ahh menu -->
 <div class="menu">
     <h1>SlideTap</h1>
     <button onclick={startGame}>Play</button>
+    <button onclick={() => settingsOpen = !settingsOpen}>Settings</button>
     <button onclick={startEditor}>Editor</button>
 </div>
+
+{#if settingsOpen}
+    <div class="settings" transition:slide={{ duration: 200 }}>
+        <Settings></Settings>
+    </div>
+{/if}
 
 <style lang="scss">
 .menu {
@@ -47,5 +58,15 @@ function startEditor() {
     cursor: pointer;
     transition: background-color 0.2s;
     width: 15rem;
+}
+
+.settings {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--panel);
+    padding: 2rem;
+    border-radius: 5px;
 }
 </style>

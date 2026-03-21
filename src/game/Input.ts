@@ -1,12 +1,8 @@
 import { MapNoteLayer } from "../Map";
+import { Settings, type LayerKeymap } from "../Settings";
 import { Cursor } from "./Cursor";
 import type { GameScene } from "./Game";
 import { GameNode, NodeID } from "./types";
-
-type LayerKeymap = {
-    slideKeys: string[],
-    tapKeys: string[]
-}
 
 /**
  * An input layer represents a set of keys that control one type of note.  
@@ -97,23 +93,8 @@ class InputLayer {
 }
 
 export class Input extends GameNode {
-    // TODO: Add configuration support so we support other keyboard layouts
-    private keymap: {
-        bg: LayerKeymap,
-        fg: LayerKeymap
-    } = {
-        bg: {
-            slideKeys: "QWERTYUIOP".split("").map(k => `Key${k}`),
-            tapKeys: ["Tab", "BracketLeft", "BracketRight", "Backslash", "Backspace", "ShiftRight", "ArrowDown"]
-        },
-        fg: {
-            slideKeys: "ASDFGHJKL;'".split("").map(k => `Key${k}`),
-            tapKeys: [" ", "Enter", "CapsLock", "ShiftLeft", "ControlLeft", "MetaLeft", "AltLeft", "ArrowUp"]
-        }
-    };
-
-    private bgLayer = new InputLayer(this.keymap.bg, MapNoteLayer.Background);
-    private fgLayer = new InputLayer(this.keymap.fg, MapNoteLayer.Primary);
+    private bgLayer = new InputLayer(Settings.keymap.bg, MapNoteLayer.Background);
+    private fgLayer = new InputLayer(Settings.keymap.fg, MapNoteLayer.Primary);
 
     private keysHeld: Set<string> = new Set();
 
@@ -131,7 +112,7 @@ export class Input extends GameNode {
         console.log(event.code);
 
         // If in any maps, prevent default
-        for(const layer of [this.keymap.bg, this.keymap.fg]) {
+        for(const layer of [Settings.keymap.bg, Settings.keymap.fg]) {
             if(layer.slideKeys.some(key => key.toLowerCase() === event.key.toLowerCase()) ||
                layer.tapKeys.some(key => key.toLowerCase() === event.key.toLowerCase())) {
                 event.preventDefault();

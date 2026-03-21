@@ -11,7 +11,7 @@ $effect(() => {
 
 let calibrationData: number[] = [];
 let calibrationStartTime: number | null = null;
-let calibrationInterval: number | null = null;
+let calibrationInterval: ReturnType<typeof setInterval> | null = null;
 const calibrationSoundInterval = 500; // ms; the maximum amount that we can calibrate off
 const samplesRequired = 10;
 let calibrateText = $state("Calibrate");
@@ -26,9 +26,9 @@ function addSample() {
 
     calibrateText = `Click on beat [${calibrationData.length}/${samplesRequired}]`;
 
-    if (calibrationData.length >= samplesRequired) {
+    if(calibrationData.length >= samplesRequired) {
         calibrationStartTime = null;
-        clearInterval(calibrationInterval as number);
+        clearInterval(calibrationInterval!);
 
         const avg = calibrationData.reduce((a, v) => a + v, 0) / calibrationData.length;
         audioLatency = Math.round(avg * 10) / 10;
@@ -53,6 +53,44 @@ function startCalibration() {
         window.addEventListener("keydown", addSample);
     }
 }
+
+const keyCodeMap: Record<string, string> = {
+    ';': "Semicolon",
+    "'": "Quote",
+    ' ': "Space",
+    '[': "BracketLeft",
+    ']': "BracketRight",
+    '\\': "Backslash",
+    ',': "Comma",
+    '.': "Period",
+    '/': "Slash",
+    "ShiftL": "ShiftLeft",
+    "ShiftR": "ShiftRight",
+    "CtrlL": "ControlLeft",
+    "CtrlR": "ControlRight",
+    "AltL": "AltLeft",
+    "AltR": "AltRight",
+    "MetaL": "MetaLeft",
+    "MetaR": "MetaRight",
+    '`': "Backquote",
+    '-': "Minus",
+    '=': "Equal"
+};
+for(let i = 0; i < 26; i++) {
+    const char = String.fromCharCode(65 + i);
+    keyCodeMap[char] = `Key${char}`;
+}
+for(let i = 0; i < 10; i++) {
+    const char = String.fromCharCode(48 + i);
+    keyCodeMap[char] = `Digit${char}`;
+}
+
+const keyboard = [
+    ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"],
+    ["CapsLock", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "Enter"],
+    ["Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "Shift"],
+    ["CtrlL", "MetaL", "AltL", " ", "AltR", "MetaR", "CtrlR"]
+];
 </script>
 
 <div class="settings">
@@ -74,8 +112,20 @@ function startCalibration() {
     <h2>Keyboard layout</h2>
     <p>Note: QWERTY is the only supported layout currently, and the game will play differently on equirectangular keyboard layouts.</p>
     <div class="keyboard-layout-preview">
-        <div class="row"><span class="inactive">Q</span><span>W</span><span>E</span><span>R</span><span>T</span><span>Y</span><span>U</span><span>I</span><span>O</span><span class="inactive">P</span></div>
-        <div class="row"><span class="inactive">A</span><span>S</span><span>D</span><span>F</span><span>G</span><span>H</span><span>J</span><span>K</span><span>L</span><span class="inactive">;</span></div>
+        {#each keyboard as row}
+            <div class="row">
+                {#each row as key}
+                    {@const keyCode = keyCodeMap[key] || key}
+                    <span
+                        class:fgSlide={Settings.keymap.fg.slideKeys.includes(keyCode)}
+                        class:bgSlide={Settings.keymap.bg.slideKeys.includes(keyCode)}
+                        class:fgTap={Settings.keymap.fg.tapKeys.includes(keyCode)}
+                        class:bgTap={Settings.keymap.bg.tapKeys.includes(keyCode)}
+                        class:flex={key === " "}
+                    >{key}</span>
+                {/each}
+            </div>
+        {/each}
     </div>
 </div>
 
@@ -173,9 +223,25 @@ input, button {
         background-color: var(--surface);
         // border: 2px solid var(--surface-green);
 
-        &.inactive {
-            background-color: var(--surface-inactive);
-            border: none;
+        // &.inactive {
+        //     background-color: var(--surface-inactive);
+        //     border: none;
+        // }
+
+        // TODO
+        &.fgSlide {
+            background-color: green;
+        }
+        &.bgSlide {
+            background-color: blue;
+        }
+        &.fgTap {
+            background-color: green;
+            border: 2px solid white;
+        }
+        &.bgTap {
+            background-color: blue;
+            border: 2px solid white;
         }
     }
 }
