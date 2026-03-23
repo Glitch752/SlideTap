@@ -11,15 +11,16 @@ import { GameNode, NodeID } from "./types";
  * - "Tapping": pressing multiple adjacent keys at once (within a short time window)
  */
 class InputLayer {
-    private lastSlideBitmask: number = 0;
+    private lastSlideBitmasks: number[];
     private previousTapHeldKeys: Set<string> = new Set();
         
     constructor(private keymap: LayerKeymap, private layer: MapNoteLayer) {
+        this.lastSlideBitmasks = new Array(this.keymap.slideKeys.length).fill(0);
     }
 
-    private getKeyBitmask(keysHeld: Set<string>): number {
+    private getKeyBitmask(line: string[], keysHeld: Set<string>): number {
         let bitmask = 0;
-        this.keymap.slideKeys.forEach((key, i) => {
+        line.forEach((key, i) => {
             if(keysHeld.has(key.toLowerCase())) {
                 bitmask |= 1 << i;
             }
@@ -57,21 +58,24 @@ class InputLayer {
         const cursor = context.tree.get<Cursor>(NodeID.Cursor)!;
 
         // Slide
-        const slideBitmask = this.getKeyBitmask(keysHeld);
+        for(const [i, line] of this.keymap.slideKeys.entries()) {
+            const slideBitmask = this.getKeyBitmask(line, keysHeld);
+            const last = this.lastSlideBitmasks[i];
 
-        const pressed  = slideBitmask & ~this.lastSlideBitmask;
+            const pressed  = slideBitmask & ~last;
 
-        // Pressed keys in either direction of a previously-held key create movement
-        const pressedLeft  = pressed & (this.lastSlideBitmask << 1);
-        const pressedRight = pressed & (this.lastSlideBitmask >> 1);
+            // Pressed keys in either direction of a previously-held key create movement
+            const pressedLeft  = pressed & (last << 1);
+            const pressedRight = pressed & (last >> 1);
 
-        const movement = this.count(pressedRight) - this.count(pressedLeft);
+            const movement = this.count(pressedRight) - this.count(pressedLeft);
 
-        if(movement !== 0) {
-            cursor.slide(movement, this.layer);
+            if(movement !== 0) {
+                cursor.slide(movement, this.layer);
+            }
+
+            this.lastSlideBitmasks[i] = slideBitmask;
         }
-
-        this.lastSlideBitmask = slideBitmask;
 
         // Tap
         const tapHeldKeys = new Set<string>();
@@ -109,12 +113,15 @@ export class Input extends GameNode {
 
     onKeyDown(event: KeyboardEvent): void {
         this.keysHeld.add(event.key.toLowerCase());
-        console.log(event.code);
 
         // If in any maps, prevent default
         for(const layer of [Settings.keymap.bg, Settings.keymap.fg]) {
-            if(layer.slideKeys.some(key => key.toLowerCase() === event.key.toLowerCase()) ||
-               layer.tapKeys.some(key => key.toLowerCase() === event.key.toLowerCase())) {
+            if(
+                layer.slideKeys.some(line =>
+                    line.some(key => key.toLowerCase() === event.key.toLowerCase())
+                ) ||
+                layer.tapKeys.some(key => key.toLowerCase() === event.key.toLowerCase())
+            ) {
                 event.preventDefault();
                 break;
             }

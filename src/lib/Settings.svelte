@@ -37,7 +37,7 @@ function addSample() {
     }
 }
 
-function startCalibration() {
+function calibratePress() {
     if (calibrationStartTime === 0) return;
     if (calibrationStartTime !== null) {
         addSample();
@@ -76,6 +76,11 @@ const keyCodeMap: Record<string, string> = {
     '-': "Minus",
     '=': "Equal",
     "CapsLk": "CapsLock",
+    "◀": "ArrowLeft",
+    "▲": "ArrowUp",
+    "▼": "ArrowDown",
+    "▶": "ArrowRight",
+    "Bksp": "Backspace",
 };
 for(let i = 0; i < 26; i++) {
     const char = String.fromCharCode(65 + i);
@@ -87,10 +92,11 @@ for(let i = 0; i < 10; i++) {
 }
 
 const keyboard = [
+    ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Bksp"],
     ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"],
     ["CapsLk", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "Enter"],
-    ["Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "Shift"],
-    ["CtrlL", "MetaL", "AltL", " ", "AltR", "MetaR", "CtrlR"]
+    ["ShiftL", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "ShiftR"],
+    ["CtrlL", "MetaL", "AltL", " ", "AltR", "MetaR", "CtrlR", "◀", ["▲", "▼"], "▶"],
 ];
 </script>
 
@@ -105,34 +111,81 @@ const keyboard = [
     </p>
     <div class="audio-latency-settings">
         <button class="adjust down" onclick={() => audioLatency -= 25}>-</button>
-        <input type="number" name="audioLatency" placeholder="Latency (ms)">
+        <input type="number" name="audioLatency" placeholder="Latency (ms)" bind:value={audioLatency}>
         <button class="adjust up" onclick={() => audioLatency += 25}>+</button>
-        <button class="calibrate" style="--progress: 0%" onmousedown={startCalibration}>{calibrateText}</button>
+        <button class="calibrate" style="--progress: 0%" onmousedown={calibratePress}>{calibrateText}</button>
     </div>
     
     <h2>Keyboard layout</h2>
     <p>Note: QWERTY is the only supported layout currently, and the game will play differently on equirectangular keyboard layouts.</p>
+    <p>This keyboard also acts as a tester. If your taps aren't being registered, check what your keyboard is reporting here. Many laptop keyboards don't support <a href="https://en.wikipedia.org/wiki/Rollover_(key)" target="_blank">rollover</a> on certain keys, which will cause missed inputs on a game like this where many keys must be pressed simultaneously.</p>
     <div class="keyboard-layout-preview">
         {#each keyboard as row}
             <div class="row">
-                {#each row as key}
+                {#snippet keyEl(key: string)}
                     {@const keyCode = keyCodeMap[key] || key}
                     <span
-                        class:fgSlide={Settings.keymap.fg.slideKeys.includes(keyCode)}
-                        class:bgSlide={Settings.keymap.bg.slideKeys.includes(keyCode)}
+                        class:fgSlide={Settings.keymap.fg.slideKeys.some(k => k.includes(keyCode))}
+                        class:bgSlide={Settings.keymap.bg.slideKeys.some(k => k.includes(keyCode))}
                         class:fgTap={Settings.keymap.fg.tapKeys.includes(keyCode)}
                         class:bgTap={Settings.keymap.bg.tapKeys.includes(keyCode)}
                         class:flex={key === " "}
+                        class:small={key.length > 1}
+                        data-animate-keycode={keyCode}
                     >{key}</span>
+                {/snippet}
+                {#each row as key}
+                    {#if typeof key === "string"}
+                        {@render keyEl(key)}
+                    {:else}
+                        <div class="vertical-stack">
+                            {@render keyEl(key[0])}
+                            {@render keyEl(key[1])}
+                        </div>
+                    {/if}
                 {/each}
             </div>
         {/each}
     </div>
+    <p>This game allows you to use the whole keyboard, but you don't need to! The colors on this keymap represent:</p>
+    <ul class="keyboard-legend">
+        <li><span class="fgSlide">Green</span>: Foreground slide keys</li>
+        <li><span class="bgSlide">Blue</span>: Background slide keys</li>
+        <li><span class="fgTap">Light green</span>: Foreground tap keys</li>
+        <li><span class="bgTap">Light blue</span>: Background tap keys</li>
+    </ul>
 </div>
+
+<svelte:document onkeydown={(e) => {
+    if(e.repeat) return;
+    document.querySelector(`[data-animate-keycode="${e.code}"]`)?.animate(
+        [
+            { filter: "brightness(150%)", offset: 0 },
+            { filter: "brightness(120%)", offset: 1 }
+        ],
+        {
+            duration: 200,
+            iterations: 1,
+            fill: "forwards"
+        }
+    );
+}} onkeyup={(e) => {
+    document.querySelector(`[data-animate-keycode="${e.code}"]`)?.animate(
+        [
+            { filter: "brightness(120%)", offset: 0 },
+            { filter: "brightness(100%)", offset: 1 }
+        ],
+        {
+            duration: 200,
+            iterations: 1,
+            fill: "forwards"
+        }
+    );
+}}></svelte:document>
 
 <style lang="scss">
 .settings {
-    width: 32rem;
+    width: 48rem;
 }
 
 h1 {
@@ -197,12 +250,27 @@ input, button {
     }
 }
 
+
+// :root to increase specificity lol
+:root .fgSlide {
+    --color: var(--surface-green);
+}
+:root .bgSlide {
+    --color: var(--surface-blue);
+}
+:root .fgTap {
+    --color: color-mix(in oklab, var(--surface-green), var(--text) 30%);
+}
+:root .bgTap {
+    --color: color-mix(in oklab, var(--surface-blue), var(--text) 30%);
+}
+
 .keyboard-layout-preview {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    --key-size: 1.8rem;
-    --key-gap: 0.2rem;
+    --key-size: 2.5rem;
+    --key-gap: 0.5rem;
     margin: 0 auto;
     width: fit-content;
 
@@ -211,8 +279,19 @@ input, button {
         flex-direction: row;
         gap: var(--key-gap);
 
-        &:nth-child(4) {
-            margin-left: calc(var(--key-size) * 0.2);
+        &:not(:last-child) :last-child {
+            flex-grow: 1;
+        }
+    }
+
+    .vertical-stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--key-gap);
+
+        span {
+            height: calc(var(--key-size) / 2 - var(--key-gap) / 2);
+            font-size: 0.5rem;
         }
     }
 
@@ -223,31 +302,25 @@ input, button {
         height: var(--key-size);
         padding: 0 0.35rem;
         font-family: monospace;
-        font-size: 0.78rem;
+        font-size: 1rem;
         line-height: 1;
         white-space: nowrap;
-        background-color: var(--surface);
+        --color: var(--surface);
+        background-color: var(--color);
         border: 1px solid #ffffff33;
 
+        box-shadow: 0 2px color-mix(in srgb, black 20%, var(--color));
+
         &.flex {
-            min-width: calc(var(--key-size) * 5.4);
+            flex-grow: 1;
         }
 
-        &.fgSlide {
-            background-color: var(--surface-green);
-        }
-        &.bgSlide {
-            background-color: var(--surface-blue);
-        }
-        &.fgTap {
-            background-color: color-mix(in oklab, var(--surface-green), var(--text) 30%);
-        }
-        &.bgTap {
-            background-color: color-mix(in oklab, var(--surface-blue), var(--text) 30%);
+        &.small {
+            font-size: 0.8rem;
         }
     }
 
-    .row:nth-child(1) {
+    .row:nth-child(2) {
         span:first-child {
             min-width: calc(var(--key-size) * 1.5); // Tab
         }
@@ -257,7 +330,7 @@ input, button {
         }
     }
 
-    .row:nth-child(2) {
+    .row:nth-child(3) {
         span:first-child {
             min-width: calc(var(--key-size) * 1.8); // CapsLk
         }
@@ -267,14 +340,14 @@ input, button {
         }
     }
 
-    .row:nth-child(3) {
+    .row:nth-child(4) {
         span:first-child,
         span:last-child {
             min-width: calc(var(--key-size) * 2.35); // Shift keys
         }
     }
 
-    .row:nth-child(4) {
+    .row:nth-child(5) {
         span:nth-child(1),
         span:nth-child(2),
         span:nth-child(3),
@@ -283,6 +356,16 @@ input, button {
         span:nth-child(7) {
             min-width: calc(var(--key-size) * 1.3); // Ctrl/Meta/Alt
         }
+    }
+}
+
+.keyboard-legend {
+    list-style: none;
+    padding-left: 0;
+
+    span {
+        color: color-mix(in oklab, var(--color), var(--text) 30%);
+        font-weight: bold;
     }
 }
 </style>

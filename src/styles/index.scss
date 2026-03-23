@@ -55,3 +55,7 @@ button:active, .--button-like:active {
     background-color: color-mix(in srgb, white 10%, var(--bg-color));
     box-shadow: 0 4px color-mix(in srgb, black 10%, var(--bg-color));
 }
+
+a {
+    color: color-mix(in srgb, var(--text) 80%, #0000ff);
+}

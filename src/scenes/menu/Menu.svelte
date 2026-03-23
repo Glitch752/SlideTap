@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { slide } from "svelte/transition";
+import { fly } from "svelte/transition";
 import Settings from "../../lib/Settings.svelte";
 import { loadScene } from "../../router";
 import { EditorScene } from "../Editor";
@@ -16,6 +16,12 @@ function startEditor() {
 let settingsOpen = $state(false);
 </script>
 
+<svelte:document onkeydown={(e) => {
+    if(e.code === "Escape") {
+        settingsOpen = false;
+    }
+}}></svelte:document>
+
 <!-- TODO: less generic ahh menu -->
 <div class="menu">
     <h1>SlideTap</h1>
@@ -25,8 +31,16 @@ let settingsOpen = $state(false);
 </div>
 
 {#if settingsOpen}
-    <div class="settings" transition:slide={{ duration: 200 }}>
-        <Settings></Settings>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="settings-container" onclick={(e) => {
+        if(e.target === e.currentTarget) {
+            settingsOpen = false;
+        }
+    }}>
+        <div class="settings" transition:fly={{ duration: 200, y: -20 }}>
+            <Settings></Settings>
+        </div>
     </div>
 {/if}
 
@@ -60,13 +74,18 @@ let settingsOpen = $state(false);
     width: 15rem;
 }
 
+.settings-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    inset: 0;
+}
 .settings {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     background-color: var(--panel);
     padding: 2rem;
     border-radius: 5px;
+    max-height: 80vh;
+    overflow: auto;
 }
 </style>
