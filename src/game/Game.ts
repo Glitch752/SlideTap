@@ -27,7 +27,7 @@ export class GameScene implements Scene {
 
         this.tree.addChildren(
             // Logic
-            new Timer().start().setId(NodeID.Timer),
+            new Timer().setId(NodeID.Timer),
             new Input().setId(NodeID.Input),
 
             // Rendering
@@ -40,6 +40,16 @@ export class GameScene implements Scene {
             // Renderer must be last so we update before drawing
             new Renderer().setId(NodeID.Renderer)
         );
+
+        if(!this.controlledByEditor) {
+            // Begin playback
+            const timer = this.tree.get<Timer>(NodeID.Timer)!;
+            timer.startPlayback(this.song);
+            timer.done.connect(() => {
+                console.log("Level finished!");
+                // TODO: Finish game, show results, wtv
+            });
+        }
 
         // @ts-expect-error
         window["tree"] = this.tree; // for debugging
@@ -63,7 +73,7 @@ export class GameScene implements Scene {
         return scene;
     }
 
-    constructor(song: Song | null, public mapIndex: number) {
+    constructor(song: Song | null, public mapIndex: number, public controlledByEditor: boolean = false) {
         this.song = song;
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("#060d16");

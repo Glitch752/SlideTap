@@ -58,10 +58,27 @@ function onKeydown(event: KeyboardEvent) {
 
 <svelte:window onkeydown={onKeydown} />
 
+<!-- Autoplay the selected song -->
+<audio
+    src={songs[selectedSongIndex].track?.src}
+    autoplay
+    volume="0.3"
+    onplay={(e) => {
+        // Offset start time
+        const audio = e.currentTarget as HTMLAudioElement;
+        audio.currentTime = audio.duration * 0.3;
+    }}
+></audio>
+
 <div class="song-list" onwheel={onScroll} role="listbox" tabindex="0">
     <div class="list" bind:this={songListElement} style="--focus-height: {songListFocusHeight}px">
         {#each songs as song, i}
-            <div class="song" class:selected={i === selectedSongIndex} data-song-idx="{i}">
+            <button
+                class="song"
+                class:selected={i === selectedSongIndex}
+                data-song-idx="{i}"
+                onclick={() => selectedSongIndex = i}
+            >
                 <img src={song.cover?.src ?? "/default-cover.jpg"} alt={song.name} />
                 <span class="title">{song.name}</span>
                 <span class="artist">{song.artist}</span>
@@ -70,7 +87,7 @@ function onKeydown(event: KeyboardEvent) {
                         <span style="--color: {difficultyColor(map.difficulty)}">{map.difficulty}</span>
                     {/each}
                 </div>
-            </div>
+            </button>
         {/each}
     </div>
     <div class="info" bind:this={songInfosElement} style="--focus-height: {songInfosFocusHeight}px">
@@ -116,6 +133,12 @@ function onKeydown(event: KeyboardEvent) {
 
     translate: -2rem 0;
     opacity: 0.4;
+
+    text-align: left;
+    border: none;
+    box-shadow: none;
+    color: var(--text);
+
     &.selected {
         translate: 0;
         opacity: 1;

@@ -44,7 +44,7 @@
     
     let subdivisions = $state(8);
 
-    const gameScene = new GameScene(null, 0);
+    const gameScene = new GameScene(null, 0, true);
     const updateGameScene = debounce(async () => {
         const song = await Song.loadFromFile(editedFile);
         gameScene.setSong(song, song.maps.findIndex(m => m.id === openMap));

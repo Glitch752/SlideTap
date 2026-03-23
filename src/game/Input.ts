@@ -39,20 +39,6 @@ class InputLayer {
         }
         return count;
     }
-    private enumerate(bitmask: number): number[] {
-        const indices = [];
-        for(let i = 0; i < this.keymap.slideKeys.length; i++) {
-            if(this.check(bitmask, i)) {
-                indices.push(i);
-            }
-        }
-        return indices;
-    }
-
-    public debugLog(bitmask: number): string {
-        const keysState = this.keymap.slideKeys.map((key, i) => `${this.check(bitmask, i) ? "[" : " "}${key}${this.check(bitmask, i) ? "]" : " "}`).join(" ");
-        return `${this.layer === MapNoteLayer.Primary ? "Primary" : "Background"}: ${keysState}`;
-    }
 
     public update(_deltaTime: number, keysHeld: Set<string>, context: GameScene) {
         const cursor = context.tree.get<Cursor>(NodeID.Cursor)!;
@@ -112,15 +98,20 @@ export class Input extends GameNode {
     }
 
     onKeyDown(event: KeyboardEvent): void {
-        this.keysHeld.add(event.key.toLowerCase());
+        this.keysHeld.add(event.code.toLowerCase());
+
+        // If in dev, don't prevent default from ctrl+r or ctrl+shift+i
+        if(process.env.NODE_ENV === "development" && event.ctrlKey && (event.key.toLowerCase() === "r" || (event.shiftKey && event.key.toLowerCase() === "i"))) {
+            return;
+        }
 
         // If in any maps, prevent default
         for(const layer of [Settings.keymap.bg, Settings.keymap.fg]) {
             if(
                 layer.slideKeys.some(line =>
-                    line.some(key => key.toLowerCase() === event.key.toLowerCase())
+                    line.some(key => key.toLowerCase() === event.code.toLowerCase())
                 ) ||
-                layer.tapKeys.some(key => key.toLowerCase() === event.key.toLowerCase())
+                layer.tapKeys.some(key => key.toLowerCase() === event.code.toLowerCase())
             ) {
                 event.preventDefault();
                 break;
@@ -129,6 +120,6 @@ export class Input extends GameNode {
     }
 
     onKeyUp(event: KeyboardEvent): void {
-        this.keysHeld.delete(event.key.toLowerCase());
+        this.keysHeld.delete(event.code.toLowerCase());
     }
 }

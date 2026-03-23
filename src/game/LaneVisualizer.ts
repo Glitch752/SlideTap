@@ -1,3 +1,4 @@
+import { MapNoteLayer } from "../Map";
 import { FULL_LANES } from "./constants";
 import { Cursor } from "./Cursor";
 import type { GameScene } from "./Game";
@@ -59,10 +60,11 @@ export class LaneVisualizer extends GameNode {
     }
 
     init(context: GameScene): void {
-        context.tree.get<Cursor>(NodeID.Cursor)!.tapped.connect((lane) => {
+        context.tree.get<Cursor>(NodeID.Cursor)!.tapped.connect((lane, layer) => {
             console.log(lane);
             if(lane === this.index) {
                 // Flash the lane when tapped
+                this.material.color.set(layer === MapNoteLayer.Background ? "#aa7777" : "#7777aa");
                 this.material.opacity = 0.5;
                 this.add(new Tween(this.material, "opacity", 0.0, 0.5));
             }

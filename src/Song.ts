@@ -45,11 +45,25 @@ export class Song {
     public get artist() {
         return this.file.getMeta().artist;
     }
+    /** Get the BPM of the song */
     public get bpm() {
         return this.file.getMeta().bpm;
     }
+    /** Get the duration of a beat, in seconds */
+    public get beatDuration() {
+        return 60 / this.bpm;
+    }
+    /** Get the length of the level, in seconds */
     public get length() {
-        return this.file.getMeta().length;
+        return this.file.getMeta().length ?? 0;
+    }
+    /** Get the offset of the first beat, in beats */
+    public get firstBeatOffset() {
+        return this.file.getMeta().firstBeatOffset ?? 0;
+    }
+    /** Get the start time of the track, in seconds */
+    public get startTime() {
+        return this.file.getMeta().start ?? 0;
     }
 
     public leaderboard: SongLeaderboard;

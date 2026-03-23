@@ -21,10 +21,10 @@ export class Cursor extends GameNode {
     public targetSecondaryOffsetAngle: number = 0;
 
     public get lane() {
-        return wrappingMod(Math.round(this.angle / (2 * Math.PI) * FULL_LANES), FULL_LANES);
+        return wrappingMod(Math.round(this.targetAngle / (2 * Math.PI) * FULL_LANES), FULL_LANES);
     }
     public get secondaryLane() {
-        return wrappingMod(Math.round((this.angle + this.secondaryOffsetAngle) / (2 * Math.PI) * FULL_LANES), FULL_LANES);
+        return wrappingMod(Math.round((this.targetAngle + this.targetSecondaryOffsetAngle) / (2 * Math.PI) * FULL_LANES), FULL_LANES);
     }
 
     private cursorMesh: Line2;
@@ -33,7 +33,7 @@ export class Cursor extends GameNode {
     private secondaryContainer: THREE.Object3D;
 
     /** Signal<[lane]> */
-    public tapped: Signal<[number]> = new Signal();
+    public tapped: Signal<[number, MapNoteLayer]> = new Signal();
 
     public getCursorPositions(primaryTarget: THREE.Vector3, secondaryTarget: THREE.Vector3) {
         this.cursorMesh.getWorldPosition(primaryTarget);
@@ -99,8 +99,8 @@ export class Cursor extends GameNode {
     }
 
     public tap(type: MapNoteLayer) {
-        this.context!.tree.get<Renderer>(NodeID.Renderer)!
-            .debugText(`Tap ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
-        this.tapped(type === MapNoteLayer.Background ? this.secondaryLane : this.lane);
+        // this.context!.tree.get<Renderer>(NodeID.Renderer)!
+        //     .debugText(`Tap ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
+        this.tapped(type === MapNoteLayer.Background ? this.secondaryLane : this.lane, type);
     }
 }

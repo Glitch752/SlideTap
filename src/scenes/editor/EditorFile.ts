@@ -4,6 +4,7 @@ import type { OpenableSaveArchive, SaveArchive } from "./saveHandlers/SaveArchiv
 import type { SongMapJSON, SongMetadataJSON } from "../../Song";
 import { tween } from "../../lib/timing";
 import { Signal } from "../../lib/miniNodeTree";
+import { Settings } from "../../Settings";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
 export type EditorNoteID = string & { __brand: "EditorNoteID" };
@@ -79,7 +80,9 @@ export class EditorFile {
         const audioFileData = get(this.audioFileData);
         if(!audioFileData) return;
 
-        let time = atTime + this.getMeta().firstBeatOffset * (60 / this.getMeta().bpm);
+        let time = atTime +
+            this.getMeta().firstBeatOffset * (60 / this.getMeta().bpm) -
+            Settings.audioLatency.value / 1000.;
         let offset = 0;
         if(time < 0) {
             offset = -time;
