@@ -50,9 +50,9 @@ export type LoadedMapDataJSON = {
 
 export class GameMap {
     /** All of the notes in this map. Sorted by start time. */
-    private notes: MapNote[] = [];
+    public notes: MapNote[] = [];
 
     constructor(mapData: LoadedMapDataJSON) {
-        this.notes = mapData.notes;
+        this.notes = mapData.notes.sort((a, b) => a.startTime - b.startTime);
     }
 }

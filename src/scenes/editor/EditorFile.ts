@@ -13,6 +13,7 @@ export class EditorMapData {
     get name() { return this.data.name; }
     get difficulty() { return this.data.difficulty; }
     get dataPath() { return this.data.dataPath; }
+    get loadedNoteCount() { return this.data.notes; }
 
     set name(value: string) { this.data.name = value; }
     set difficulty(value: number) { this.data.difficulty = value; }

@@ -25,6 +25,8 @@ export class CameraController extends GameNode {
     private cameraTranslateAngle: number = 0;
 
     update(deltaTime: number): void {
+        if(Renderer.USE_CAMERA_CONTROLS) return;
+
         this.cursor.getCursorPositions(this.targetPos, this.targetPos2);
         this.easedTarget = this.easedTarget.lerp(this.targetPos, getExpSmoothAlpha(10, deltaTime));
         this.easedTarget2 = this.easedTarget2.lerp(this.targetPos2, getExpSmoothAlpha(10, deltaTime));
@@ -45,7 +47,7 @@ export class CameraController extends GameNode {
         );
         const angleDiff = 1 - (dot * 0.5 + 0.5); // 1 when opposite, 0 when same
         this.camera.position
-            .set(-angleDiff * Lanes.HIT_RADIUS, angleDiff * 50 + 10, 0)
+            .set(-angleDiff * Lanes.HIT_RADIUS - 30, angleDiff * 50 + 50, 0)
             .applyAxisAngle(new THREE.Vector3(0, 1, 0), -this.cameraTranslateAngle);
         
         this.camera.lookAt(centerTarget);

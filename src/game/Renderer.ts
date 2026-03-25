@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { FlyControls } from "three/examples/jsm/Addons.js";
 
 export class Renderer extends GameNode {
-    private static readonly USE_CAMERA_CONTROLS: boolean = false;
+    public static readonly USE_CAMERA_CONTROLS: boolean = false;
     private controls: FlyControls | null = null;
 
     private gameCanvas: HTMLCanvasElement | null = null;
@@ -30,6 +30,7 @@ export class Renderer extends GameNode {
         this.camera = new THREE.PerspectiveCamera(80, this.aspect, 1, 12000);
         this.camera.position.set(0, 0, 0);
         this.camera.lookAt(new THREE.Vector3(0, 0, 1));
+        this.camera.up.set(0, 1, 0);
         game.scene.add(this.camera);
 
         this.gameCanvas = document.getElementById("gameCanvas") as HTMLCanvasElement;

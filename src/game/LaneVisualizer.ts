@@ -52,7 +52,7 @@ export class LaneVisualizer extends GameNode {
         });
         const surface = new THREE.Mesh(geometry, material);
         surface.position.y = -5;
-        surface.rotation.y = (2 * Math.PI * (index - 0.5)) / FULL_LANES;
+        surface.rotation.y = (2 * Math.PI * index) / FULL_LANES;
 
         super(surface);
 

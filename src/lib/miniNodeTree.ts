@@ -90,7 +90,7 @@ export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: No
 
         const parent = node.parent;
         if(!(parent instanceof Node)) {
-            root.add(node.value);
+            root.remove(node.value);
             return;
         }
         if(!parent.value) {
@@ -174,6 +174,7 @@ export class NodeTree<T, G extends {}> {
         for(const node of nodes) this.remove(node);
     }
 
+    /** Remove all child nodes */
     clear(): void {
         for(const node of Array.from(this.children)) {
             this.remove(node);
@@ -219,8 +220,6 @@ export class NodeTree<T, G extends {}> {
     }
 
     remove(node: Node<T, G>): void {
-        node._parent = null;
-
         this.children.delete(node);
         this.updatingChildren.delete(node);
         this.removeNamedChildren(node);
@@ -233,6 +232,8 @@ export class NodeTree<T, G extends {}> {
         // Emit the node removed event for the removed node and all its descendants
         this.onNodeRemoved(node);
         node.forEachRecursive(this.onNodeRemoved.boundEmit);
+
+        node._parent = null;
     }
 
     public add(node: Node<T, G>): void {
@@ -380,6 +381,11 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
         this._id = id;
         if(this._parent) this._parent._setNodeId(this, id);
         return this;
+    }
+
+    callDeferred(callback: () => void) {
+        // This could be more complicated, but it works for us for now. whatever
+        setTimeout(callback, 0);
     }
 
     init(_context: G): void {}

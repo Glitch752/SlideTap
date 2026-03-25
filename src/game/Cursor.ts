@@ -10,21 +10,21 @@ import { Signal } from "../lib/miniNodeTree";
 import { wrappingMod } from "../utils/math";
 
 export class Cursor extends GameNode {
-    /** In radians; doesn't wrap so we can smooth it. */
-    public angle: number = 0;
-    /** In radians; doesn't wrap. */
-    public secondaryOffsetAngle: number = 0;
-
     /** In radians; the target angle. Doesn't wrap for smoothing. */
-    public targetAngle: number = 0;
+    public targetAngle: number = 2 * Math.PI / FULL_LANES * 0.5;
     /** In radians */
     public targetSecondaryOffsetAngle: number = 0;
 
+    /** In radians; doesn't wrap so we can smooth it. */
+    public angle: number = this.targetAngle;
+    /** In radians; doesn't wrap. */
+    public secondaryOffsetAngle: number = this.targetSecondaryOffsetAngle;
+
     public get lane() {
-        return wrappingMod(Math.round(this.targetAngle / (2 * Math.PI) * FULL_LANES), FULL_LANES);
+        return wrappingMod(Math.floor(this.targetAngle / (2 * Math.PI) * FULL_LANES), FULL_LANES);
     }
     public get secondaryLane() {
-        return wrappingMod(Math.round((this.targetAngle + this.targetSecondaryOffsetAngle) / (2 * Math.PI) * FULL_LANES), FULL_LANES);
+        return wrappingMod(Math.floor((this.targetAngle + this.targetSecondaryOffsetAngle) / (2 * Math.PI) * FULL_LANES), FULL_LANES);
     }
 
     private cursorMesh: Line2;

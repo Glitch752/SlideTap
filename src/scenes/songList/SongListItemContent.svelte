@@ -36,7 +36,7 @@ async function play() {
         <button class="map" class:selected={i === $selectedMapIndex} style="--color: {difficultyColor(map.difficulty)}" onmousedown={() => selectedMapIndex.update(() => i)}>
             <span class="difficulty">{map.difficulty}</span>
             <span class="name">{map.name}</span>
-            <span class="notes">{get(map.notes).size} notes</span>
+            <span class="notes">{map.loadedNoteCount} notes</span>
         </button>
     {/each}
 </div>

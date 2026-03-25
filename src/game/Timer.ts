@@ -14,6 +14,10 @@ export class Timer extends GameNode {
         super(null);
     }
 
+    public getElapsed() {
+        return this.time;
+    }
+
     public start() {
         this.running = true;
         this.time = 0;
