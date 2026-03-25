@@ -12,14 +12,16 @@
         playbackState = $bindable(),
         subdivisions,
         selectedNotes = $bindable(),
-        onmousemove
+        onmousemove,
+        oncopy
     }: {
         file: EditorFile,
         map: EditorMapID,
         playbackState: PlaybackState,
         subdivisions: number,
         selectedNotes: Set<EditorNoteID>,
-        onmousemove?: (beat: number, lane: number) => void
+        onmousemove?: (beat: number, lane: number) => void,
+        oncopy?: () => void
     } = $props();
 
     let colWidthPx = $state(0);
@@ -176,7 +178,7 @@
         grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);
         grid-template-rows: repeat({times.length}, 1fr);
     "
-    onpointerdown={onGridPointerDown}
+    onmousedown={onGridPointerDown}
     bind:this={gridRef}
 >
     <span class="time-column-label">Time</span>
@@ -195,7 +197,7 @@
                 class:greyed={!isInPlaybackRange(beat)}
                 class:whole={wholeBeat}
             >
-                <div class="time-label" onpointerdown={(e) => {
+                <div class="time-label" onmousedown={(e) => {
                     e.stopPropagation();
                     // Set playback position to this time
                     playbackState.time = beat * 60 / bpm;
@@ -233,6 +235,7 @@
                         }
                         file.changed();
                     }}
+                    {oncopy}
                     onselect={(type) => {
                         switch(type) {
                             case SelectionType.Add:

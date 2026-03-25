@@ -26,6 +26,7 @@
         if(!handler) return () => {};
         return (event: any) => {
             if(sceneElement && (sceneElement.matches(":hover") || sceneElement.matches(":focus-within"))) {
+                event.stopPropagation();
                 handler(event);
             }
         };

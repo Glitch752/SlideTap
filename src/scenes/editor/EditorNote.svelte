@@ -44,6 +44,7 @@
         note,
         onchange,
         ondelete,
+        oncopy,
         onselect,
         ondrag,
         colWidthPx,
@@ -56,6 +57,7 @@
         note: MapNote,
         onchange: (note: MapNote) => void,
         ondelete?: () => void,
+        oncopy?: () => void,
         onselect?: (type: SelectionType) => void,
         ondrag?: (deltaBeats: number, deltaLanes: number) => void,
         colWidthPx: number,
@@ -84,7 +86,7 @@
     let dragAccumulated = { x: 0, y: 0 };
     let noteOrigin = { startSpan: { start: 0, width: 0 }, endSpan: { start: 0, width: 0 }, startBeat: 0, endBeat: 0 };
 
-    function onHandlePointerDown(which: DragHandle, e: PointerEvent) {
+    function onHandlePointerDown(which: DragHandle, e: MouseEvent) {
         draggingHandle = which as any;
         dragOrigin = { x: e.clientX, y: e.clientY };
         noteOrigin = {
@@ -94,15 +96,15 @@
             endBeat: note.endTime
         };
 
-        window.addEventListener('pointermove', onHandlePointerMove);
-        window.addEventListener('pointerup', onHandlePointerUp);
+        window.addEventListener('mousemove', onHandlePointerMove);
+        window.addEventListener('mouseup', onHandlePointerUp);
 
         onHandlePointerMove(e);
 
         e.stopPropagation();
     }
 
-    function onHandlePointerMove(e: PointerEvent) {
+    function onHandlePointerMove(e: MouseEvent) {
         if(draggingHandle === null) return;
         
         const deltaX = e.clientX - dragOrigin.x;
@@ -141,11 +143,11 @@
         onchange({ ...note });
     }
 
-    function onHandlePointerUp(e: PointerEvent) {
+    function onHandlePointerUp(e: MouseEvent) {
         draggingHandle = null;
 
-        window.removeEventListener('pointermove', onHandlePointerMove);
-        window.removeEventListener('pointerup', onHandlePointerUp);
+        window.removeEventListener('mousemove', onHandlePointerMove);
+        window.removeEventListener('mouseup', onHandlePointerUp);
     }
 
     function onDragPointerMove(e: PointerEvent) {
@@ -220,6 +222,13 @@
         ondelete?.();
     }}>Delete</button>
     <button onclick={() => {
+        oncopy?.();
+    }}>Copy</button>
+    <button onclick={() => {
+        oncopy?.();
+        ondelete?.();
+    }}>Cut</button>
+    <button onclick={() => {
         note = normalizeNote({
             ...note,
             startTime: Math.round(note.startTime * subdivisions) / subdivisions,
@@ -237,7 +246,9 @@
     }}>Snap to grid</button>
 {/snippet}
 
-<ContextMenu menu={noteMenu}>
+<ContextMenu menu={noteMenu} onmousedowncapture={(e) => {
+    e.stopPropagation();
+}}>
     <svg
         style="left: {leftColumn * colWidthPx + leftOffset}px; top: {note.startTime * subdivisions * rowHeightPx + topOffset}px; width: {(rightColumn - leftColumn) * colWidthPx}px; height: {(note.endTime * subdivisions - note.startTime * subdivisions) * rowHeightPx}px;"
         class:selected={selected}
@@ -257,7 +268,7 @@
             stroke={noteColor}
             stroke-width="2"
             
-            onpointerdowncapture={(e) => {
+            onmousedowncapture={(e) => {
                 if(e.button !== 0) return; // Only left click
                 
                 e.stopPropagation();
@@ -290,7 +301,7 @@
             cx="{startLeftHandleCX}%"
             cy="0%"
             r="5"
-            onpointerdown={e => onHandlePointerDown(DragHandle.TopLeft, e)}
+            onmousedown={e => onHandlePointerDown(DragHandle.TopLeft, e)}
             role="button"
             tabindex="-1"
         />
@@ -298,7 +309,7 @@
             cx="{startRightHandleCX}%"
             cy="0%"
             r="5"
-            onpointerdown={e => onHandlePointerDown(DragHandle.TopRight, e)}
+            onmousedown={e => onHandlePointerDown(DragHandle.TopRight, e)}
             role="button"
             tabindex="-1"
         />
@@ -308,7 +319,7 @@
             cx="{endLeftHandleCX}%"
             cy="100%"
             r="5"
-            onpointerdown={e => onHandlePointerDown(DragHandle.BottomLeft, e)}
+            onmousedown={e => onHandlePointerDown(DragHandle.BottomLeft, e)}
             role="button"
             tabindex="-1"
         />
@@ -316,7 +327,7 @@
             cx="{endRightHandleCX}%"
             cy="100%"
             r="5"
-            onpointerdown={e => onHandlePointerDown(DragHandle.BottomRight, e)}
+            onmousedown={e => onHandlePointerDown(DragHandle.BottomRight, e)}
             role="button"
             tabindex="-1"
         />

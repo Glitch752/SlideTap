@@ -2,7 +2,7 @@
     import { difficultyColor } from "../songList/SongList.svelte";
     import DraggableWindow, { resetAllWindows } from "./DraggableWindow.svelte";
     import ToolbarDropdown from "./menus/ToolbarDropdown.svelte";
-    import { EditorFile, type EditorMapID, type EditorNoteID } from "./EditorFile";
+    import { EditorFile, EditorMapData, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import { ZipSaveArchive } from "./saveHandlers/ZipSaveHandler";
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
     import NoteSettings from "./settings/NoteSettings.svelte";
@@ -20,6 +20,7 @@
     import { Song } from "../../Song";
     import { _$debouncedEffect, _$explicitEffect } from "../../utils/effect.svelte";
     import { debounce } from "../../lib/timing";
+    import { get } from "svelte/store";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -94,14 +95,144 @@
         window.removeEventListener('mousemove', onDrag);
         window.removeEventListener('mouseup', stopDrag);
     }
+
+    function copySelectedNotes() {
+        if(!openMap) return;
+        const map = editedFile.getMap(openMap);
+        if(!map) return;
+
+        const notesToCopy = [];
+        const notes = get(map.notes);
+        for(const noteID of selectedNotes) {
+            const note = notes.get(noteID);
+            if(note) notesToCopy.push({ ...note });
+        }
+
+        // Shift all times to the earliest start time
+        let earliest = Infinity;
+        for(const note of notesToCopy) {
+            if(note.startTime < earliest) earliest = note.startTime;
+        }
+        for(const note of notesToCopy) {
+            note.startTime -= earliest;
+            note.endTime -= earliest;
+        }
+
+        navigator.clipboard.writeText(`NOTES:${JSON.stringify(notesToCopy)}`);
+    }
+
+    function pasteNotes(startTime: number) {
+        if(!openMap) return;
+        const map = editedFile.getMap(openMap);
+        if(!map) return;
+
+        const startBeat = startTime * editedFile.getMeta().bpm / 60;
+
+        navigator.clipboard.readText().then(text => {
+            if(!text.startsWith("NOTES:")) return;
+            const notes = JSON.parse(text.slice(6));
+            if(!Array.isArray(notes)) return;
+
+            map.notes.update(existingNotes => {
+                for(const note of notes) {
+                    const newID = editedFile.generateNoteId();
+                    existingNotes.set(newID, {
+                        ...note,
+                        startTime: note.startTime + startBeat,
+                        endTime: note.endTime + startBeat
+                    });
+                    selectedNotes.add(newID);
+                }
+                return existingNotes;
+            });
+            editedFile.changed();
+        });
+    }
+
+    function mapShortcuts(map: EditorMapData, e: KeyboardEvent) {
+        if(e.ctrlKey && e.key.toLowerCase() === 'a') {
+            e.preventDefault();
+            selectedNotes.clear();
+            for(const noteID of get(map.notes).keys()) {
+                selectedNotes.add(noteID);
+            }
+            return;
+        }
+        if(e.ctrlKey && e.key.toLowerCase() === 'c') {
+            e.preventDefault();
+            copySelectedNotes();
+            return;
+        }
+        if(e.ctrlKey && e.key.toLowerCase() === 'v') {
+            e.preventDefault();
+            pasteNotes(playbackState.time);
+            return;
+        }
+
+        if(e.key === "ArrowUp") {
+            e.preventDefault();
+            const movementAmount = 1 / subdivisions;
+            map.notes.update(notes => {
+                for(const noteID of selectedNotes) {
+                    const note = notes.get(noteID);
+                    if(note) {
+                        note.startTime -= movementAmount;
+                        if(note.startTime < 0) note.startTime = 0;
+                        note.endTime -= movementAmount;
+                        if(note.endTime < 0) note.endTime = 0;
+                        notes.set(noteID, { ...note });
+                    }
+                }
+                return notes;
+            });
+            editedFile.changed();
+        } else if(e.key === "ArrowDown") {
+            e.preventDefault();
+            const movementAmount = 1 / subdivisions;
+            map.notes.update(notes => {
+                for(const noteID of selectedNotes) {
+                    const note = notes.get(noteID);
+                    if(note) {
+                        note.startTime += movementAmount;
+                        note.endTime += movementAmount;
+                        notes.set(noteID, { ...note });
+                    }
+                }
+                return notes;
+            });
+            editedFile.changed();
+        }
+    }
+
+    function keydown(e: KeyboardEvent) {
+        wakatimeHandler.keypress();
+
+        if(e.ctrlKey && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            editedFile.save();
+            wakatimeHandler.save();
+        }
+        if(e.key === 'Escape') {
+            selectedNotes.clear();
+        }
+
+        if(openMap) {
+            const map = editedFile.getMap(openMap);
+            if(map) {
+                mapShortcuts(map, e);
+            }
+        }
+    }
 </script>
+
+<svelte:window onkeydown={keydown} />
 
 <DraggableWindow title="Preview" id="preview">
     <InlineScene scene={gameScene} />
 </DraggableWindow>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="editor" onkeydown={() => wakatimeHandler.keypress()} onmousedown={() => wakatimeHandler.click()}>
+<div class="editor" onmousedown={() => wakatimeHandler.click()}>
     <div class="toolbar">
         <div class="section">
             <ToolbarDropdown title="File">
@@ -229,10 +360,18 @@
     <div class="lanes">
         {#if openMap && $maps.has(openMap)}
             <!-- Render lanes for the selected map -->
-            <MapView file={editedFile} {subdivisions} {playbackState} map={openMap} bind:selectedNotes={selectedNotes} onmousemove={(beat, lane) => {
-                wakatimeHandler.mouseBeat = Math.round(beat);
-                wakatimeHandler.mouseLane = lane;
-            }} />
+            <MapView
+                file={editedFile}
+                {subdivisions}
+                {playbackState}
+                map={openMap}
+                bind:selectedNotes={selectedNotes}
+                onmousemove={(beat, lane) => {
+                    wakatimeHandler.mouseBeat = Math.round(beat);
+                    wakatimeHandler.mouseLane = lane;
+                }}
+                oncopy={copySelectedNotes}
+            />
         {:else}
             <p class="placeholder">Select a map to view its lanes.</p>
         {/if}

@@ -5,6 +5,7 @@ import { dateFormat, difficultyColor, numberFormat } from "./SongList.svelte";
 import { PersistedValue } from "../../utils/persistedValue";
 import { loadScene } from "../../router";
 import { GameScene } from "../../game/Game";
+  import type { EditorMapData } from "../editor/EditorFile";
 
 const { song }: { song: Song } = $props();
 
@@ -16,7 +17,7 @@ function formatDuration(seconds: number): string {
 
 // svelte-ignore state_referenced_locally
 let selectedMapIndex: Writable<number> = PersistedValue.get(`mapidx:${song.id}`, 0)?.writable;
-const selectedMap = $derived(song.maps[$selectedMapIndex]);
+const selectedMap: EditorMapData | null = $derived(song.maps[$selectedMapIndex] ?? null);
 
 async function play() {
     loadScene(await GameScene.load(song, get(selectedMapIndex)));
@@ -40,9 +41,9 @@ async function play() {
     {/each}
 </div>
 <div class="buttons">
-    <button class="play" style="--selected-color: {difficultyColor(selectedMap.difficulty)}" onclick={play}>
+    <button class="play" style="--selected-color: {difficultyColor(selectedMap?.difficulty ?? 0)}" onclick={play} disabled={!selectedMap}>
         Play
-        <span class="map-name" style="color: {difficultyColor(song.maps[$selectedMapIndex].difficulty)}">{song.maps[$selectedMapIndex].name}</span>
+        <span class="map-name" style="color: {difficultyColor(selectedMap?.difficulty ?? 0)}">{selectedMap?.name ?? "Select a map"}</span>
     </button>
     <button class="preview" onclick={() => alert("yeah uh that's not implemented yet")}>Preview</button>
 </div>

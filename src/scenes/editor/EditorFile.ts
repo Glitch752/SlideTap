@@ -297,12 +297,15 @@ export class EditorFile {
         // add audio and cover blobs if present on the editor file
         const audioFileData = get(this.audioFileData);
         if(audioFileData) {
-            const mimeExt = audioFileData.blob.type.split('/')[1];
+            let mimeExt =
+                audioFileData.blob.type.split('/')[1] ??
+                "wav"; // might not be but whatever
             await ar.writeFile(`track.${mimeExt}`, audioFileData.blob);
             metadata.track = `track.${mimeExt}`;
         }
         if(this.coverImageFile) {
-            const mimeExt = this.coverImageFile.type.split('/')[1];
+            let mimeExt = this.coverImageFile.type.split('/')[1] ??
+                "png"; // might not be but whatever
             await ar.writeFile(`cover.${mimeExt}`, this.coverImageFile);
             metadata.cover = `cover.${mimeExt}`;
         }

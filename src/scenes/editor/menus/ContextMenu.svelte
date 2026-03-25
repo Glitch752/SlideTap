@@ -4,16 +4,18 @@
     
     const {
         menu,
-        children
+        children,
+        onmousedowncapture
     }: {
         menu: Snippet,
-        children: Snippet
+        children: Snippet,
+        onmousedowncapture?: (e: MouseEvent) => void
     } = $props();
 
     let pos: { x: number, y: number } | null = $state(null);
     let menuEl: HTMLElement | null = $state(null);
     
-    function handleClickOutside(event: PointerEvent) {
+    function handleClickOutside(event: MouseEvent) {
         if(pos && menuEl && !menuEl?.contains(event.target as Node)) {
             pos = null;
             event.preventDefault();
@@ -22,7 +24,7 @@
     }
 </script>
 
-<svelte:window onpointerdowncapture={handleClickOutside} />
+<svelte:window onmousedowncapture={handleClickOutside} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div oncontextmenu={(e) => {
@@ -34,13 +36,13 @@
 
 {#if pos}
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="dropdown" style="left: {pos.x}px; top: {pos.y}px;" bind:this={menuEl} onpointerdown={(e) => {
-        e.stopPropagation()
-    }} onpointerup={(e) => {
+<div class="dropdown" style="left: {pos.x}px; top: {pos.y}px;" bind:this={menuEl}
+    onmouseup={(e) => {
         setTimeout(() => {
             pos = null;
         }, 0);
-    }}>
+    }}
+    {onmousedowncapture}>
     <DropdownContent>
         {@render menu()}
     </DropdownContent>
