@@ -106,10 +106,10 @@ export class BaseNote extends GameNode {
         const uv = [];
         for(let i = 0; i < quads; i++) {
             const t = i / (quads - 1);
-            const innerDist = note.start.start + note.start.width * t;
-            const outerDist = note.end.start + note.end.width * t;
-            uv.push(0, innerDist);
-            uv.push(note.endTime - note.startTime, outerDist);
+            const innerWidth = note.start.width * t;
+            const outerWidth = note.end.width * t;
+            uv.push(innerWidth, 0);
+            uv.push(outerWidth, note.endTime - note.startTime);
         }
         geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
 
@@ -124,16 +124,77 @@ export class BaseNote extends GameNode {
 
         // Custom shader for the uv to create a gradient going inward with consistent thickness
         material.onBeforeCompile = (shader) => {
-            shader.fragmentShader = shader.fragmentShader.replace(
-                "#include <color_fragment>",
-                THREE.ShaderChunk.color_fragment + `
-                    // Create a gradient based on the uv.y, which represents the distance along the note
-                    // We want it to fade out as it goes inward, but maintain a consistent thickness
-                    float thickness = 10.0; // Adjust this for thicker or thinner notes
-                    float alpha = 1.0 - smoothstep(uv.y - thickness, uv.y, 0.0);
-                    diffuseColor.a *= alpha;
-                `
-            );
+            // idk wtf i'm doing i just want this to work
+            shader.defines = {
+                ...shader.defines,
+                // Turn on uvs
+                USE_UV: "",
+                UV_HEIGHT: (note.endTime - note.startTime).toFixed(5),
+                UV_TOP_WIDTH: (note.end.width).toFixed(5),
+                UV_BOTTOM_WIDTH: (note.start.width).toFixed(5)
+            };
+            shader.fragmentShader = `uniform vec3 diffuse;
+uniform float opacity;
+#ifndef FLAT_SHADED
+	varying vec3 vNormal;
+#endif
+#include <common>
+#include <dithering_pars_fragment>
+#include <color_pars_fragment>
+#include <uv_pars_fragment>
+#include <map_pars_fragment>
+#include <alphamap_pars_fragment>
+#include <alphatest_pars_fragment>
+#include <alphahash_pars_fragment>
+#include <aomap_pars_fragment>
+#include <lightmap_pars_fragment>
+#include <envmap_common_pars_fragment>
+#include <envmap_pars_fragment>
+#include <fog_pars_fragment>
+#include <specularmap_pars_fragment>
+#include <logdepthbuf_pars_fragment>
+#include <clipping_planes_pars_fragment>
+void main() {
+	vec4 diffuseColor = vec4( diffuse, opacity );
+	#include <clipping_planes_fragment>
+	#include <logdepthbuf_fragment>
+	#include <map_fragment>
+	#include <color_fragment>
+    
+    // Custom code
+    // Fade inward in both x and y to create a constant thickness fade
+    float width = UV_BOTTOM_WIDTH + (UV_TOP_WIDTH - UV_BOTTOM_WIDTH) * (vUv.y / UV_HEIGHT);
+    
+    float fadeThickness = 0.4;
+    
+    float xFade = smoothstep(0.0, fadeThickness, vUv.x) * (1.0 - smoothstep(width - fadeThickness, width, vUv.x));
+    // float yFade = smoothstep(0.0, fadeThickness, vUv.y) * (1.0 - smoothstep(UV_HEIGHT - fadeThickness, UV_HEIGHT, vUv.y));
+    // float fade = min(xFade, yFade);
+    // diffuseColor.a *= fade;
+    diffuseColor = vec4(xFade, xFade, 1.0, diffuseColor.a);
+    
+	#include <alphamap_fragment>
+	#include <alphatest_fragment>
+	#include <alphahash_fragment>
+	#include <specularmap_fragment>
+	ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
+	#ifdef USE_LIGHTMAP
+		vec4 lightMapTexel = texture2D( lightMap, vLightMapUv );
+		reflectedLight.indirectDiffuse += lightMapTexel.rgb * lightMapIntensity * RECIPROCAL_PI;
+	#else
+		reflectedLight.indirectDiffuse += vec3( 1.0 );
+	#endif
+	#include <aomap_fragment>
+	reflectedLight.indirectDiffuse *= diffuseColor.rgb;
+	vec3 outgoingLight = reflectedLight.indirectDiffuse;
+	#include <envmap_fragment>
+	#include <opaque_fragment>
+	#include <tonemapping_fragment>
+	#include <colorspace_fragment>
+	#include <fog_fragment>
+	#include <premultiplied_alpha_fragment>
+	#include <dithering_fragment>
+}`;
         };
 
 
