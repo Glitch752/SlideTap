@@ -8,6 +8,7 @@ import { MapNoteLayer } from "../Map";
 import type { Renderer } from "./Renderer";
 import { Signal } from "../lib/miniNodeTree";
 import { wrappingMod } from "../utils/math";
+import type { GameScene } from "./Game";
 
 export class Cursor extends GameNode {
     /** In radians; the target angle. Doesn't wrap for smoothing. */
@@ -79,6 +80,16 @@ export class Cursor extends GameNode {
         secondaryContainer.add(this.secondaryCursorMesh);
 
         this.setId(NodeID.Cursor);
+    }
+
+    public init(context: GameScene): void {
+        // Set the cursor position to the center of the first note
+        if(context.map && context.map.notes.length > 0) {
+            const firstNote = context.map.notes[0];
+            const lane = Math.round(firstNote.start.start + firstNote.start.width / 2);
+            this.targetAngle = (lane + 0.5) / FULL_LANES * 2 * Math.PI;
+        }
+        this.angle = this.targetAngle;
     }
 
     public update(deltaTime: number) {

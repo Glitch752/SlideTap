@@ -12,7 +12,7 @@ import noteVertex from "./noteVertex.vert?raw";
 export class BaseNote extends GameNode {
     private beatToDistance(beat: number, elapsed: number) {
         const time = (beat / this.bpm) * 60 - elapsed;
-        return time * 150 + Lanes.HIT_RADIUS;
+        return time * 300 + Lanes.HIT_RADIUS;
     }
     private laneToAngle(lane: number) {
         return lane * Math.PI * 2 / FULL_LANES;
@@ -85,7 +85,7 @@ export class BaseNote extends GameNode {
 
         const quads = this.quads = 4 + Math.ceil(
             Math.max(note.start.width, note.end.width)
-        ) * 2;
+        ) * 8;
 
         const geometry = new THREE.BufferGeometry();
 
@@ -108,10 +108,8 @@ export class BaseNote extends GameNode {
         const uv = [];
         for(let i = 0; i < quads; i++) {
             const t = i / (quads - 1);
-            const innerWidth = note.start.width * t;
-            const outerWidth = note.end.width * t;
-            uv.push(innerWidth, 0);
-            uv.push(outerWidth, note.endTime - note.startTime);
+            uv.push(t, 0);
+            uv.push(t, note.endTime - note.startTime);
         }
         geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
 
@@ -119,13 +117,14 @@ export class BaseNote extends GameNode {
 
         const material = this.material = new THREE.ShaderMaterial({
             side: THREE.FrontSide,
-            opacity: 0.8,
+            opacity: 1.0,
             transparent: true,
             uniforms: {
                 diffuse: { value: new THREE.Color(getNoteColor(note.type, note.layer)) },
                 uv_height: { value: note.endTime - note.startTime },
-                uv_top_width: { value: note.end.width },
-                uv_bottom_width: { value: note.start.width }
+                uv_top_width: { value: 0 },
+                uv_bottom_width: { value: 0 },
+                opacity: { value: 0 }
             },
             vertexShader: noteVertex,
             fragmentShader: noteFragment
@@ -142,6 +141,19 @@ export class BaseNote extends GameNode {
         const elapsed = this.context?.tree.get<Timer>(NodeID.Timer)?.getElapsed() ?? 0;
         this.vertices.set(this.constructVertices(elapsed));
         this.vertices.needsUpdate = true;
+
+        this.material.uniforms.opacity.value = this.material.opacity; // ??
+
+        const uvTopCircumference = Math.max(
+            0.001,
+            this.beatToDistance(this.note.endTime, elapsed) * Math.PI * 2 * this.note.end.width
+        );
+        const uvBottomCircumference = Math.max(
+            0.001,
+            this.beatToDistance(this.note.startTime, elapsed) * Math.PI * 2 * this.note.start.width
+        );
+        this.material.uniforms.uv_top_width.value = uvTopCircumference;
+        this.material.uniforms.uv_bottom_width.value = uvBottomCircumference;
 
         if(this.note.endTime / this.bpm * 60 < elapsed) {
             // this.removeFromParent();

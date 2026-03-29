@@ -6,7 +6,7 @@ import { BaseNote } from "./BaseNote";
 export class Notes extends GameNode {
     constructor(private map: GameMap | null) {
         const container = new THREE.Object3D();
-        container.position.y = -0.5;
+        container.position.y = 0.5;
         super(container);
         
         this.callDeferred(() => this.regenerateNotes());

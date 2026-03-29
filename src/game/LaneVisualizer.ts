@@ -61,7 +61,6 @@ export class LaneVisualizer extends GameNode {
 
     init(context: GameScene): void {
         context.tree.get<Cursor>(NodeID.Cursor)!.tapped.connect((lane, layer) => {
-            console.log(lane);
             if(lane === this.index) {
                 // Flash the lane when tapped
                 this.material.color.set(layer === MapNoteLayer.Background ? "#aa7777" : "#7777aa");
