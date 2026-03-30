@@ -21,6 +21,8 @@
     import { _$debouncedEffect, _$explicitEffect } from "../../utils/effect.svelte";
     import { debounce } from "../../lib/timing";
     import { get } from "svelte/store";
+    import { NodeID } from "../../game/types";
+  import type { Timer } from "../../game/Timer";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -46,6 +48,9 @@
     let subdivisions = $state(8);
 
     const gameScene = new GameScene(null, 0, true);
+    gameScene.onInit.connect(() => {
+        gameScene.tree.get<Timer>(NodeID.Timer)!.setTimeSource(() => playbackState.time);
+    })
     const updateGameScene = debounce(async () => {
         const song = await Song.loadFromFile(editedFile);
         gameScene.setSong(song, song.maps.findIndex(m => m.id === openMap));

@@ -287,52 +287,58 @@ export class EditorFile {
 
     public async save(): Promise<void> {
         const ar = this.saveArchive;
+        console.log(ar);
 
-        let metadata: SongMetadataJSON = {
-            ...this.getMeta(),
-            maps: [],
-            cover: "",
-            track: ""
-        };
-
-        // add audio and cover blobs if present on the editor file
-        const audioFileData = get(this.audioFileData);
-        if(audioFileData) {
-            let mimeExt =
-                audioFileData.blob.type.split('/')[1] ??
-                "wav"; // might not be but whatever
-            await ar.writeFile(`track.${mimeExt}`, audioFileData.blob);
-            metadata.track = `track.${mimeExt}`;
-        }
-        if(this.coverImageFile) {
-            let mimeExt = this.coverImageFile.type.split('/')[1] ??
-                "png"; // might not be but whatever
-            await ar.writeFile(`cover.${mimeExt}`, this.coverImageFile);
-            metadata.cover = `cover.${mimeExt}`;
-        }
-
-        // collect maps from editor file (try several common property names)
-        const mapsFromFile = this.getMaps();
-        for(let i = 0; i < mapsFromFile.length; i++) {
-            const map = mapsFromFile[i];
-            const dataPath = `maps/map${i+1}.json`;
-            metadata.maps[i] = {
-                difficulty: map.difficulty,
-                name: map.name,
-                notes: map._notes.size,
-                dataPath
+        try {
+            let metadata: SongMetadataJSON = {
+                ...this.getMeta(),
+                maps: [],
+                cover: "",
+                track: ""
             };
-            try {
-                await ar.writeFile(dataPath, JSON.stringify(map.serialize()));
-            } catch {
-                console.error(`Failed to serialize map ${i+1}`);
-            }
-        }
 
-        // write metadata
-        await ar.writeFile("metadata.json", JSON.stringify(metadata));
-    
-        await ar.persist(this.getMeta().name);
+            // add audio and cover blobs if present on the editor file
+            const audioFileData = get(this.audioFileData);
+            if(audioFileData) {
+                let mimeExt =
+                    audioFileData.blob.type.split('/')[1] ??
+                    "wav"; // might not be but whatever
+                await ar.writeFile(`track.${mimeExt}`, audioFileData.blob);
+                metadata.track = `track.${mimeExt}`;
+            }
+            if(this.coverImageFile) {
+                let mimeExt = this.coverImageFile.type.split('/')[1] ??
+                    "png"; // might not be but whatever
+                await ar.writeFile(`cover.${mimeExt}`, this.coverImageFile);
+                metadata.cover = `cover.${mimeExt}`;
+            }
+
+            // collect maps from editor file (try several common property names)
+            const mapsFromFile = this.getMaps();
+            for(let i = 0; i < mapsFromFile.length; i++) {
+                const map = mapsFromFile[i];
+                const dataPath = `maps/map${i+1}.json`;
+                metadata.maps[i] = {
+                    difficulty: map.difficulty,
+                    name: map.name,
+                    notes: map._notes.size,
+                    dataPath
+                };
+                try {
+                    await ar.writeFile(dataPath, JSON.stringify(map.serialize()));
+                } catch {
+                    console.error(`Failed to serialize map ${i+1}`);
+                }
+            }
+
+            // write metadata
+            await ar.writeFile("metadata.json", JSON.stringify(metadata));
+        
+            await ar.persist(this.getMeta().name);
+        } catch(e) {
+            console.error("Failed to save file", e);
+            throw e;
+        }
 
         this.unsavedChanges.set(false);
     }

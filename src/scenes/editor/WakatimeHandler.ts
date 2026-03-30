@@ -215,14 +215,18 @@ export class WakatimeWrapper {
             user_agent: this.userAgent // fallback for browsers that don't respect custom user agent per https://github.com/hackclub/hackatime/blob/b915f6d4d97432770aa7ab7d08e68b48cf928659/app/controllers/api/hackatime/v1/hackatime_controller.rb#L268
         };
 
-        await fetch(`${this.apiUrl}/users/current/heartbeats?api_key=${this.apiKey}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "User-Agent": this.userAgent
-            },
-            body: JSON.stringify(body)
-        });
+        try {
+            await fetch(`${this.apiUrl}/users/current/heartbeats?api_key=${this.apiKey}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "User-Agent": this.userAgent
+                },
+                body: JSON.stringify(body)
+            });
+        } catch(e) {
+            console.warn("Wakatime: failed to send heartbeat", e);
+        }
     }
 
     /** https://wakatime.com/developers#heartbeats */

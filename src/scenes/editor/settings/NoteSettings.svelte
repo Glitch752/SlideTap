@@ -18,7 +18,6 @@
     const mapData = $derived(file.getMap(map) ?? null);
     const noteMap = $derived(mapData?.notes);
     const notes = $derived.by(() => {
-        $inspect.trace();
         if(!$noteMap) return [];
         return Array.from(selection).map(noteId => $noteMap.get(noteId)).filter(note => note !== undefined);
     });

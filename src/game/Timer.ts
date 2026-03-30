@@ -6,9 +6,12 @@ import { GameNode, NodeID } from "./types";
 export class Timer extends GameNode {
     private running: boolean = false;
     private time: number = 0;
+    private lastTime: number = 0;
     private timeSource: (() => number) | null = null;
     public done: Signal<[]> = new Signal();
     private length: number = 0;
+
+    public jumpedBackward: Signal<[newTime: number]> = new Signal();
 
     constructor() {
         super(null);
@@ -35,8 +38,6 @@ export class Timer extends GameNode {
         if(!song.track) return;
         
         let songTime = this.time + song.startTime - Settings.audioLatency.value / 1000.;
-        console.log(Settings.audioLatency.value, song.startTime);
-
         if(songTime < 0) {
             // If the time is negative, we need to delay the start of the track
             setTimeout(() => {
@@ -65,12 +66,12 @@ export class Timer extends GameNode {
             this.time = this.timeSource();
         } else if(this.running) {
             this.time += deltaTime;
-        }
 
-        if(this.time >= this.length) {
-            this.time = this.length;
-            this.running = false;
-            this.done();
+            if(this.time >= this.length) {
+                this.time = this.length;
+                this.running = false;
+                this.done();
+            }
         }
     }
 }

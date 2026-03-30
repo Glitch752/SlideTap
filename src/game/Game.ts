@@ -3,7 +3,7 @@ import type { Song } from "../Song";
 import { type Scene } from "../scenes/Scene";
 import * as THREE from "three";
 import Game from "../scenes/game/Game.svelte";
-import { connectParenting, NodeTree } from "../lib/miniNodeTree";
+import { connectParenting, NodeTree, Signal } from "../lib/miniNodeTree";
 import { Renderer } from "./Renderer";
 import { Skybox } from "./environment/Skybox";
 import { Platforms } from "./environment/Platforms";
@@ -22,6 +22,8 @@ export class GameScene implements Scene {
     public scene: THREE.Scene;
     public tree: NodeTree<THREE.Object3D, GameScene> = new NodeTree(this as GameScene, true);
     
+    public onInit: Signal<[]> = new Signal();
+
     public init(): void {
         connectParenting(this.tree, this.scene);
 
@@ -50,6 +52,8 @@ export class GameScene implements Scene {
                 // TODO: Finish game, show results, wtv
             });
         }
+
+        this.onInit();
 
         // @ts-expect-error
         window["tree"] = this.tree; // for debugging
