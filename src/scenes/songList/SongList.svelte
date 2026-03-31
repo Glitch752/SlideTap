@@ -3,7 +3,12 @@ import { Song } from "../../Song";
 import { songArchives } from "../../songs";
 import SongListItemContent from "./SongListItemContent.svelte";
 
-const songs = await Promise.all(songArchives.map(Song.load.bind(Song)));
+const songs = (await Promise.all(songArchives.map(
+    (ar) => Song.load(ar).catch((e) => {
+        console.error(`Failed to load song ${ar.songName}:\n`, e);
+        return null;
+    })
+))).filter((s): s is Song => s !== null);
 
 export function difficultyColor(difficulty: number): string {
     return `hsl(${240 - difficulty / 100 * 240}, 100.00%, 80.00%)`;

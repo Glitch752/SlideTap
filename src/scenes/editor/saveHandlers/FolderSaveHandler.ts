@@ -48,6 +48,8 @@ export class FolderSaveArchive implements SaveArchive {
                 writable = await fileHandle.createWritable();
                 this.writables.set(filename, writable);
             }
+
+            await writable.truncate(0);
             await writable.write(data);
         } catch(e) {
             console.error(`Error writing file ${filename}:`, e);

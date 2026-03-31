@@ -22,7 +22,8 @@
     import { debounce } from "../../lib/timing";
     import { get } from "svelte/store";
     import { NodeID } from "../../game/types";
-  import type { Timer } from "../../game/Timer";
+    import type { Timer } from "../../game/Timer";
+    import type { MapNote } from "../../Map";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -174,38 +175,56 @@
             return;
         }
 
+        const updateAllSelected = (cb: (n: MapNote) => void) => {
+            map.notes.update(notes => {
+                for(const noteID of selectedNotes) {
+                    const note = notes.get(noteID);
+                    if(note) {
+                        cb(note);
+                        notes.set(noteID, { ...note });
+                    }
+                }
+                return notes;
+            });
+            editedFile.changed();
+        };
+
         if(e.key === "ArrowUp") {
             e.preventDefault();
             const movementAmount = 1 / subdivisions;
-            map.notes.update(notes => {
-                for(const noteID of selectedNotes) {
-                    const note = notes.get(noteID);
-                    if(note) {
-                        note.startTime -= movementAmount;
-                        if(note.startTime < 0) note.startTime = 0;
-                        note.endTime -= movementAmount;
-                        if(note.endTime < 0) note.endTime = 0;
-                        notes.set(noteID, { ...note });
-                    }
-                }
-                return notes;
+            updateAllSelected(note => {
+                note.startTime -= movementAmount;
+                note.endTime -= movementAmount;
             });
-            editedFile.changed();
         } else if(e.key === "ArrowDown") {
             e.preventDefault();
             const movementAmount = 1 / subdivisions;
-            map.notes.update(notes => {
-                for(const noteID of selectedNotes) {
-                    const note = notes.get(noteID);
-                    if(note) {
-                        note.startTime += movementAmount;
-                        note.endTime += movementAmount;
-                        notes.set(noteID, { ...note });
-                    }
-                }
-                return notes;
+            updateAllSelected(note => {
+                note.startTime += movementAmount;
+                note.endTime += movementAmount;
             });
+        } else if(e.key === "ArrowLeft") {
+            e.preventDefault();
+            updateAllSelected(note => {
+                note.start.start = Math.max(0, note.start.start - 1);
+                note.end.start = Math.max(0, note.end.start - 1);
+            });
+        } else if(e.key === "ArrowRight") {
+            e.preventDefault();
+            updateAllSelected(note => {
+                note.start.start += 1;
+                note.end.start += 1;
+            });
+        } else if(e.key === "Delete") {
+            e.preventDefault();
+            for(const noteID of selectedNotes) {
+                map.notes.update(notes => {
+                    notes.delete(noteID);
+                    return notes;
+                });
+            }
             editedFile.changed();
+            selectedNotes.clear();
         }
     }
 
@@ -220,6 +239,7 @@
         if(e.key === 'Escape') {
             selectedNotes.clear();
         }
+        
 
         if(openMap) {
             const map = editedFile.getMap(openMap);
@@ -368,7 +388,7 @@
             <MapView
                 file={editedFile}
                 {subdivisions}
-                {playbackState}
+                bind:playbackState={playbackState}
                 map={openMap}
                 bind:selectedNotes={selectedNotes}
                 onmousemove={(beat, lane) => {

@@ -84,7 +84,7 @@ void main() {
 
     // Fade as approaching the origin on the xz plane
     float distanceFromOrigin = length(vWorldPosition.xz);
-    float distanceFade = fade(0.0, 100.0, distanceFromOrigin);
+    float distanceFade = fade(0.0, 80.0, distanceFromOrigin);
 
     float finalOpacity = opacity * distanceFade;
     finalOpacity *= 1. - fadeVal * 0.2;

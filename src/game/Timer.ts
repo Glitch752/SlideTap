@@ -73,5 +73,10 @@ export class Timer extends GameNode {
                 this.done();
             }
         }
+
+        if(this.time < this.lastTime) {
+            this.jumpedBackward(this.time);
+        }
+        this.lastTime = this.time;
     }
 }

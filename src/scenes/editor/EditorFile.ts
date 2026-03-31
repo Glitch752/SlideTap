@@ -224,7 +224,12 @@ export class EditorFile {
         if(!metaFile) throw new Error("metadata.json not found in zip");
         const decoder = new TextDecoder();
         const metaStr = decoder.decode(await metaFile.arrayBuffer());
-        const metadata: SongMetadataJSON = JSON.parse(metaStr);
+        let metadata: SongMetadataJSON;
+        try {
+            metadata = JSON.parse(metaStr);
+        } catch(e) {
+            throw new Error("Failed to parse metadata.json");
+        }
 
         const getBlob = async (path?: string) => {
             if(!path) return undefined;
