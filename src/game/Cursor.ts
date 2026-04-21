@@ -110,7 +110,7 @@ export class Cursor extends GameNode {
     }
 
     public tap(type: MapNoteLayer) {
-        // this.context!.tree.get<Renderer>(NodeID.Renderer)!
+        // this.context!.tree.get<LevelInterface>(NodeID.LevelInterface)!
         //     .debugText(`Tap ${type === MapNoteLayer.Background ? "BG" : "Primary"} ${Date.now()}`);
         this.tapped(type === MapNoteLayer.Background ? this.secondaryLane : this.lane, type);
     }

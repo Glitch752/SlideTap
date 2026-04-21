@@ -3,7 +3,6 @@ import { GameMap } from "./Map";
 import { EditorFile, EditorMapData } from "./scenes/editor/EditorFile";
 import type { SaveArchive } from "./scenes/editor/saveHandlers/SaveArchive";
 import { SongLeaderboard } from "./SongLeaderboard";
-import { timeout } from "./utils/timing";
 
 export type SongMetadataJSON = {
     id: string;

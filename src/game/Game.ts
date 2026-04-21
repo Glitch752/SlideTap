@@ -12,6 +12,7 @@ import { Lanes } from "./Lanes";
 import { Input } from "./Input";
 import { NodeID } from "./types";
 import { Timer } from "./Timer";
+import { LevelInterface } from "./ui/LevelInterface";
 
 export class GameScene implements Scene {
     public component = Game;
@@ -40,6 +41,7 @@ export class GameScene implements Scene {
             new Lanes(this.map).setId(NodeID.Lanes),
 
             // Renderer must be last so we update before drawing
+            new LevelInterface(),
             new Renderer().setId(NodeID.Renderer)
         );
 

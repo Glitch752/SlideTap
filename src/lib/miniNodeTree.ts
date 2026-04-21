@@ -236,7 +236,7 @@ export class NodeTree<T, G extends {}> {
         node._parent = null;
     }
 
-    public add(node: Node<T, G>): void {
+    public add(node: Node<T, G>): this {
         node._parent = this;
 
         this.children.add(node);
@@ -258,6 +258,8 @@ export class NodeTree<T, G extends {}> {
             if(!ctx) throw new Error("Global context is not available");
             node.initRecursive(ctx);
         }
+
+        return this;
     }
 
     public _setNodeUpdating(node: Node<T, G>, updates: boolean): void {

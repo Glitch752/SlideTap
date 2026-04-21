@@ -40,6 +40,7 @@
     let trackLength = $derived($audioFileData?.buffer?.duration ?? 0);
 
     const mapData = $derived(file.getMap(map) ?? null);
+    $inspect(mapData);
     const notes = $derived(mapData?.notes ?? null);
 
     let times = $derived.by(() => {
@@ -171,129 +172,136 @@
 
 <!-- TODO: wrapping notes around 0 :c -->
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
-    class="map-grid"
-    style="
-        grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);
-        grid-template-rows: repeat({times.length}, 1fr);
-    "
-    onmousedown={onGridPointerDown}
-    bind:this={gridRef}
->
-    <span class="time-column-label">Time</span>
-    {#each lanes as lane}
-        <div class="lane-label">{lane}</div>
-    {/each}
 
-    <div class="note-grid-reference" style="grid-column: 2 / -1; grid-row: 2 / -1;"></div>
+<svelte:boundary>
+    {#snippet failed(error, reset)}
+        <p>Map view failed to display: {error}</p>
+    {/snippet}
 
-    <!-- Rows for each time -->
-    <div class="rows">
-        {#each times as { beat }}
-            {@const wholeBeat = Math.floor(beat) === beat}
-            <div
-                class="grid-row"
-                class:greyed={!isInPlaybackRange(beat)}
-                class:whole={wholeBeat}
-            >
-                <div class="time-label" onmousedown={(e) => {
-                    e.stopPropagation();
-                    // Set playback position to this time
-                    playbackState.time = beat * 60 / bpm;
-                }}>
-                    {#if wholeBeat}{
-                        beat.toString().padStart(5, String.fromCharCode(/* nbsp */ 160))
-                    }{:else}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/if}<span class="decimal">{
-                        (beat % 1).toFixed(3).substring(1)
-                    }</span>
-                </div>
-            </div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        class="map-grid"
+        style="
+            grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);
+            grid-template-rows: repeat({times.length}, 1fr);
+        "
+        onmousedown={onGridPointerDown}
+        bind:this={gridRef}
+    >
+        <span class="time-column-label">Time</span>
+        {#each lanes as lane}
+            <div class="lane-label">{lane}</div>
         {/each}
-    </div>
-    {#if times.length === 0}
-        <p class="placeholder">No times available. Add a song to sequence.</p>
-    {/if}
 
-    {#if colWidthPx > 0 && rowHeightPx > 0}
-        <!-- Notes -->
-        {#if mapData && notes}
-            {#each $notes as [id, note] (id)}
-                <EditorNote
-                    {note}
-                    onchange={(updatedNote) => {
-                        mapData.notes.update(n => n.set(id, updatedNote));
-                        file.changed();
-                    }}
-                    ondelete={() => {
-                        mapData.notes.update(n => {
-                            n.delete(id);
-                            return n;
-                        });
-                        if(selectedNotes.has(id)) {
-                            selectedNotes.delete(id);
-                        }
-                        file.changed();
-                    }}
-                    {oncopy}
-                    onselect={(type) => {
-                        switch(type) {
-                            case SelectionType.Add:
-                                selectedNotes.add(id);
-                                break;
-                            case SelectionType.Set:
-                                selectedNotes.clear();
-                                selectedNotes.add(id);
-                                break;
-                            case SelectionType.Remove:
-                                selectedNotes.delete(id);
-                                break;
-                        }
-                    }}
-                    ondrag={(beat, lane) => {
-                        if(!$notes) return;
+        <div class="note-grid-reference" style="grid-column: 2 / -1; grid-row: 2 / -1;"></div>
 
-                        // Drag all selected notes by the same amount
-                        mapData.notes.update(n => {
-                            for(const selectedId of selectedNotes) {
-                                const selectedNote = $notes.get(selectedId);
-                                if(!selectedNote) continue;
-
-                                const newNote: MapNote = {
-                                    ...selectedNote,
-                                    start: {
-                                        ...selectedNote.start,
-                                        start: selectedNote.start.start + lane
-                                    },
-                                    end: {
-                                        ...selectedNote.end,
-                                        start: selectedNote.end.start + lane
-                                    },
-                                    startTime: selectedNote.startTime + beat,
-                                    endTime: selectedNote.endTime + beat
-                                };
-
-                                n.set(selectedId, normalizeNote(newNote, subdivisions));
-                            }
-
-                            return n;
-                        });
-                        file.changed();
-                    }}
-                    {rowHeightPx} {colWidthPx} {subdivisions} {leftOffset} {topOffset}
-                    selected={selectedNotes.has(id)}
-                />
+        <!-- Rows for each time -->
+        <div class="rows">
+            {#each times as { beat }}
+                {@const wholeBeat = Math.floor(beat) === beat}
+                <div
+                    class="grid-row"
+                    class:greyed={!isInPlaybackRange(beat)}
+                    class:whole={wholeBeat}
+                >
+                    <div class="time-label" onmousedown={(e) => {
+                        e.stopPropagation();
+                        // Set playback position to this time
+                        playbackState.time = beat * 60 / bpm;
+                    }}>
+                        {#if wholeBeat}{
+                            beat.toString().padStart(5, String.fromCharCode(/* nbsp */ 160))
+                        }{:else}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/if}<span class="decimal">{
+                            (beat % 1).toFixed(3).substring(1)
+                        }</span>
+                    </div>
+                </div>
             {/each}
+        </div>
+        {#if times.length === 0}
+            <p class="placeholder">No times available. Add a song to sequence.</p>
         {/if}
 
-        <!-- Drag preview -->
-        {#if dragNote}
-            <EditorNote note={dragNote} onchange={() => {}} {colWidthPx} {rowHeightPx} {subdivisions} {leftOffset} {topOffset} />
+        {#if colWidthPx > 0 && rowHeightPx > 0}
+            <!-- Notes -->
+            {#if mapData && notes}
+                {#each $notes as [id, note] (id)}
+                    <EditorNote
+                        {note}
+                        onchange={(updatedNote) => {
+                            mapData.notes.update(n => n.set(id, updatedNote));
+                            file.changed();
+                        }}
+                        ondelete={() => {
+                            mapData.notes.update(n => {
+                                n.delete(id);
+                                return n;
+                            });
+                            if(selectedNotes.has(id)) {
+                                selectedNotes.delete(id);
+                            }
+                            file.changed();
+                        }}
+                        {oncopy}
+                        onselect={(type) => {
+                            switch(type) {
+                                case SelectionType.Add:
+                                    selectedNotes.add(id);
+                                    break;
+                                case SelectionType.Set:
+                                    selectedNotes.clear();
+                                    selectedNotes.add(id);
+                                    break;
+                                case SelectionType.Remove:
+                                    selectedNotes.delete(id);
+                                    break;
+                            }
+                        }}
+                        ondrag={(beat, lane) => {
+                            if(!$notes) return;
+
+                            // Drag all selected notes by the same amount
+                            mapData.notes.update(n => {
+                                for(const selectedId of selectedNotes) {
+                                    const selectedNote = $notes.get(selectedId);
+                                    if(!selectedNote) continue;
+
+                                    const newNote: MapNote = {
+                                        ...selectedNote,
+                                        start: {
+                                            ...selectedNote.start,
+                                            start: selectedNote.start.start + lane
+                                        },
+                                        end: {
+                                            ...selectedNote.end,
+                                            start: selectedNote.end.start + lane
+                                        },
+                                        startTime: selectedNote.startTime + beat,
+                                        endTime: selectedNote.endTime + beat
+                                    };
+
+                                    n.set(selectedId, normalizeNote(newNote, subdivisions));
+                                }
+
+                                return n;
+                            });
+                            file.changed();
+                        }}
+                        {rowHeightPx} {colWidthPx} {subdivisions} {leftOffset} {topOffset}
+                        selected={selectedNotes.has(id)}
+                    />
+                {/each}
+            {/if}
+
+            <!-- Drag preview -->
+            {#if dragNote}
+                <EditorNote note={dragNote} onchange={() => {}} {colWidthPx} {rowHeightPx} {subdivisions} {leftOffset} {topOffset} />
+            {/if}
         {/if}
-    {/if}
-    
-    <div class="playback-head" style="--position: {playbackState.time / trackLength * rowHeightPx * times.length}px;"></div>
-</div>
+        
+        <div class="playback-head" style="--position: {playbackState.time / trackLength * rowHeightPx * times.length}px;"></div>
+    </div>
+</svelte:boundary>
 
 <style lang="scss">
 .map-grid {

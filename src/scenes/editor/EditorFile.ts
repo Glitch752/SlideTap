@@ -21,9 +21,10 @@ export class EditorMapData {
     public _notes: Map<EditorNoteID, MapNote> = new Map();
     public notes: Writable<Map<EditorNoteID, MapNote>> = writable(this._notes);
 
-    public loaded = false;
+    public loaded: boolean;
 
-    constructor(private data: SongMapJSON, public id: EditorMapID) {
+    constructor(private data: SongMapJSON, public id: EditorMapID, loaded = false) {
+        this.loaded = loaded;
     }
 
     public serialize(): LoadedMapDataJSON {
@@ -175,12 +176,7 @@ export class EditorFile {
         return (Math.random().toString(36).substring(2, 7) as unknown) as EditorNoteID;
     }
 
-    private _maps: Map<EditorMapID, EditorMapData> = new Map()
-        .set(this.generateMapId(), {
-            name: "Default",
-            difficulty: 1,
-            notes: new Map()
-        });
+    private _maps: Map<EditorMapID, EditorMapData> = new Map<EditorMapID, EditorMapData>();
     public readonly maps: Writable<Map<EditorMapID, EditorMapData>> = writable(this._maps);
 
     public addMap(): EditorMapID {
@@ -350,6 +346,14 @@ export class EditorFile {
 
     // Create a blank editor file with no data.
     public constructor(public saveArchive: SaveArchive) {
+        const defaultId = this.generateMapId();
+        this._maps.set(defaultId, new EditorMapData({
+            dataPath: "",
+            name: "Default",
+            difficulty: 1,
+            notes: 0
+        }, defaultId, true));
+
         this.changed = new Signal();
         this.changed.connect(() => {
             this.unsavedChanges.set(true);

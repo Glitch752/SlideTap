@@ -8,36 +8,5 @@
     "bpm": 192,
     "offset": 0,
     "length": 154,
-    "maps": [
-        {
-            "dataPath": "easy.json",
-            "name": "Easy",
-            "difficulty": 10,
-            "notes": 105
-        },
-        {
-            "dataPath": "medium.json",
-            "name": "Medium",
-            "difficulty": 30,
-            "notes": 341
-        },
-        {
-            "dataPath": "hard.json",
-            "name": "Hard",
-            "difficulty": 50,
-            "notes": 0
-        },
-        {
-            "dataPath": "expert.json",
-            "name": "Expert",
-            "difficulty": 70,
-            "notes": 0
-        },
-        {
-            "dataPath": "master.json",
-            "name": "Master",
-            "difficulty": 90,
-            "notes": 0
-        }
-    ]
+    "maps": []
 }
