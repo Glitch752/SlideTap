@@ -20,3 +20,4 @@ public/songs/**/*.opus
 public/songs/**/*.ogg
 public/songs/**/*.png
 *.crswap
+.vercel
