@@ -1,4 +1,4 @@
-import type { GameMap } from "../Map";
+import type { GameMap, MapEvent } from "../Map";
 import type { Song } from "../Song";
 import { type Scene } from "../scenes/Scene";
 import * as THREE from "three";
@@ -24,13 +24,52 @@ export class GameScene implements Scene {
     public tree: NodeTree<THREE.Object3D, GameScene> = new NodeTree(this as GameScene, true);
     
     public onInit: Signal<[]> = new Signal();
+    public onMapEvent: Signal<[MapEvent]> = new Signal();
+
+    public health: number = 100;
+    public score: number = 0;
+    public combo: number = 0;
+    public maxCombo: number = 0;
+    public totalNotes: number = 0;
+    public hitNotes: number = 0;
+    public failed: boolean = false;
+    public finished: boolean = false;
+
+    public onNoteHit() {
+        if(this.failed || this.finished) return;
+        this.hitNotes++;
+        this.combo++;
+        if(this.combo > this.maxCombo) this.maxCombo = this.combo;
+        this.health = Math.min(100, this.health + 3);
+        this.updateScore();
+    }
+    public onNoteMiss() {
+        if(this.failed || this.finished) return;
+        this.combo = 0;
+        this.health = Math.max(0, this.health - 10);
+        if(this.health === 0) {
+            this.failed = true;
+            this.onLevelEnd();
+        }
+        this.updateScore();
+    }
+    private updateScore() {
+        this.score = this.totalNotes > 0 ? Math.round((this.hitNotes / this.totalNotes) * 100) : 0;
+    }
+    public onLevelEnd() {
+        this.finished = true;
+        // TODO: show win/lose screen
+    }
 
     public init(): void {
         connectParenting(this.tree, this.scene);
 
+        const timer = new Timer().setId(NodeID.Timer);
+        timer.jumpedBackward.connect(() => this.resetEventIndex());
+
         this.tree.addChildren(
             // Logic
-            new Timer().setId(NodeID.Timer),
+            timer,
             new Input().setId(NodeID.Input),
 
             // Rendering
@@ -50,8 +89,7 @@ export class GameScene implements Scene {
             const timer = this.tree.get<Timer>(NodeID.Timer)!;
             timer.startPlayback(this.song);
             timer.done.connect(() => {
-                console.log("Level finished!");
-                // TODO: Finish game, show results, wtv
+                this.onLevelEnd();
             });
         }
 
@@ -97,7 +135,35 @@ export class GameScene implements Scene {
         const deltaTime = (time - this.lastTime) / 1000;
         this.lastTime = time;
 
+        const events = this.getNewEventsElapsed();
+        for(const event of events) {
+            this.onMapEvent(event);
+        }
+
         this.tree.updateRecursive(deltaTime);
+    }
+
+    private eventIndex = 0;
+    private getNewEventsElapsed() {
+        if(!this.map) return [];
+        if(this.eventIndex >= this.map.events.length) return [];
+        
+        const events = [];
+        const elapsed = this.tree.get<Timer>(NodeID.Timer)!.getElapsed();
+        while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsed) {
+            events.push(this.map.events[this.eventIndex]);
+            this.eventIndex++;
+        }
+        return events;
+    }
+    private resetEventIndex() {
+        this.eventIndex = 0;
+        if(!this.map) return;
+
+        const elapsed = this.tree.get<Timer>(NodeID.Timer)!.getElapsed();
+        while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsed) {
+            this.eventIndex++;
+        }
     }
 
     onKeyDown(event: KeyboardEvent): void {

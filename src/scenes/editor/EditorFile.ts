@@ -1,4 +1,4 @@
-import type { LoadedMapDataJSON, MapNote } from "../../Map";
+import type { LoadedMapDataJSON, MapEvent, MapNote } from "../../Map";
 import { get, writable, type Writable } from "svelte/store";
 import type { OpenableSaveArchive, SaveArchive } from "./saveHandlers/SaveArchive";
 import type { SongMapJSON, SongMetadataJSON } from "../../Song";
@@ -18,8 +18,8 @@ export class EditorMapData {
     set name(value: string) { this.data.name = value; }
     set difficulty(value: number) { this.data.difficulty = value; }
 
-    public _notes: Map<EditorNoteID, MapNote> = new Map();
-    public notes: Writable<Map<EditorNoteID, MapNote>> = writable(this._notes);
+    public notes: Writable<Map<EditorNoteID, MapNote>> = writable(new Map());
+    public events: Writable<MapEvent[]> = writable([]);
 
     public loaded: boolean;
 
@@ -33,16 +33,21 @@ export class EditorMapData {
         }
 
         return {
-            notes: Array.from(this._notes.values())
+            notes: Array.from(get(this.notes).values()),
+            events: get(this.events)
         };
     }
 
     public deserialize(data: LoadedMapDataJSON, editor: EditorFile) {
-        this._notes.clear();
-        for(const note of data.notes) {
-            this._notes.set(editor.generateNoteId(), note);
-        }
-        this.notes.set(this._notes);
+        this.notes.update(v => {
+            v.clear();
+            for(const note of data.notes) {
+                v.set(editor.generateNoteId(), note);
+            }
+
+            return v;
+        });
+        this.events.set(data.events ?? []);
 
         this.loaded = true;
     }
@@ -266,7 +271,7 @@ export class EditorFile {
         const dataFile = await this.saveArchive.readFile(editorData.dataPath);
         if(!dataFile) {
             console.error(`Data file for map ${editorData.name} not found; resetting to empty map`);
-            editorData.deserialize({ notes: [] }, this);
+            editorData.deserialize({ notes: [], events: [] }, this);
             return;
         }
 
@@ -322,7 +327,7 @@ export class EditorFile {
                 metadata.maps[i] = {
                     difficulty: map.difficulty,
                     name: map.name,
-                    notes: map._notes.size,
+                    notes: get(map.notes).size,
                     dataPath
                 };
                 try {

@@ -44,15 +44,27 @@ export type MapNote = {
     type: MapNoteType;
 };
 
+export type MapEvent = {
+    type: "text",
+    text: string,
+    duration: number,
+    /** Beats; based off of the beginning of the track, not the played segment */
+    time: number
+};
+
 export type LoadedMapDataJSON = {
     notes: MapNote[];
+    events: MapEvent[];
 };
 
 export class GameMap {
     /** All of the notes in this map. Sorted by start time. */
     public notes: MapNote[] = [];
+    /** All of the events in this map. Sorted by time. */
+    public events: MapEvent[] = [];
 
     constructor(mapData: LoadedMapDataJSON) {
         this.notes = mapData.notes.sort((a, b) => a.startTime - b.startTime);
+        this.events = mapData.events.sort((a, b) => a.time - b.time);
     }
 }

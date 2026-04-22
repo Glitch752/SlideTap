@@ -1,0 +1,72 @@
+import { Lanes } from "../Lanes";
+import { BaseNote } from "./BaseNote";
+
+export class TapNote extends BaseNote {
+    private didTap = false;
+
+    protected handleHitLogic(elapsed: number): void {
+        // N/A update logic
+    }
+
+    public handleCursorTap(): void {
+        if(this.cursorWithinNote()) {
+            this.didTap = true;
+            this.context?.onNoteHit();
+        }
+    }
+
+    protected noteEndLogic(): void {
+        if(!this.didTap) {
+            this.context?.onNoteMiss();
+        }
+    }
+}
+
+export class HoldNote extends BaseNote {
+    private missed = false;
+
+    protected handleHitLogic(elapsed: number): void {
+        if(this.missed) return;
+
+        const inverseMargin = 5;
+
+        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
+        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
+        const cursorDistance = Lanes.HIT_RADIUS;
+
+        if(cursorDistance >= noteStartDistance + inverseMargin && cursorDistance <= noteEndDistance - inverseMargin) {
+            const cursorWithin = this.cursorWithinNote();
+            if(!cursorWithin) {
+                this.context?.onNoteMiss();
+                this.missed = true;
+            }
+        }
+    }
+
+    protected noteEndLogic(): void {
+        if(!this.missed) {
+            this.context?.onNoteHit();
+        }
+    }
+}
+
+export class DamageNote extends BaseNote {
+    private damaged: boolean = false;
+
+    protected handleHitLogic(elapsed: number): void {
+        if(this.damaged) return;
+
+        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
+        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
+        const cursorDistance = Lanes.HIT_RADIUS;
+
+        const inverseMargin = 2;
+
+        if(cursorDistance >= noteStartDistance + inverseMargin && cursorDistance <= noteEndDistance - inverseMargin) {
+            if(this.cursorWithinNote()) {
+                this.context?.onNoteMiss();
+                this.damaged = true;
+            }
+        }
+    }
+}

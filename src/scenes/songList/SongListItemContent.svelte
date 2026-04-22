@@ -5,7 +5,7 @@ import { dateFormat, difficultyColor, numberFormat } from "./SongList.svelte";
 import { PersistedValue } from "../../utils/persistedValue";
 import { loadScene } from "../../router";
 import { GameScene } from "../../game/Game";
-  import type { EditorMapData } from "../editor/EditorFile";
+import type { EditorMapData } from "../editor/EditorFile";
 
 const { song }: { song: Song } = $props();
 

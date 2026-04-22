@@ -41,6 +41,11 @@ export class Cursor extends GameNode {
         this.secondaryCursorMesh.getWorldPosition(secondaryTarget);
     }
 
+    public getAngle(layer: MapNoteLayer) {
+        const target = layer === MapNoteLayer.Background ? this.targetAngle + this.targetSecondaryOffsetAngle : this.targetAngle;
+        return wrappingMod(target, 2 * Math.PI);
+    }
+
     constructor() {
         const container = new THREE.Object3D();
         const secondaryContainer = new THREE.Object3D();

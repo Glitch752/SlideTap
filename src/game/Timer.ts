@@ -10,6 +10,7 @@ export class Timer extends GameNode {
     private timeSource: (() => number) | null = null;
     public done: Signal<[]> = new Signal();
     private length: number = 0;
+    private timeScale: number = 0.2;
 
     public jumpedBackward: Signal<[newTime: number]> = new Signal();
 
@@ -36,6 +37,8 @@ export class Timer extends GameNode {
         this.running = true;
         this.time = song.firstBeatOffset * song.beatDuration;
         if(!song.track) return;
+
+        song.track.playbackRate = this.timeScale;
         
         let songTime = this.time + song.startTime - Settings.audioLatency.value / 1000.;
         if(songTime < 0) {
@@ -65,7 +68,7 @@ export class Timer extends GameNode {
         if(this.timeSource) {
             this.time = this.timeSource();
         } else if(this.running) {
-            this.time += deltaTime;
+            this.time += deltaTime * this.timeScale;
 
             if(this.time >= this.length) {
                 this.time = this.length;

@@ -1,5 +1,5 @@
 import { getNoteColor, type MapNote } from "../../Map";
-import { lerp } from "../../utils/math";
+import { lerp, wrappingMod } from "../../utils/math";
 import { FULL_LANES } from "../constants";
 import { Lanes } from "../Lanes";
 import type { Timer } from "../Timer";
@@ -8,16 +8,17 @@ import { GameNode, NodeID } from "../types";
 import * as THREE from "three";
 import noteFragment from "./noteFragment.frag?raw";
 import noteVertex from "./noteVertex.vert?raw";
+import type { Cursor } from "../Cursor";
 
-export class BaseNote extends GameNode {
-    private beatToDistance(beat: number, elapsed: number) {
+export abstract class BaseNote extends GameNode {
+    protected beatToDistance(beat: number, elapsed: number) {
         const time = (beat / this.bpm) * 60 - elapsed;
         return time * 300 + Lanes.HIT_RADIUS;
     }
-    private laneToAngle(lane: number) {
+    protected laneToAngle(lane: number) {
         return lane * Math.PI * 2 / FULL_LANES;
     }
-    private polarToCart(theta: number, r: number): [number, number] {
+    protected polarToCart(theta: number, r: number): [number, number] {
         return [
             Math.cos(theta) * r,
             Math.sin(theta) * r
@@ -80,7 +81,7 @@ export class BaseNote extends GameNode {
     private quads: number;
     private material: THREE.ShaderMaterial;
 
-    constructor(private note: MapNote, private bpm: number) {
+    constructor(protected note: MapNote, protected bpm: number) {
         super(null);
 
         const quads = this.quads = 4 + Math.ceil(
@@ -142,6 +143,15 @@ export class BaseNote extends GameNode {
         this.vertices.set(this.constructVertices(elapsed));
         this.vertices.needsUpdate = true;
 
+        // Debugging
+        const margin = 10;
+
+        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
+        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
+        const cursorDistance = Lanes.HIT_RADIUS;
+        const withinDistance = cursorDistance >= noteStartDistance - margin && cursorDistance <= noteEndDistance + margin;
+        this.material.opacity = withinDistance && this.cursorWithinNote() ? 1.0 : 0.5;
+
         this.material.uniforms.opacity.value = this.material.opacity; // ??
 
         const uvTopCircumference = Math.max(
@@ -156,10 +166,42 @@ export class BaseNote extends GameNode {
         this.material.uniforms.uv_bottom_width.value = uvBottomCircumference;
 
         if(this.note.endTime / this.bpm * 60 < elapsed) {
-            // this.removeFromParent();
             const tween = new Tween(this.material, "opacity", 0, 0.1);
             tween.complete.connect(() => this.removeFromParent());
             this.add(tween);
         }
+
+        if(withinDistance) this.handleHitLogic(elapsed);
+        // If no longer in distance, run note end logic
+        if(cursorDistance > noteEndDistance + margin) this.noteEndLogic();
     }
+
+    protected cursorWithinNote(): boolean {
+        const cursor = this.context?.tree.get<Cursor>(NodeID.Cursor);
+        if(!cursor) return false;
+
+        const cursorAngle = -cursor.getAngle(this.note.layer);
+
+        const elapsed = this.context?.tree.get<Timer>(NodeID.Timer)?.getElapsed() ?? 0;
+        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
+        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
+        const cursorDistance = Lanes.HIT_RADIUS;
+
+        const noteStartLeft = this.laneToAngle(this.note.start.start);
+        const noteStartRight = this.laneToAngle(this.note.start.start + this.note.start.width);
+        const noteEndLeft = this.laneToAngle(this.note.end.start);
+        const noteEndRight = this.laneToAngle(this.note.end.start + this.note.end.width);
+
+        // Check if cursor is within the trapezoid formed by the note's start and end angles and distances
+        const leftEdgeAngle = lerp(noteStartLeft, noteEndLeft, (cursorDistance - noteStartDistance) / (noteEndDistance - noteStartDistance));
+        const rightEdgeAngle = lerp(noteStartRight, noteEndRight, (cursorDistance - noteStartDistance) / (noteEndDistance - noteStartDistance));
+
+        const withinAngle = wrappingMod(cursorAngle - leftEdgeAngle, 2 * Math.PI) < wrappingMod(rightEdgeAngle - leftEdgeAngle, 2 * Math.PI);
+        return withinAngle;
+
+    }
+
+    protected abstract handleHitLogic(elapsed: number): void;
+    public handleCursorTap(): void {};
+    protected noteEndLogic(): void {};
 }

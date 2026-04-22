@@ -110,7 +110,7 @@ export function connectParenting<T extends Node3DLike<T>, G extends {}>(tree: No
  * G = Global context
  */
 export class NodeTree<T, G extends {}> {
-    private children: Set<Node<T, G>> = new Set();
+    protected children: Set<Node<T, G>> = new Set();
     protected updatingChildren: Set<Node<T, G>> = new Set();
     /** A recursive map of uniquely-identified children across this scene tree. */
     private namedChildren: Map<string, Node<T, G>> = new Map();
