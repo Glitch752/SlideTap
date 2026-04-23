@@ -143,16 +143,11 @@ export abstract class BaseNote extends GameNode {
         this.vertices.set(this.constructVertices(elapsed));
         this.vertices.needsUpdate = true;
 
-        // Debugging
         const margin = 10;
 
-        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
-        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
-        const cursorDistance = Lanes.HIT_RADIUS;
-        const withinDistance = cursorDistance >= noteStartDistance - margin && cursorDistance <= noteEndDistance + margin;
-        this.material.opacity = withinDistance && this.cursorWithinNote() ? 1.0 : 0.5;
-
-        this.material.uniforms.opacity.value = this.material.opacity; // ??
+        this.material.uniforms.opacity.value = this.material.opacity + (
+            this.noteWithinDistance(0) && this.cursorWithinNote() ? 0.5 : 0.0
+        );
 
         const uvTopCircumference = Math.max(
             0.001,
@@ -171,9 +166,20 @@ export abstract class BaseNote extends GameNode {
             this.add(tween);
         }
 
-        if(withinDistance) this.handleHitLogic(elapsed);
+        if(this.noteWithinDistance(10)) this.handleHitLogic(elapsed);
         // If no longer in distance, run note end logic
+
+        const cursorDistance = Lanes.HIT_RADIUS;
+        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
         if(cursorDistance > noteEndDistance + margin) this.noteEndLogic();
+    }
+
+    protected noteWithinDistance(margin: number) {
+        const elapsed = this.context?.tree.get<Timer>(NodeID.Timer)?.getElapsed() ?? 0;
+        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
+        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
+        const cursorDistance = Lanes.HIT_RADIUS;
+        return cursorDistance >= noteStartDistance - margin && cursorDistance <= noteEndDistance + margin;
     }
 
     protected cursorWithinNote(): boolean {

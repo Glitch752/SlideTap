@@ -169,6 +169,10 @@ export class NodeTree<T, G extends {}> {
     addChildren(...nodes: Array<Node<T, G>>): void {
         for(const node of nodes) this.add(node);
     }
+    with(...nodes: Array<Node<T, G>>): this {
+        for(const node of nodes) this.add(node);
+        return this;
+    }
 
     removeChildren(...nodes: Array<Node<T, G>>): void {
         for(const node of nodes) this.remove(node);

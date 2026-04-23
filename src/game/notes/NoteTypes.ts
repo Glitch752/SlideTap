@@ -9,7 +9,7 @@ export class TapNote extends BaseNote {
     }
 
     public handleCursorTap(): void {
-        if(this.cursorWithinNote()) {
+        if(this.cursorWithinNote() && this.noteWithinDistance(5)) {
             this.didTap = true;
             this.context?.onNoteHit();
         }
@@ -28,13 +28,7 @@ export class HoldNote extends BaseNote {
     protected handleHitLogic(elapsed: number): void {
         if(this.missed) return;
 
-        const inverseMargin = 5;
-
-        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
-        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
-        const cursorDistance = Lanes.HIT_RADIUS;
-
-        if(cursorDistance >= noteStartDistance + inverseMargin && cursorDistance <= noteEndDistance - inverseMargin) {
+        if(this.noteWithinDistance(2)) {
             const cursorWithin = this.cursorWithinNote();
             if(!cursorWithin) {
                 this.context?.onNoteMiss();
@@ -56,17 +50,9 @@ export class DamageNote extends BaseNote {
     protected handleHitLogic(elapsed: number): void {
         if(this.damaged) return;
 
-        const noteStartDistance = this.beatToDistance(this.note.startTime, elapsed);
-        const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
-        const cursorDistance = Lanes.HIT_RADIUS;
-
-        const inverseMargin = 2;
-
-        if(cursorDistance >= noteStartDistance + inverseMargin && cursorDistance <= noteEndDistance - inverseMargin) {
-            if(this.cursorWithinNote()) {
-                this.context?.onNoteMiss();
-                this.damaged = true;
-            }
+        if(this.noteWithinDistance(-2) && this.cursorWithinNote()) {
+            this.context?.onNoteMiss();
+            this.damaged = true;
         }
     }
 }
