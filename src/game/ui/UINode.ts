@@ -86,14 +86,14 @@ export abstract class UINode extends GameNode {
             this.needsRelayout = false;
         }
     }
-    abstract layoutChildren(): void;
+    layoutChildren(): void {}
 
     render(ctx: CanvasRenderingContext2D): void {
+        this.draw(ctx);
+        
         for(const child of this.children) {
             if(child instanceof UINode) child.render(ctx);
         }
-
-        this.draw(ctx);
     }
 
     draw(_ctx: CanvasRenderingContext2D): void {}

@@ -1,6 +1,6 @@
 import { ContainerNode } from "./containerNodes";
 
-export class PanelNode extends ContainerNode {
+export class Panel {
     backgroundColor: string = "rgba(0, 0, 0, 0.5)";
     withBackgroundColor(color: string): this {
         this.backgroundColor = color;
@@ -18,15 +18,24 @@ export class PanelNode extends ContainerNode {
         this.shadowOffsetY = offsetY;
         return this;
     }
+}
+
+export class PanelNode extends ContainerNode {
+    panel: Panel;
+
+    constructor(panel: Panel = new Panel()) {
+        super();
+        this.panel = panel;
+    }
     
     draw(ctx: CanvasRenderingContext2D): void {
-        if(this.backgroundColor) {
-            ctx.fillStyle = this.backgroundColor;
+        if(this.panel.backgroundColor) {
+            ctx.fillStyle = this.panel.backgroundColor;
             
-            ctx.shadowColor = this.shadowColor;
-            ctx.shadowBlur = this.shadowBlur;
-            ctx.shadowOffsetX = this.shadowOffsetX;
-            ctx.shadowOffsetY = this.shadowOffsetY;
+            ctx.shadowColor = this.panel.shadowColor;
+            ctx.shadowBlur = this.panel.shadowBlur;
+            ctx.shadowOffsetX = this.panel.shadowOffsetX;
+            ctx.shadowOffsetY = this.panel.shadowOffsetY;
 
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }
