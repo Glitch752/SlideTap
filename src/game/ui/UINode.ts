@@ -22,6 +22,8 @@ export abstract class UINode extends GameNode {
     width: number = 0;
     height: number = 0;
 
+    hidden: boolean = false;
+
     withTargetSize(width: number, height: number): this {
         this.targetWidth = width;
         this.targetHeight = height;
@@ -39,18 +41,30 @@ export abstract class UINode extends GameNode {
         this.verticalAlign = align;
         return this;
     }
+    withHidden(hidden: boolean): this {
+        this.hidden = hidden;
+        return this;
+    }
 
     constructor() {
         super(null);
     }
 
+    withUpdate(fun: (self: this, deltaTime: number) => void): this {
+        this.update = (deltaTime: number) => {
+            fun(this, deltaTime);
+        }
+        this.setUpdates(true);
+        return this;
+    }
+
     private needsRelayout: boolean = true;
-    setNeedsRelayout() {
+    setNeedsRelayout(layoutFullTree: boolean = true) {
+        // TODO: This logic should really be more complicated, but we just invalidate the whole tree for now
         this.needsRelayout = true;
-        let parent = this.parent;
-        while(parent instanceof UINode) {
-            parent.needsRelayout = true;
-            parent = parent.parent;
+        if(this.parent && this.parent instanceof UINode) this.parent.setNeedsRelayout(layoutFullTree);
+        for(const child of this.children) {
+            if(child instanceof UINode && !child.needsRelayout) child.setNeedsRelayout(layoutFullTree);
         }
     }
 
@@ -90,9 +104,18 @@ export abstract class UINode extends GameNode {
 
     render(ctx: CanvasRenderingContext2D): void {
         this.draw(ctx);
-        
+        if(this.hidden) return;
+
         for(const child of this.children) {
             if(child instanceof UINode) child.render(ctx);
+        }
+    }
+
+    *getUiChildren(includeHidden: boolean = false): Generator<UINode> {
+        for(const child of this.children) {
+            if(child instanceof UINode) {
+                if(includeHidden || !child.hidden) yield child;
+            }
         }
     }
 

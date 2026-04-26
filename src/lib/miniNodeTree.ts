@@ -340,6 +340,11 @@ export class Node<T, G extends {}> extends NodeTree<T, G> {
         this._updates = this._updatesSelf;
     }
 
+    inside(parent: Node<T, G>): Node<T, G> {
+        parent.add(this);
+        return parent;
+    }
+
     remove(node: Node<T, G>): void {
         super.remove(node);
         if(this.updatingChildren.size === 0 && !this._updatesSelf) {
