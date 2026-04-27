@@ -1,14 +1,15 @@
 import { Renderer } from "../Renderer";
 import { GameNode, NodeID } from "../types";
 import * as THREE from "three";
-import { MarginContainer } from "./containerNodes";
-import { UINode } from "./UINode";
+import { ColumnFlexContainer, ContainerNode, MarginContainer, OffsetContainer, StackContainer } from "./containerNodes";
+import { AlignMode, UINode } from "./UINode";
 import { Panel, PanelNode } from "./PanelNode";
 import { TextNode } from "./TextNode";
+import { DebugPanel } from "./DebugPanel";
+import { ProgressBarNode } from "./ProgressBarNode";
+import { ColorGradient } from "./color";
 
 export class LevelInterface extends GameNode {
-    private debugTextValue: any = null;
-
     private get ui(): CanvasRenderingContext2D | null {
         return this.root.get<Renderer>(NodeID.Renderer)?.ui || null;
     }
@@ -28,17 +29,46 @@ export class LevelInterface extends GameNode {
 
         const surfaceGreen = this.getCSSVariable('--surface-green');
         const surfaceRed = this.getCSSVariable('--surface-red');
+        const surfaceBlue = this.getCSSVariable('--surface-blue');
         
         const panel = new Panel()
             .withBackgroundColor(panelColor)
             .withShadow(sectionColor, 0, 6, 6);
+        
+        const healthGradient = new ColorGradient()
+            .addStop(0, surfaceRed)
+            .addStop(0.5, surfaceGreen)
+            .addStop(0.8, surfaceGreen)
+            .addStop(1, surfaceBlue);
 
         this.addChildren(
-            new MarginContainer(10).with(
-                new PanelNode(panel).with(
-                    new TextNode("Debug Text?", textColor)
-                )
-            )
+            new MarginContainer(12).with(
+                // Health bar
+                new StackContainer().with(
+                    new ProgressBarNode(surfaceColor, healthGradient)
+                        .withTargetSize(400, 25)
+                        .withUpdate((self, _) => {
+                            self.setProgress(this.context?.health ? this.context.health / 100 : 0);
+                        })
+                        .inside(new MarginContainer(4))
+                        .inside(new PanelNode(panel)),
+                    new TextNode("Health", textColor)
+                        .withOutline(panelColor, 6)
+                        .withFont("16px monospace")
+                        .inside(new OffsetContainer(0, -12)),
+                    new TextNode("100")
+                        .withFont("24px Helvetica")
+                        .withOutline(panelColor, 6)
+                        .withHorizontalAlign(AlignMode.End)
+                        .withUpdate((self, _) => self.text = `${this.context?.health ?? 0}`)
+                        .inside(new OffsetContainer(0, -6).withHorizontalAlign(AlignMode.End)),
+                ),
+
+                // Debug text
+                new PanelNode(panel).withHorizontalAlign(AlignMode.End).withVerticalAlign(AlignMode.End).with(
+                    new TextNode("Debug Text?", textColor).setId("debugText")
+                ).setId("debugPanel").withHidden(true)
+            ) //.inside(new DebugPanel())
         );
     }
 
@@ -53,10 +83,12 @@ export class LevelInterface extends GameNode {
         if(!game) return;
         if(game.controlledByEditor) return;
         
+        const screenWidth = this.ui.canvas.width / devicePixelRatio, screenHeight = this.ui.canvas.height / devicePixelRatio;
         for(const child of this.children) {
             if(child instanceof UINode) {
-                child.targetWidth = this.ui.canvas.width;
-                child.targetHeight = this.ui.canvas.height;
+                if(child.width != screenWidth || child.height != screenHeight) child.setNeedsRelayout();
+                child.width = screenWidth;
+                child.height = screenHeight;
                 child.layout();
                 child.render(this.ui);
             }
@@ -93,13 +125,20 @@ export class LevelInterface extends GameNode {
         // }
     }
 
-    public debugText(value: any) {
+    public debugText(value: string | number | THREE.Vector3 | null) {
         if(value instanceof THREE.Vector3) {
             value = `(${value.x.toFixed(2)}, ${value.y.toFixed(2)}, ${value.z.toFixed(2)})`;
         }
         if(typeof value === "number") {
             value = value.toFixed(3);
         }
-        this.debugTextValue = value;
+
+        const panelNode = this.get<PanelNode>("debugPanel")!;
+        panelNode.hidden = value === null;
+        if(value === null) return;
+
+        const textNode = this.get<TextNode>("debugText")!;
+        textNode.text = value;
+        textNode.setNeedsRelayout();
     }
 }
