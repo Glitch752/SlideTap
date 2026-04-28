@@ -52,8 +52,12 @@ export class RowFlexContainer extends ContainerNode {
             return sum + child.flex;
         }, 0);
         let xOffset = this.x;
+        // This is really inefficient, but whatever
+        const extraWidth = this.width - Array.from(this.getUiChildren()).reduce((sum, child) => {
+            return sum + child.measure(new Vector2(this.width, this.height)).x;
+        }, 0);
         for(const child of this.getUiChildren()) {
-            const childWidth = child.flex > 0 ? (child.flex / totalFlex) * this.width : child.measure(new Vector2(this.width, this.height)).x;
+            const childWidth = child.flex > 0 ? (child.flex / totalFlex) * extraWidth : child.measure(new Vector2(this.width, this.height)).x;
             child.alignInBox(xOffset, this.y, childWidth, this.height);
             child.layout();
             xOffset += child.width;
@@ -87,8 +91,12 @@ export class ColumnFlexContainer extends ContainerNode {
             return sum + child.flex;
         }, 0);
         let yOffset = this.y;
+        // This is really inefficient, but whatever
+        const extraHeight = this.height - Array.from(this.getUiChildren()).reduce((sum, child) => {
+            return sum + child.measure(new Vector2(this.width, this.height)).y;
+        }, 0);
         for(const child of this.getUiChildren()) {
-            const childHeight = child.flex > 0 ? (child.flex / totalFlex) * this.height : child.measure(new Vector2(this.width, this.height)).y;
+            const childHeight = child.flex > 0 ? (child.flex / totalFlex) * extraHeight : child.measure(new Vector2(this.width, this.height)).y;
             child.alignInBox(this.x, yOffset, this.width, childHeight);
             child.layout();
             yOffset += child.height;

@@ -121,3 +121,9 @@ export abstract class UINode extends GameNode {
 
     draw(_ctx: CanvasRenderingContext2D): void {}
 }
+
+export class EmptyNode extends UINode {
+    measure(available: Vector2): Vector2 {
+        return new Vector2(this.targetWidth, this.targetHeight);
+    }
+}

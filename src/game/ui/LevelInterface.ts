@@ -1,13 +1,14 @@
 import { Renderer } from "../Renderer";
 import { GameNode, NodeID } from "../types";
 import * as THREE from "three";
-import { ColumnFlexContainer, ContainerNode, MarginContainer, OffsetContainer, StackContainer } from "./containerNodes";
-import { AlignMode, UINode } from "./UINode";
+import { ColumnFlexContainer, ContainerNode, MarginContainer, OffsetContainer, RowFlexContainer, StackContainer } from "./containerNodes";
+import { AlignMode, EmptyNode, UINode } from "./UINode";
 import { Panel, PanelNode } from "./PanelNode";
 import { TextNode } from "./TextNode";
 import { DebugPanel } from "./DebugPanel";
 import { ProgressBarNode } from "./ProgressBarNode";
 import { ColorGradient } from "./color";
+import type { Timer } from "../Timer";
 
 export class LevelInterface extends GameNode {
     private get ui(): CanvasRenderingContext2D | null {
@@ -54,21 +55,88 @@ export class LevelInterface extends GameNode {
                         .inside(new PanelNode(panel)),
                     new TextNode("Health", textColor)
                         .withOutline(panelColor, 6)
-                        .withFont("16px monospace")
+                        .withFont("16px Helvetica")
                         .inside(new OffsetContainer(0, -12)),
-                    new TextNode("100")
-                        .withFont("24px Helvetica")
+                    new TextNode("100%")
+                        .withFont("24px monospace")
                         .withOutline(panelColor, 6)
                         .withHorizontalAlign(AlignMode.End)
-                        .withUpdate((self, _) => self.text = `${this.context?.health ?? 0}`)
+                        .withUpdate((self, _) => self.text = `${this.context?.health ?? 0}%`)
                         .inside(new OffsetContainer(0, -6).withHorizontalAlign(AlignMode.End)),
                 ),
 
+                // Score
+                new ColumnFlexContainer().withHorizontalAlign(AlignMode.End).with(
+                    new StackContainer().withTargetSize(180, 0).withHorizontalAlign(AlignMode.End).with(
+                        new TextNode("0", textColor)
+                            .withOutline(sectionColor, 8)
+                            .withFont("32px monospace")
+                            .withHorizontalAlign(AlignMode.End)
+                            .withMargin(12)
+                            .withUpdate((self, _) => {
+                                // Format like 000,000
+                                const padded = (this.context?.score ?? 0).toString().padStart(6, "0");
+                                self.text = padded.slice(0, 3) + "," + padded.slice(3);
+                            })
+                            .inside(new MarginContainer(0, 0, 12, 4).withHorizontalAlign(AlignMode.Stretch))
+                            .inside(new PanelNode(panel).withHorizontalAlign(AlignMode.Stretch)),
+                        new TextNode("Score", textColor)
+                            .withOutline(panelColor, 6)
+                            .withFont("16px Helvetica")
+                            .inside(new OffsetContainer(0, -12))
+                    ),
+
+                    new EmptyNode().withTargetSize(0, 18), // Spacer
+                
+                    // Combo
+                    new StackContainer().withTargetSize(160, 0).withHorizontalAlign(AlignMode.End).with(
+                        new PanelNode(panel).withHorizontalAlign(AlignMode.Stretch).with(
+                            new ColumnFlexContainer().withHorizontalAlign(AlignMode.Stretch).with(
+                                new TextNode("0", textColor)
+                                    .withOutline(sectionColor, 8)
+                                    .withFont("28px monospace")
+                                    .withHorizontalAlign(AlignMode.Center)
+                                    .withMargin(12)
+                                    .withUpdate((self, _) => self.text = `${this.context?.combo ?? 0}`)
+                                    .inside(new MarginContainer(0, 0, 12, 0).withHorizontalAlign(AlignMode.Stretch)),
+                                new TextNode("Max 0", textColor)
+                                    .withFont("14px monospace")
+                                    .withMargin(12)
+                                    .withHorizontalAlign(AlignMode.Start)
+                                    .withUpdate((self, _) => self.text = `Max ${this.context?.maxCombo ?? 0}`)
+                            )
+                        ),
+
+                        new TextNode("Combo", textColor)
+                            .withOutline(panelColor, 6)
+                            .withFont("16px Helvetica")
+                            .inside(new OffsetContainer(0, -12))
+                    ),
+                ),
+
+                // Hit notes
+                new RowFlexContainer().withHorizontalAlign(AlignMode.Stretch).withVerticalAlign(AlignMode.End).with(
+                    // Level progress
+                    new PanelNode(panel).withHorizontalAlign(AlignMode.Stretch).withFlex(1).with(
+                        new ProgressBarNode(surfaceColor, new ColorGradient().addStop(0, surfaceBlue).addStop(1, surfaceGreen))
+                            .withUpdate((self, _) => {
+                                self.setProgress((this.get<Timer>(NodeID.Timer)?.getElapsed() ?? 0) / (this.context?.song?.length ?? 1));
+                            })
+                    ),
+                    new PanelNode(panel).with(
+                        new TextNode("0/0", textColor).withFont("14px monospace").withMargin(16).withUpdate((self, _) => {
+                            const game = this.context;
+                            if(!game) return;
+                            self.text = `${game.hitNotes}/${game.totalNotes} Notes`;
+                        })
+                    )
+                ),
+                
                 // Debug text
                 new PanelNode(panel).withHorizontalAlign(AlignMode.End).withVerticalAlign(AlignMode.End).with(
                     new TextNode("Debug Text?", textColor).setId("debugText")
                 ).setId("debugPanel").withHidden(true)
-            ) //.inside(new DebugPanel())
+            )//.inside(new DebugPanel())
         );
     }
 
