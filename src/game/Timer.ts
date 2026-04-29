@@ -10,7 +10,7 @@ export class Timer extends GameNode {
     private timeSource: (() => number) | null = null;
     public done: Signal<[]> = new Signal();
     private length: number = 0;
-    private timeScale: number = 0.5;
+    private timeScale: number = 1.0;
 
     public jumpedBackward: Signal<[newTime: number]> = new Signal();
 
