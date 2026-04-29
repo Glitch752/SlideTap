@@ -1,5 +1,5 @@
 import { Vector2 } from "three";
-import { UINode } from "./UINode";
+import { Direction, UINode } from "./UINode";
 
 /** A simple container node that lays out all children in itself, stacked on top of each other. */
 export abstract class ContainerNode extends UINode {
@@ -26,81 +26,81 @@ export abstract class ContainerNode extends UINode {
 
 export class StackContainer extends ContainerNode {}
 
-/** A container node that lays out its children in a horizontal row based on the flex algorithm. */
-export class RowFlexContainer extends ContainerNode {
+/** A container node that lays out its children in a row based on the flex algorithm. */
+export class FlexContainer extends ContainerNode {
+    direction: Direction;
+    gap: number;
+
+    constructor(gap: number = 0, direction: Direction = Direction.Row) {
+        super();
+        this.gap = gap;
+        this.direction = direction;
+    }
+
     measure(available: Vector2): Vector2 {
         let totalFlex = 0;
-        let fixedWidth = 0;
-        let maxHeight = 0;
+        let fixedPrimarySize = 0;
+        let maxSecondarySize = 0;
         for(const child of this.getUiChildren()) {
             if(child.flex > 0) {
                 totalFlex += child.flex;
             } else {
                 const measured = child.measure(available);
-                fixedWidth += measured.x;
-                maxHeight = Math.max(maxHeight, measured.y);
+                fixedPrimarySize += (this.direction == Direction.Row ? measured.x : measured.y) + this.gap;
+                maxSecondarySize = Math.max(maxSecondarySize, this.direction == Direction.Row ? measured.y : measured.x);
             }
         }
+        let flexSize = totalFlex > 0 ? this.gap * (totalFlex - 1) : 0;
         return new Vector2(
-            this.targetWidth || fixedWidth,
-            this.targetHeight || maxHeight
+            this.targetWidth || (this.direction == Direction.Row ? fixedPrimarySize + flexSize : maxSecondarySize),
+            this.targetHeight || (this.direction == Direction.Row ? maxSecondarySize : fixedPrimarySize + flexSize)
         );
     }
 
     layoutChildren(): void {
-        const totalFlex = Array.from(this.getUiChildren()).reduce((sum, child) => {
-            return sum + child.flex;
-        }, 0);
-        let xOffset = this.x;
-        // This is really inefficient, but whatever
-        const extraWidth = this.width - Array.from(this.getUiChildren()).reduce((sum, child) => {
-            return sum + child.measure(new Vector2(this.width, this.height)).x;
-        }, 0);
-        for(const child of this.getUiChildren()) {
-            const childWidth = child.flex > 0 ? (child.flex / totalFlex) * extraWidth : child.measure(new Vector2(this.width, this.height)).x;
-            child.alignInBox(xOffset, this.y, childWidth, this.height);
+        const children = Array.from(this.getUiChildren());
+        const totalFlex = children.reduce((sum, child) => sum + child.flex, 0);
+        
+        // Calculate fixed primary size (sum of non-flex children)
+        let fixedPrimarySize = 0;
+        const childMeasurements = new Map<any, number>();
+        for(const child of children) {
+            if(child.flex <= 0) {
+                const measured = child.measure(new Vector2(this.width, this.height))[this.direction == Direction.Row ? 'x' : 'y'];
+                childMeasurements.set(child, measured);
+                fixedPrimarySize += measured + this.gap;
+            }
+        }
+        
+        // Extra primary size to distribute among flex children
+        const extraPrimarySize = Math.max(0, (this.direction == Direction.Row ? this.width : this.height) - fixedPrimarySize);
+        
+        let offset = this.direction == Direction.Row ? this.x : this.y;
+        for(const child of children) {
+            const childSize = child.flex > 0 ? (child.flex / totalFlex) * extraPrimarySize : childMeasurements.get(child)!;
+            const x = this.direction == Direction.Row ? offset : this.x;
+            const y = this.direction == Direction.Row ? this.y : offset;
+            const width = this.direction == Direction.Row ? childSize : this.width;
+            const height = this.direction == Direction.Row ? this.height : childSize;
+            
+            child.alignInBox(x, y, width, height);
             child.layout();
-            xOffset += child.width;
+            offset += (this.direction == Direction.Row ? child.width : child.height) + this.gap;
         }
     }
 }
 
 /** A container node that lays out its children in a vertical column based on the flex algorithm. */
-export class ColumnFlexContainer extends ContainerNode {
-    measure(available: Vector2): Vector2 {
-        let totalFlex = 0;
-        let fixedHeight = 0;
-        let maxWidth = 0;
-        for(const child of this.getUiChildren()) {
-            if(child.flex > 0) {
-                totalFlex += child.flex;
-            } else {
-                const measured = child.measure(available);
-                fixedHeight += measured.y;
-                maxWidth = Math.max(maxWidth, measured.x);
-            }
-        }
-        return new Vector2(
-            this.targetWidth || maxWidth,
-            this.targetHeight || fixedHeight
-        );
+export class ColumnFlexContainer extends FlexContainer {
+    constructor(gap: number = 0) {
+        super(gap, Direction.Column);
     }
+}
 
-    layoutChildren(): void {
-        const totalFlex = Array.from(this.getUiChildren()).reduce((sum, child) => {
-            return sum + child.flex;
-        }, 0);
-        let yOffset = this.y;
-        // This is really inefficient, but whatever
-        const extraHeight = this.height - Array.from(this.getUiChildren()).reduce((sum, child) => {
-            return sum + child.measure(new Vector2(this.width, this.height)).y;
-        }, 0);
-        for(const child of this.getUiChildren()) {
-            const childHeight = child.flex > 0 ? (child.flex / totalFlex) * extraHeight : child.measure(new Vector2(this.width, this.height)).y;
-            child.alignInBox(this.x, yOffset, this.width, childHeight);
-            child.layout();
-            yOffset += child.height;
-        }
+/** A container node that lays out its children in a horizontal row based on the flex algorithm. */
+export class RowFlexContainer extends FlexContainer {
+    constructor(gap: number = 0) {
+        super(gap, Direction.Row);
     }
 }
 

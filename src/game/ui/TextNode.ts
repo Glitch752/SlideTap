@@ -4,16 +4,18 @@ import { AlignMode, UINode } from "./UINode";
 const measurementContext = document.createElement("canvas").getContext("2d")!;
 
 export class TextNode extends UINode {
-    font: string = "20px Helvetica";
-    text: string;
-    color: string;
-    outlineColor?: string;
-    outlineWidth: number = 0;
+    private font: string = "20px Helvetica";
+    private text: string;
+    private color: string;
+    private outlineColor?: string;
+    private outlineWidth: number = 0;
     /** X-axis margin; Y axis is half of this */
-    margin: number = 12;
+    private margin: number = 12;
+    private isMonospace: boolean = false;
 
     withFont(font: string): this {
         this.font = font;
+        this.isMonospace = /monospace|courier/i.test(font); // crude check for monospace fonts
         return this;
     }
     withMargin(margin: number): this {
@@ -24,6 +26,13 @@ export class TextNode extends UINode {
         this.outlineColor = color;
         this.outlineWidth = width;
         return this;
+    }
+
+    setText(text: string) {
+        if(this.isMonospace) {
+            if(text.length != this.text.length) this.setNeedsRelayout(false);
+        } else this.setNeedsRelayout(false);
+        this.text = text;
     }
 
     constructor(text: string, color: string = "#fff") {

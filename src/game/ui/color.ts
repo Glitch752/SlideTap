@@ -1,18 +1,51 @@
-type RGBAColor = [number, number, number, number];
+export class RGBAColor extends Array<number> {
+    get r() { return this[0]; }
+    get g() { return this[1]; }
+    get b() { return this[2]; }
+    get a() { return this[3]; }
+    
+    withR(r: number): this {
+        this[0] = r;
+        return this;
+    }
+    withG(g: number): this {
+        this[1] = g;
+        return this;
+    }
+    withB(b: number): this {
+        this[2] = b;
+        return this;
+    }
+    withA(a: number): this {
+        this[3] = a;
+        return this;
+    }
 
-function interpolateColors(colorA: RGBAColor, colorB: RGBAColor, t: number): RGBAColor {
-    const r = Math.round(colorA[0] + (colorB[0] - colorA[0]) * t);
-    const g = Math.round(colorA[1] + (colorB[1] - colorA[1]) * t);
-    const b = Math.round(colorA[2] + (colorB[2] - colorA[2]) * t);
-    const a = colorA[3] + (colorB[3] - colorA[3]) * t;
-    return [r, g, b, a];
+    constructor(r: number, g: number, b: number, a: number = 1) {
+        super(r, g, b, a);
+    }
+
+    static parse(color: string): RGBAColor {
+        return parseColor(color);
+    }
+
+    static interpolate(colorA: RGBAColor, colorB: RGBAColor, t: number): RGBAColor {
+        const r = Math.round(colorA[0] + (colorB[0] - colorA[0]) * t);
+        const g = Math.round(colorA[1] + (colorB[1] - colorA[1]) * t);
+        const b = Math.round(colorA[2] + (colorB[2] - colorA[2]) * t);
+        const a = colorA[3] + (colorB[3] - colorA[3]) * t;
+        return new RGBAColor(r, g, b, a);
+    }
+    interpolate(other: RGBAColor, t: number): RGBAColor {
+        return RGBAColor.interpolate(this, other, t);
+    }
+
+    toRGBAString(): string {
+        return `rgba(${this[0]}, ${this[1]}, ${this[2]}, ${this[3]})`;
+    }
 }
 
-function rgba(color: RGBAColor): string {
-    return `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
-}
-
-function parseColor(color: string): RGBAColor {
+export function parseColor(color: string): RGBAColor {
     const ctx = document.createElement("canvas").getContext("2d")!;
     ctx.fillStyle = color;
     const computed = ctx.fillStyle;
@@ -32,7 +65,7 @@ function parseColor(color: string): RGBAColor {
         } else {
             throw new Error(`Unsupported hex color format: ${computed}`);
         }
-        return [r, g, b, a];
+        return new RGBAColor(r, g, b, a);
     }
 
     // rgb/rgba colors
@@ -42,7 +75,7 @@ function parseColor(color: string): RGBAColor {
         const g = parseInt(rgbaMatch[2]);
         const b = parseInt(rgbaMatch[3]);
         const a = rgbaMatch[4] !== undefined ? parseFloat(rgbaMatch[4]) : 1;
-        return [r, g, b, a];
+        return new RGBAColor(r, g, b, a);
     }
 
     throw new Error(`Unsupported color format: ${computed}`);
@@ -52,23 +85,23 @@ function parseColor(color: string): RGBAColor {
 export class ColorGradient {
     private stops: { t: number, color: RGBAColor }[] = [];
 
-    addStop(t: number, color: string): this {
-        this.stops.push({ t, color: parseColor(color) });
+    addStop(t: number, color: string | RGBAColor): this {
+        this.stops.push({ t, color: typeof color === "string" ? parseColor(color) : color });
         this.stops.sort((a, b) => a.t - b.t);
         return this;
     }
 
     evaluate(t: number): string {
         if(this.stops.length === 0) return "#000";
-        if(t <= this.stops[0].t) return rgba(this.stops[0].color);
-        if(t >= this.stops[this.stops.length - 1].t) return rgba(this.stops[this.stops.length - 1].color);
+        if(t <= this.stops[0].t) return this.stops[0].color.toRGBAString();
+        if(t >= this.stops[this.stops.length - 1].t) return this.stops[this.stops.length - 1].color.toRGBAString();
 
         for(let i = 0; i < this.stops.length - 1; i++) {
             const stopA = this.stops[i];
             const stopB = this.stops[i + 1];
             if(t >= stopA.t && t <= stopB.t) {
                 const localT = (t - stopA.t) / (stopB.t - stopA.t);
-                return rgba(interpolateColors(stopA.color, stopB.color, localT));
+                return stopA.color.interpolate(stopB.color, localT).toRGBAString();
             }
         }
 

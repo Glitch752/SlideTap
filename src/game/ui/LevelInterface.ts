@@ -1,13 +1,13 @@
 import { Renderer } from "../Renderer";
 import { GameNode, NodeID } from "../types";
 import * as THREE from "three";
-import { ColumnFlexContainer, ContainerNode, MarginContainer, OffsetContainer, RowFlexContainer, StackContainer } from "./containerNodes";
-import { AlignMode, EmptyNode, UINode } from "./UINode";
+import { ColumnFlexContainer, MarginContainer, OffsetContainer, RowFlexContainer, StackContainer } from "./containerNodes";
+import { AlignMode, UINode } from "./UINode";
 import { Panel, PanelNode } from "./PanelNode";
 import { TextNode } from "./TextNode";
 import { DebugPanel } from "./DebugPanel";
 import { ProgressBarNode } from "./ProgressBarNode";
-import { ColorGradient } from "./color";
+import { ColorGradient, RGBAColor } from "./color";
 import type { Timer } from "../Timer";
 
 export class LevelInterface extends GameNode {
@@ -34,13 +34,15 @@ export class LevelInterface extends GameNode {
         
         const panel = new Panel()
             .withBackgroundColor(panelColor)
-            .withShadow(sectionColor, 0, 6, 6);
+            .withShadow(sectionColor, 0, 4, 4);
         
         const healthGradient = new ColorGradient()
             .addStop(0, surfaceRed)
             .addStop(0.5, surfaceGreen)
             .addStop(0.8, surfaceGreen)
             .addStop(1, surfaceBlue);
+        
+        let timer: Timer | undefined;
 
         this.addChildren(
             new MarginContainer(12).with(
@@ -61,49 +63,47 @@ export class LevelInterface extends GameNode {
                         .withFont("24px monospace")
                         .withOutline(panelColor, 6)
                         .withHorizontalAlign(AlignMode.End)
-                        .withUpdate((self, _) => self.text = `${this.context?.health ?? 0}%`)
+                        .withUpdate((self, _) => self.setText(`${this.context?.health ?? 0}%`))
                         .inside(new OffsetContainer(0, -6).withHorizontalAlign(AlignMode.End)),
                 ),
 
                 // Score
-                new ColumnFlexContainer().withHorizontalAlign(AlignMode.End).with(
+                new ColumnFlexContainer(18).withHorizontalAlign(AlignMode.End).with(
                     new StackContainer().withTargetSize(180, 0).withHorizontalAlign(AlignMode.End).with(
                         new TextNode("0", textColor)
                             .withOutline(sectionColor, 8)
                             .withFont("32px monospace")
                             .withHorizontalAlign(AlignMode.End)
-                            .withMargin(12)
+                            .withMargin(16)
                             .withUpdate((self, _) => {
                                 // Format like 000,000
                                 const padded = (this.context?.score ?? 0).toString().padStart(6, "0");
-                                self.text = padded.slice(0, 3) + "," + padded.slice(3);
+                                self.setText(padded.slice(0, 3) + "," + padded.slice(3));
                             })
-                            .inside(new MarginContainer(0, 0, 12, 4).withHorizontalAlign(AlignMode.Stretch))
+                            .inside(new MarginContainer(0, 0, 8, 2).withHorizontalAlign(AlignMode.Stretch))
                             .inside(new PanelNode(panel).withHorizontalAlign(AlignMode.Stretch)),
                         new TextNode("Score", textColor)
                             .withOutline(panelColor, 6)
                             .withFont("16px Helvetica")
                             .inside(new OffsetContainer(0, -12))
                     ),
-
-                    new EmptyNode().withTargetSize(0, 18), // Spacer
                 
                     // Combo
-                    new StackContainer().withTargetSize(160, 0).withHorizontalAlign(AlignMode.End).with(
+                    new StackContainer().withTargetSize(120, 0).withHorizontalAlign(AlignMode.End).with(
                         new PanelNode(panel).withHorizontalAlign(AlignMode.Stretch).with(
                             new ColumnFlexContainer().withHorizontalAlign(AlignMode.Stretch).with(
                                 new TextNode("0", textColor)
                                     .withOutline(sectionColor, 8)
-                                    .withFont("28px monospace")
+                                    .withFont("48px monospace")
                                     .withHorizontalAlign(AlignMode.Center)
                                     .withMargin(12)
-                                    .withUpdate((self, _) => self.text = `${this.context?.combo ?? 0}`)
-                                    .inside(new MarginContainer(0, 0, 12, 0).withHorizontalAlign(AlignMode.Stretch)),
+                                    .withUpdate((self, _) => self.setText(`${this.context?.combo ?? 0}`))
+                                    .inside(new MarginContainer(0, 0, 12, 8).withHorizontalAlign(AlignMode.Stretch)),
                                 new TextNode("Max 0", textColor)
                                     .withFont("14px monospace")
                                     .withMargin(12)
-                                    .withHorizontalAlign(AlignMode.Start)
-                                    .withUpdate((self, _) => self.text = `Max ${this.context?.maxCombo ?? 0}`)
+                                    .withHorizontalAlign(AlignMode.Center)
+                                    .withUpdate((self, _) => self.setText(`Max ${this.context?.maxCombo ?? 0}`))
                             )
                         ),
 
@@ -115,19 +115,39 @@ export class LevelInterface extends GameNode {
                 ),
 
                 // Hit notes
-                new RowFlexContainer().withHorizontalAlign(AlignMode.Stretch).withVerticalAlign(AlignMode.End).with(
-                    // Level progress
-                    new PanelNode(panel).withHorizontalAlign(AlignMode.Stretch).withFlex(1).with(
-                        new ProgressBarNode(surfaceColor, new ColorGradient().addStop(0, surfaceBlue).addStop(1, surfaceGreen))
-                            .withUpdate((self, _) => {
-                                self.setProgress((this.get<Timer>(NodeID.Timer)?.getElapsed() ?? 0) / (this.context?.song?.length ?? 1));
-                            })
-                    ),
+                new RowFlexContainer(12).withHorizontalAlign(AlignMode.Stretch).withVerticalAlign(AlignMode.End).with(
                     new PanelNode(panel).with(
-                        new TextNode("0/0", textColor).withFont("14px monospace").withMargin(16).withUpdate((self, _) => {
+                        new TextNode("0:00 / 0:00", textColor).withFont("14px monospace").withUpdate((self, _) => {
+                            if(!timer) timer = this.root.get<Timer>(NodeID.Timer);
+                            const formatTime = (t: number) => {
+                                const minutes = Math.floor(t / 60);
+                                const seconds = Math.floor(t % 60);
+                                return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+                            }
+                            if(timer) self.setText(`${formatTime(timer.getElapsed())} / ${this.context?.song ? formatTime(this.context.song.length) : "0:00"}`);
+                        })
+                    ),
+
+                    // Level progress
+                    new ProgressBarNode(
+                        RGBAColor.parse(surfaceColor).withA(0.5).toRGBAString(),
+                        new ColorGradient()
+                            .addStop(0, RGBAColor.parse(surfaceBlue).withA(0.5))
+                            .addStop(1, RGBAColor.parse(surfaceGreen).withA(0.5))
+                    )
+                        .withHorizontalAlign(AlignMode.Stretch)
+                        .withVerticalAlign(AlignMode.End)
+                        .withFlex(1)
+                        .withTargetSize(0, 16)
+                        .withProgress(0)
+                        .withUpdate((self, _) => {
+                            if(timer) self.setProgress(timer.getElapsed() / (this.context?.song?.length ?? 1));
+                        }),
+                    new PanelNode(panel).with(
+                        new TextNode("0/0", textColor).withFont("14px monospace").withUpdate((self, _) => {
                             const game = this.context;
                             if(!game) return;
-                            self.text = `${game.hitNotes}/${game.totalNotes} Notes`;
+                            self.setText(`${game.hitNotes}/${game.totalNotes} Notes`);
                         })
                     )
                 ),
@@ -136,7 +156,7 @@ export class LevelInterface extends GameNode {
                 new PanelNode(panel).withHorizontalAlign(AlignMode.End).withVerticalAlign(AlignMode.End).with(
                     new TextNode("Debug Text?", textColor).setId("debugText")
                 ).setId("debugPanel").withHidden(true)
-            )//.inside(new DebugPanel())
+            ) //.inside(new DebugPanel())
         );
     }
 
@@ -161,36 +181,6 @@ export class LevelInterface extends GameNode {
                 child.render(this.ui);
             }
         }
-        
-        // // Health bar
-        // const barWidth = 300, barHeight = 24;
-        // const healthX = 20, healthY = 20;
-        // this.ui.save();
-        // this.ui.globalAlpha = 0.8;
-        // this.ui.fillStyle = surfaceColor;
-        // this.ui.fillRect(healthX, healthY, barWidth, barHeight);
-        // this.ui.fillStyle = game.health > 30 ? surfaceGreen : surfaceRed;
-        // this.ui.fillRect(healthX, healthY, (game.health / 100) * barWidth, barHeight);
-        // this.ui.strokeStyle = textColor;
-        // this.ui.lineWidth = 2;
-        // this.ui.strokeRect(healthX, healthY, barWidth, barHeight);
-        // this.ui.globalAlpha = 1;
-        // this.ui.restore();
-
-        // // Score and combo
-        // this.ui.font = "16px Inter, Avenir, Helvetica, Arial, sans-serif";
-        // this.ui.fillStyle = textColor;
-        // this.ui.textBaseline = "top";
-        // this.ui.fillText(`Score: ${game.score}%`, healthX, healthY + barHeight + 10);
-        // this.ui.fillText(`Combo: ${game.combo}`, healthX, healthY + barHeight + 32);
-
-        // // Debug text
-        // if(this.debugTextValue !== null) {
-        //     this.ui.font = "12px Inter, Avenir, Helvetica, Arial, sans-serif";
-        //     this.ui.fillStyle = this.getCSSVariable('--text-dim');
-        //     this.ui.textBaseline = "top";
-        //     this.ui.fillText(this.debugTextValue, 10, this.ui.canvas.height - 30);
-        // }
     }
 
     public debugText(value: string | number | THREE.Vector3 | null) {
@@ -206,7 +196,6 @@ export class LevelInterface extends GameNode {
         if(value === null) return;
 
         const textNode = this.get<TextNode>("debugText")!;
-        textNode.text = value;
-        textNode.setNeedsRelayout();
+        textNode.setText(value);
     }
 }

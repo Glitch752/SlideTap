@@ -8,6 +8,11 @@ export enum AlignMode {
     Stretch
 }
 
+export enum Direction {
+    Row,
+    Column
+}
+
 export abstract class UINode extends GameNode {
     // Layout params
     targetWidth: number = 0;
@@ -103,8 +108,8 @@ export abstract class UINode extends GameNode {
     layoutChildren(): void {}
 
     render(ctx: CanvasRenderingContext2D): void {
-        this.draw(ctx);
         if(this.hidden) return;
+        this.draw(ctx);
 
         for(const child of this.children) {
             if(child instanceof UINode) child.render(ctx);

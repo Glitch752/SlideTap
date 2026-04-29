@@ -106,7 +106,7 @@ img {
 
     .map {
         --bg-color: color-mix(in srgb, var(--color) 30%, var(--panel));
-        width: 7rem;
+        min-width: 7rem;
         border: 1px solid var(--color);
         font-size: 1rem;
         text-align: left;
