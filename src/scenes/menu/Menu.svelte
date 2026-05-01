@@ -66,7 +66,6 @@ let settingsOpen = $state(false);
     --bg-color: var(--panel);
     color: #ccc;
     border: none;
-    border-radius: 4px;
     padding: 0.5rem 2rem;
     font-size: 1.2rem;
     cursor: pointer;

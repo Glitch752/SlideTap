@@ -1,10 +1,10 @@
 <script lang="ts">
-    import type { EditorFile, EditorMapID, EditorNoteID } from "./EditorFile";
-    import { FULL_LANES } from "../../game/constants";
-    import EditorNote, { normalizeNote, SelectionType } from "./EditorNote.svelte";
-    import { type MapNote, MapNoteLayer, MapNoteType } from "../../Map";
+    import type { EditorFile, EditorMapID, EditorNoteID } from "../EditorFile";
+    import { FULL_LANES } from "../../../game/constants";
+    import EditorNote, { normalizeNote, SelectionType } from "../EditorNote.svelte";
+    import { type MapNote, MapNoteLayer, MapNoteType } from "../../../Map";
     import { onMount } from "svelte";
-    import type { PlaybackState } from "./playback.svelte";
+    import type { PlaybackState } from "../playback.svelte";
     
     const {
         file,
@@ -79,18 +79,21 @@
         return normalizeNote(note, subdivisions);
     });
 
+    let gridRef: HTMLDivElement | null = $state(null);
+    let noteGridRef: HTMLDivElement | null = $state(null);
+
     function getBeatFromEvent(e: MouseEvent): number {
-        if(!gridRef) return 0;
-        const rect = gridRef?.getBoundingClientRect();
-        const y = e.clientY - rect.top - topOffset + gridRef.scrollTop;
+        if(!gridRef || !noteGridRef) return 0;
+        const rect = noteGridRef.getBoundingClientRect();
+        const y = e.clientY - rect.top + gridRef.scrollTop;
         const beat = Math.round(y / rowHeightPx - 1 / subdivisions) / subdivisions;
         return beat;
     }
     
     function getLaneFromEvent(e: MouseEvent): number {
-        if(!gridRef) return 0;
-        const rect = gridRef.getBoundingClientRect();
-        const x = e.clientX - rect.left - leftOffset;
+        if(!gridRef || !noteGridRef) return 0;
+        const rect = noteGridRef.getBoundingClientRect();
+        const x = e.clientX - rect.left;
         const lane = Math.floor(x / colWidthPx);
         return Math.max(0, Math.min(FULL_LANES, lane));
     }
@@ -141,25 +144,21 @@
         dragEnd = null;
     }
 
-    let gridRef: HTMLDivElement | null = $state(null);
-
     onMount(() => {
         function updateGridDimensions() {
-            if(gridRef) {
-                const reference = gridRef.querySelector('.note-grid-reference') as HTMLElement;
-                const style = getComputedStyle(reference);
-                colWidthPx = parseFloat(style.width) / FULL_LANES;
-                rowHeightPx = parseFloat(style.height) / times.length;
-                leftOffset = reference.offsetLeft;
-                topOffset = reference.offsetTop;
+            if(noteGridRef) {
+                colWidthPx = noteGridRef.offsetWidth / FULL_LANES;
+                rowHeightPx = noteGridRef.offsetHeight / times.length;
+                leftOffset = noteGridRef.offsetLeft;
+                topOffset = noteGridRef.offsetTop;
             }
         }
 
         updateGridDimensions();
 
         const resizeObserver = new ResizeObserver(updateGridDimensions);
-        if(gridRef) {
-            resizeObserver.observe(gridRef);
+        if(noteGridRef) {
+            resizeObserver.observe(noteGridRef);
         }
 
         return () => {
@@ -172,7 +171,6 @@
 
 <!-- TODO: wrapping notes around 0 :c -->
 
-
 <svelte:boundary>
     {#snippet failed(error, reset)}
         <p>Map view failed to display: {error}</p>
@@ -182,18 +180,22 @@
     <div
         class="map-grid"
         style="
-            grid-template-columns: 5rem repeat({FULL_LANES}, 1fr);
+            grid-template-columns: 5rem 2rem repeat({FULL_LANES}, 1fr);
             grid-template-rows: repeat({times.length}, 1fr);
         "
         onmousedown={onGridPointerDown}
         bind:this={gridRef}
     >
-        <span class="time-column-label">Time</span>
+        <span class="column-label">Time</span>
+        <span class="column-label">
+            <!-- Events column -->
+        </span>
         {#each lanes as lane}
             <div class="lane-label">{lane}</div>
         {/each}
 
-        <div class="note-grid-reference" style="grid-column: 2 / -1; grid-row: 2 / -1;"></div>
+        
+        <div bind:this={noteGridRef} style="grid-column: 3 / -1; grid-row: 2 / -1;"></div>
 
         <!-- Rows for each time -->
         <div class="rows">
@@ -222,76 +224,76 @@
             <p class="placeholder">No times available. Add a song to sequence.</p>
         {/if}
 
-        {#if colWidthPx > 0 && rowHeightPx > 0}
+        <div class="time-column"></div>
+
+        {#if colWidthPx > 0 && rowHeightPx > 0 && mapData && notes}
             <!-- Notes -->
-            {#if mapData && notes}
-                {#each $notes as [id, note] (id)}
-                    <EditorNote
-                        {note}
-                        onchange={(updatedNote) => {
-                            mapData.notes.update(n => n.set(id, updatedNote));
-                            file.changed();
-                        }}
-                        ondelete={() => {
-                            mapData.notes.update(n => {
-                                n.delete(id);
-                                return n;
-                            });
-                            if(selectedNotes.has(id)) {
+            {#each $notes as [id, note] (id)}
+                <EditorNote
+                    {note}
+                    onchange={(updatedNote) => {
+                        mapData.notes.update(n => n.set(id, updatedNote));
+                        file.changed();
+                    }}
+                    ondelete={() => {
+                        mapData.notes.update(n => {
+                            n.delete(id);
+                            return n;
+                        });
+                        if(selectedNotes.has(id)) {
+                            selectedNotes.delete(id);
+                        }
+                        file.changed();
+                    }}
+                    {oncopy}
+                    onselect={(type) => {
+                        switch(type) {
+                            case SelectionType.Add:
+                                selectedNotes.add(id);
+                                break;
+                            case SelectionType.Set:
+                                selectedNotes.clear();
+                                selectedNotes.add(id);
+                                break;
+                            case SelectionType.Remove:
                                 selectedNotes.delete(id);
+                                break;
+                        }
+                    }}
+                    ondrag={(beat, lane) => {
+                        if(!$notes) return;
+
+                        // Drag all selected notes by the same amount
+                        mapData.notes.update(n => {
+                            for(const selectedId of selectedNotes) {
+                                const selectedNote = $notes.get(selectedId);
+                                if(!selectedNote) continue;
+
+                                const newNote: MapNote = {
+                                    ...selectedNote,
+                                    start: {
+                                        ...selectedNote.start,
+                                        start: selectedNote.start.start + lane
+                                    },
+                                    end: {
+                                        ...selectedNote.end,
+                                        start: selectedNote.end.start + lane
+                                    },
+                                    startTime: selectedNote.startTime + beat,
+                                    endTime: selectedNote.endTime + beat
+                                };
+
+                                n.set(selectedId, normalizeNote(newNote, subdivisions));
                             }
-                            file.changed();
-                        }}
-                        {oncopy}
-                        onselect={(type) => {
-                            switch(type) {
-                                case SelectionType.Add:
-                                    selectedNotes.add(id);
-                                    break;
-                                case SelectionType.Set:
-                                    selectedNotes.clear();
-                                    selectedNotes.add(id);
-                                    break;
-                                case SelectionType.Remove:
-                                    selectedNotes.delete(id);
-                                    break;
-                            }
-                        }}
-                        ondrag={(beat, lane) => {
-                            if(!$notes) return;
 
-                            // Drag all selected notes by the same amount
-                            mapData.notes.update(n => {
-                                for(const selectedId of selectedNotes) {
-                                    const selectedNote = $notes.get(selectedId);
-                                    if(!selectedNote) continue;
-
-                                    const newNote: MapNote = {
-                                        ...selectedNote,
-                                        start: {
-                                            ...selectedNote.start,
-                                            start: selectedNote.start.start + lane
-                                        },
-                                        end: {
-                                            ...selectedNote.end,
-                                            start: selectedNote.end.start + lane
-                                        },
-                                        startTime: selectedNote.startTime + beat,
-                                        endTime: selectedNote.endTime + beat
-                                    };
-
-                                    n.set(selectedId, normalizeNote(newNote, subdivisions));
-                                }
-
-                                return n;
-                            });
-                            file.changed();
-                        }}
-                        {rowHeightPx} {colWidthPx} {subdivisions} {leftOffset} {topOffset}
-                        selected={selectedNotes.has(id)}
-                    />
-                {/each}
-            {/if}
+                            return n;
+                        });
+                        file.changed();
+                    }}
+                    {rowHeightPx} {colWidthPx} {subdivisions} {leftOffset} {topOffset}
+                    selected={selectedNotes.has(id)}
+                />
+            {/each}
 
             <!-- Drag preview -->
             {#if dragNote}
@@ -354,14 +356,14 @@
     }
 }
 
-.time-column-label {
+.column-label {
     font-size: 0.9em;
     color: var(--text-dim);
 }
 .lane-label {
     padding: 4px 0;
 }
-.time-column-label, .lane-label {
+.column-label, .lane-label {
     text-align: center;
     background-color: var(--panel);
     position: sticky;

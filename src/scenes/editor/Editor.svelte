@@ -6,7 +6,7 @@
     import { ZipSaveArchive } from "./saveHandlers/ZipSaveHandler";
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
     import NoteSettings from "./settings/NoteSettings.svelte";
-    import MapView from "./MapView.svelte";
+    import MapView from "./mapView/MapView.svelte";
     import { FolderSaveArchive } from "./saveHandlers/FolderSaveHandler";
     import type { OpenableSaveArchive } from "./saveHandlers/SaveArchive";
     import { PlaybackType, type PlaybackState } from "./playback.svelte";

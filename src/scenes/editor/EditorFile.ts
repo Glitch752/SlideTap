@@ -222,7 +222,7 @@ export class EditorFile {
 
     public static async load(ar: SaveArchive, loadMaps: boolean = true): Promise<EditorFile> {
         const metaFile = await ar.readFile("metadata.json");
-        if(!metaFile) throw new Error("metadata.json not found in zip");
+        if(!metaFile) throw new Error("metadata.json not found in song");
         const decoder = new TextDecoder();
         const metaStr = decoder.decode(await metaFile.arrayBuffer());
         let metadata: SongMetadataJSON;
