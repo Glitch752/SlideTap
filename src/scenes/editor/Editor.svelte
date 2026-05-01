@@ -102,17 +102,13 @@
         window.removeEventListener('mouseup', stopDrag);
     }
 
-    function copySelectedNotes() {
+    function copyNotes(idsToCopy: EditorNoteID[]) {
         if(!openMap) return;
         const map = editedFile.getMap(openMap);
         if(!map) return;
 
-        const notesToCopy = [];
-        const notes = get(map.notes);
-        for(const noteID of selectedNotes) {
-            const note = notes.get(noteID);
-            if(note) notesToCopy.push({ ...note });
-        }
+        const noteDatas = get(map.notes);
+        const notesToCopy = idsToCopy.map(id => noteDatas.get(id)).filter((n): n is MapNote => n !== undefined).map(n => ({ ...n }));
 
         // Shift all times to the earliest start time
         let earliest = Infinity;
@@ -166,7 +162,7 @@
         }
         if(e.ctrlKey && e.key.toLowerCase() === 'c') {
             e.preventDefault();
-            copySelectedNotes();
+            copyNotes(Array.from(selectedNotes));
             return;
         }
         if(e.ctrlKey && e.key.toLowerCase() === 'v') {
@@ -395,7 +391,8 @@
                     wakatimeHandler.mouseBeat = Math.round(beat);
                     wakatimeHandler.mouseLane = lane;
                 }}
-                oncopy={copySelectedNotes}
+                oncopy={copyNotes}
+                onpaste={() => pasteNotes(playbackState.time)}
             />
         {:else}
             <p class="placeholder">Select a map to view its lanes.</p>
