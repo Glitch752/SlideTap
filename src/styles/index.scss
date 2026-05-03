@@ -10,6 +10,11 @@
     --surface-green: color-mix(in srgb, var(--surface) 80%, #00ff00);
     --surface-red: color-mix(in srgb, var(--surface) 80%, #ff0000);
     --surface-blue: color-mix(in srgb, var(--surface) 80%, #0000ff);
+    
+    --accent-green: #73df73;
+    --accent-red: #ff7373;
+    --accent-blue: #7373ff;
+
     --surface-inactive: color-mix(in srgb, var(--surface) 50%, var(--panel));
 }
 

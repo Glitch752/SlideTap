@@ -45,12 +45,16 @@ export type MapNote = {
 };
 
 export type MapEvent = {
-    type: "text",
-    text: string,
     duration: number,
     /** Beats; based off of the beginning of the track, not the played segment */
     time: number
-};
+} & ({
+    type: "flash",
+    color: string
+} | {
+    type: "text",
+    text: string
+});
 
 export type LoadedMapDataJSON = {
     notes: MapNote[];

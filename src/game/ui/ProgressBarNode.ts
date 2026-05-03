@@ -1,4 +1,4 @@
-import { ColorGradient } from "./color";
+import { ColorGradient } from "../../lib/color";
 import { UINode } from "./UINode";
 
 export class ProgressBarNode extends UINode {
