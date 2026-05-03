@@ -4,17 +4,15 @@
     
     const {
         menu,
-        children,
-        onmousedowncapture
+        children
     }: {
         menu: Snippet,
-        children: Snippet,
-        onmousedowncapture?: (e: MouseEvent) => void
+        children: Snippet
     } = $props();
 
     let pos: { x: number, y: number } | null = $state(null);
     let menuEl: HTMLElement | null = $state(null);
-    
+
     function handleClickOutside(event: MouseEvent) {
         if(pos && menuEl && !menuEl?.contains(event.target as Node)) {
             pos = null;
@@ -22,13 +20,18 @@
             event.stopPropagation();
         }
     }
+
+    function stopPropagation(e: Event) {
+        e.stopPropagation();
+    }
 </script>
 
 <svelte:window onmousedowncapture={handleClickOutside} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div oncontextmenu={(e) => {
+<div class="context-trigger" oncontextmenu={(e) => {
     e.preventDefault();
+    e.stopPropagation();
     pos = { x: e.clientX, y: e.clientY };
 }}>
     {@render children()}
@@ -36,13 +39,14 @@
 
 {#if pos}
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="dropdown" style="left: {pos.x}px; top: {pos.y}px;" bind:this={menuEl}
-    onmouseup={(e) => {
-        setTimeout(() => {
-            pos = null;
-        }, 0);
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div
+    class="dropdown" style="left: {pos.x}px; top: {pos.y}px;" bind:this={menuEl}
+    onmousedown={stopPropagation} onpointerdown={stopPropagation} onpointermove={stopPropagation} onpointerup={stopPropagation}
+    onclick={(e) => {
+        pos = null;
     }}
-    {onmousedowncapture}>
+>
     <DropdownContent>
         {@render menu()}
     </DropdownContent>
@@ -50,6 +54,9 @@
 {/if}
 
 <style lang="scss">
+    .context-trigger {
+        display: contents; // Who even knew this existed? My life has been changed
+    }
     .dropdown {
         position: fixed;
         z-index: 1000;

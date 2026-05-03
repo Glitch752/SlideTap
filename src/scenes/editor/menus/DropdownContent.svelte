@@ -21,6 +21,7 @@
     top: 100%;
     left: 0;
     min-width: 10em;
+    width: max-content;
     z-index: 200;
     box-shadow: 0 0 8px #00000066;
     border-radius: 5px;

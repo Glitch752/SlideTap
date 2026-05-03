@@ -246,9 +246,7 @@
     }}>Snap to grid</button>
 {/snippet}
 
-<ContextMenu menu={noteMenu} onmousedowncapture={(e) => {
-    e.stopPropagation();
-}}>
+<ContextMenu menu={noteMenu}>
     <svg
         style="left: {leftColumn * colWidthPx + leftOffset}px; top: {note.startTime * subdivisions * rowHeightPx + topOffset}px; width: {(rightColumn - leftColumn) * colWidthPx}px; height: {(note.endTime * subdivisions - note.startTime * subdivisions) * rowHeightPx}px;"
         class:selected={selected}
