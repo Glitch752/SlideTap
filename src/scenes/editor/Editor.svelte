@@ -2,7 +2,7 @@
     import { difficultyColor } from "../songList/SongList.svelte";
     import DraggableWindow, { resetAllWindows } from "./DraggableWindow.svelte";
     import ToolbarDropdown from "./menus/ToolbarDropdown.svelte";
-    import { EditorFile, EditorMapData, type EditorMapID, type EditorNoteID } from "./EditorFile";
+    import { EditorFile, EditorMapData, type EditorEventID, type EditorMapID, type EditorNoteID } from "./EditorFile";
     import { ZipSaveArchive } from "./saveHandlers/ZipSaveHandler";
     import EditorFileSettings from "./settings/EditorFileSettings.svelte";
     import NoteSettings from "./settings/NoteSettings.svelte";
@@ -24,6 +24,7 @@
     import { NodeID } from "../../game/types";
     import type { Timer } from "../../game/Timer";
     import type { MapNote } from "../../Map";
+    import EventSettings from "./settings/EventSettings.svelte";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -37,6 +38,7 @@
     let unsavedChanges = $derived(editedFile.unsavedChanges);
     
     let selectedNotes: SvelteSet<EditorNoteID> = $state(new SvelteSet());
+    let selectedEvent: EditorEventID | null = $state(null);
     let openMap: EditorMapID | null = $state(null);
 
     const SPLIT_KEY = 'editor_settings_width';
@@ -335,9 +337,7 @@
     <div class="settings" style="width: {settingsWidth}px">
         <!-- Full rerender when open file changes -->
         {#key editedFile}
-            {#if selectedNotes.size == 0 || !openMap}
-                <EditorFileSettings file={editedFile} {playbackState} />
-            {:else}
+            {#if selectedNotes.size > 0 && openMap}
                 <NoteSettings
                     file={editedFile} map={openMap}
                     selection={selectedNotes}
@@ -356,6 +356,25 @@
                         selectedNotes.clear();
                     }}
                 />
+            {:else if selectedEvent !== null && openMap}
+                <EventSettings
+                    file={editedFile} map={openMap}
+                    event={selectedEvent}
+                    ondelete={() => {
+                        if(!openMap) return;
+                        const map = editedFile.getMap(openMap);
+                        if(!map) return;
+                        map.events.update(events => {
+                            events.delete(selectedEvent!);
+                            return events;
+                        });
+                        editedFile.changed();
+                        
+                        selectedEvent = null;
+                    }}
+                />
+            {:else}
+                <EditorFileSettings file={editedFile} {playbackState} />
             {/if}
         {/key}
     </div>
@@ -387,6 +406,7 @@
                 bind:playbackState={playbackState}
                 map={openMap}
                 bind:selectedNotes={selectedNotes}
+                bind:selectedEvent={selectedEvent}
                 onmousemove={(beat, lane) => {
                     wakatimeHandler.mouseBeat = Math.round(beat);
                     wakatimeHandler.mouseLane = lane;

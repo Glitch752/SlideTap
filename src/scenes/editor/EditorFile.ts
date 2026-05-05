@@ -8,6 +8,7 @@ import { Settings } from "../../Settings";
 
 export type EditorMapID = string & { __brand: "EditorMapID" };
 export type EditorNoteID = string & { __brand: "EditorNoteID" };
+export type EditorEventID = number & { __brand: "EditorEventID" };
 
 export class EditorMapData {
     get name() { return this.data.name; }
@@ -19,7 +20,7 @@ export class EditorMapData {
     set difficulty(value: number) { this.data.difficulty = value; }
 
     public notes: Writable<Map<EditorNoteID, MapNote>> = writable(new Map());
-    public events: Writable<MapEvent[]> = writable([]);
+    public events: Writable<Map<EditorEventID, MapEvent>> = writable(new Map());
 
     public loaded: boolean;
 
@@ -34,7 +35,7 @@ export class EditorMapData {
 
         return {
             notes: Array.from(get(this.notes).values()),
-            events: get(this.events)
+            events: Array.from(get(this.events).values())
         };
     }
 
@@ -47,7 +48,13 @@ export class EditorMapData {
 
             return v;
         });
-        this.events.set(data.events ?? []);
+        this.events.update(v => {
+            v.clear();
+            for(const event of data.events) {
+                v.set(editor.generateEventId(), event);
+            }
+            return v;
+        });
 
         this.loaded = true;
     }
@@ -179,6 +186,9 @@ export class EditorFile {
     }
     public generateNoteId(): EditorNoteID {
         return (Math.random().toString(36).substring(2, 7) as unknown) as EditorNoteID;
+    }
+    public generateEventId(): EditorEventID {
+        return (Math.random().toString(36).substring(2, 7) as unknown) as EditorEventID;
     }
 
     private _maps: Map<EditorMapID, EditorMapData> = new Map<EditorMapID, EditorMapData>();

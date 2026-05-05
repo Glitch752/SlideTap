@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { EditorFile, EditorMapID, EditorNoteID } from "../EditorFile";
+    import type { EditorEventID, EditorFile, EditorMapID, EditorNoteID } from "../EditorFile";
     import { FULL_LANES } from "../../../game/constants";
     import EditorNote, { normalizeNote, SelectionType } from "../EditorNote.svelte";
     import { type MapNote, MapNoteLayer, MapNoteType } from "../../../Map";
@@ -7,6 +7,8 @@
     import type { PlaybackState } from "../playback.svelte";
     import ContextMenu from "../menus/ContextMenu.svelte";
     import { get } from "svelte/store";
+    import TimeColumn from "./TimeColumn.svelte";
+    import EventsColumn from "./EventsColumn.svelte";
     
     const {
         file,
@@ -14,6 +16,7 @@
         playbackState = $bindable(),
         subdivisions,
         selectedNotes = $bindable(),
+        selectedEvent = $bindable(),
         onmousemove,
         oncopy, onpaste
     }: {
@@ -22,6 +25,7 @@
         playbackState: PlaybackState,
         subdivisions: number,
         selectedNotes: Set<EditorNoteID>,
+        selectedEvent: EditorEventID | null,
         onmousemove?: (beat: number, lane: number) => void,
         oncopy?: (notes: EditorNoteID[]) => void, onpaste?: () => void
     } = $props();
@@ -42,8 +46,9 @@
     let trackLength = $derived($audioFileData?.buffer?.duration ?? 0);
 
     const mapData = $derived(file.getMap(map) ?? null);
-    $inspect(mapData);
+
     const notes = $derived(mapData?.notes ?? null);
+    const events = $derived(mapData?.events ?? null);
 
     let times = $derived.by(() => {
         const total = Math.ceil(trackLength * bpm / 60 * subdivisions);
@@ -84,13 +89,14 @@
     let gridRef: HTMLDivElement | null = $state(null);
     let noteGridRef: HTMLDivElement | null = $state(null);
 
-    function getBeatFromEvent(e: MouseEvent): number | null {
+    function getBeatFromEvent(e: MouseEvent, checkBounds = true, round = true): number | null {
         if(!gridRef || !noteGridRef) return null;
         const rect = noteGridRef.getBoundingClientRect();
-        if(e.clientX < rect.left || e.clientX > rect.right) return null;
-        if(e.clientY < rect.top || e.clientY > rect.bottom) return null;
+        if(checkBounds && (e.clientX < rect.left || e.clientX > rect.right)) return null;
+        if(checkBounds && (e.clientY < rect.top || e.clientY > rect.bottom)) return null;
         const y = e.clientY - rect.top;
-        const beat = Math.round(y / rowHeightPx - 1 / subdivisions) / subdivisions;
+        if(!round) return y / rowHeightPx / subdivisions;
+        const beat = Math.floor(y / rowHeightPx) / subdivisions;
         return beat;
     }
     
@@ -304,11 +310,7 @@
                         class:greyed={!isInPlaybackRange(beat)}
                         class:whole={wholeBeat}
                     >
-                        <div class="time-label" onmousedown={(e) => {
-                            e.stopPropagation();
-                            // Set playback position to this time
-                            playbackState.time = beat * 60 / bpm;
-                        }}>
+                        <div class="time-label">
                             {#if wholeBeat}{
                                 beat.toString().padStart(5, String.fromCharCode(/* nbsp */ 160))
                             }{:else}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/if}<span class="decimal">{
@@ -322,7 +324,17 @@
                 <p class="placeholder">No times available. Add a song to sequence.</p>
             {/if}
 
-            <div class="time-column" style="grid-column: 1; grid-row: 2 / -1;"></div>
+            <TimeColumn {bpm} {playbackState} {getBeatFromEvent} />
+            {#if events}
+                <EventsColumn
+                    {getBeatFromEvent}
+                    generateEventId={file.generateEventId}
+                    {selectedEvent}
+                    {events}
+                    {subdivisions}
+                    {rowHeightPx}
+                />
+            {/if}
 
             {#if colWidthPx > 0 && rowHeightPx > 0 && mapData && notes}
                 <!-- Notes -->
@@ -469,7 +481,6 @@
     text-align: center;
     color: var(--text-dim);
 }
-
 
 .playback-head {
     position: absolute;
