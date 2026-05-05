@@ -16,10 +16,8 @@
     } = $props();
 
     const mapData = $derived(file.getMap(map) ?? null);
-    const event = $derived.by(() => {
-        if(!mapData) return null;
-        return get(mapData.events).get(id) ?? null;
-    });
+    const events = $derived(mapData?.events);
+    const event = $derived($events?.get(id) ?? null);
 
     function setEvent(data: MapEvent) {
         if(!mapData || !event) return;
@@ -53,28 +51,23 @@
                     })
                 }) }
             >
-                {type}
+                {type.charAt(0).toUpperCase() + type.slice(1)}
             </button>
         {/each}
     </div>
 
-    <span>Event</span>
     {#if event?.type === "flash"}
-        <label>
-            Color
-            <input type="color" value={event.color} oninput={(e) => setEvent({
-                ...event,
-                color: (e.target as HTMLInputElement).value
-            }) }>
-        </label>
+        <span>Color</span>
+        <input type="color" value={event.color} oninput={(e) => setEvent({
+            ...event,
+            color: (e.target as HTMLInputElement).value
+        }) }>
     {:else if event?.type === "text"}
-        <label>
-            Text
-            <input type="text" value={event.text} oninput={(e) => setEvent({
-                ...event,
-                text: (e.target as HTMLInputElement).value
-            }) }>
-        </label>
+        <span>Text</span>
+        <input type="text" value={event.text} oninput={(e) => setEvent({
+            ...event,
+            text: (e.target as HTMLInputElement).value
+        }) }>
     {/if}
 </div>
 
@@ -103,6 +96,8 @@ label, span {
 
 button {
     --bg-color: var(--panel);
+    border: none;
+    color: var(--text);
     font-size: 1em;
     padding: 0.5rem 1rem;
     
@@ -110,5 +105,16 @@ button {
         background-color: var(--surface);
         color: var(--accent-text);
     }
+}
+
+input[type="color"], input[type="text"] {
+    display: block;
+    border: none;
+    background-color: var(--surface);
+    color: var(--text);
+    margin-top: 0.5rem;
+    padding: 0.25rem;
+    width: 100%;
+    font-size: 1em;
 }
 </style>

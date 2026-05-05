@@ -25,6 +25,7 @@
     import type { Timer } from "../../game/Timer";
     import type { MapNote } from "../../Map";
     import EventSettings from "./settings/EventSettings.svelte";
+    import { copyEvent, copyNotes, paste } from "./clipboard.svelte";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -104,55 +105,6 @@
         window.removeEventListener('mouseup', stopDrag);
     }
 
-    function copyNotes(idsToCopy: EditorNoteID[]) {
-        if(!openMap) return;
-        const map = editedFile.getMap(openMap);
-        if(!map) return;
-
-        const noteDatas = get(map.notes);
-        const notesToCopy = idsToCopy.map(id => noteDatas.get(id)).filter((n): n is MapNote => n !== undefined).map(n => ({ ...n }));
-
-        // Shift all times to the earliest start time
-        let earliest = Infinity;
-        for(const note of notesToCopy) {
-            if(note.startTime < earliest) earliest = note.startTime;
-        }
-        for(const note of notesToCopy) {
-            note.startTime -= earliest;
-            note.endTime -= earliest;
-        }
-
-        navigator.clipboard.writeText(`NOTES:${JSON.stringify(notesToCopy)}`);
-    }
-
-    function pasteNotes(startTime: number) {
-        if(!openMap) return;
-        const map = editedFile.getMap(openMap);
-        if(!map) return;
-
-        const startBeat = startTime * editedFile.getMeta().bpm / 60;
-
-        navigator.clipboard.readText().then(text => {
-            if(!text.startsWith("NOTES:")) return;
-            const notes = JSON.parse(text.slice(6));
-            if(!Array.isArray(notes)) return;
-
-            map.notes.update(existingNotes => {
-                for(const note of notes) {
-                    const newID = editedFile.generateNoteId();
-                    existingNotes.set(newID, {
-                        ...note,
-                        startTime: note.startTime + startBeat,
-                        endTime: note.endTime + startBeat
-                    });
-                    selectedNotes.add(newID);
-                }
-                return existingNotes;
-            });
-            editedFile.changed();
-        });
-    }
-
     function mapShortcuts(map: EditorMapData, e: KeyboardEvent) {
         if(e.ctrlKey && e.key.toLowerCase() === 'a') {
             e.preventDefault();
@@ -164,65 +116,101 @@
         }
         if(e.ctrlKey && e.key.toLowerCase() === 'c') {
             e.preventDefault();
-            copyNotes(Array.from(selectedNotes));
+            if(selectedNotes.size > 0) {
+                copyNotes(Array.from(selectedNotes), map);
+                return;
+            } else if(selectedEvent !== null) {
+                copyEvent(selectedEvent, map);
+                return;
+            }
             return;
         }
         if(e.ctrlKey && e.key.toLowerCase() === 'v') {
             e.preventDefault();
-            pasteNotes(playbackState.time);
+            paste(playbackState.time, editedFile, map, selectedNotes);
             return;
         }
 
-        const updateAllSelected = (cb: (n: MapNote) => void) => {
-            map.notes.update(notes => {
-                for(const noteID of selectedNotes) {
-                    const note = notes.get(noteID);
-                    if(note) {
-                        cb(note);
-                        notes.set(noteID, { ...note });
-                    }
-                }
-                return notes;
-            });
-            editedFile.changed();
-        };
-
-        if(e.key === "ArrowUp") {
-            e.preventDefault();
-            const movementAmount = 1 / subdivisions;
-            updateAllSelected(note => {
-                note.startTime -= movementAmount;
-                note.endTime -= movementAmount;
-            });
-        } else if(e.key === "ArrowDown") {
-            e.preventDefault();
-            const movementAmount = 1 / subdivisions;
-            updateAllSelected(note => {
-                note.startTime += movementAmount;
-                note.endTime += movementAmount;
-            });
-        } else if(e.key === "ArrowLeft") {
-            e.preventDefault();
-            updateAllSelected(note => {
-                note.start.start = Math.max(0, note.start.start - 1);
-                note.end.start = Math.max(0, note.end.start - 1);
-            });
-        } else if(e.key === "ArrowRight") {
-            e.preventDefault();
-            updateAllSelected(note => {
-                note.start.start += 1;
-                note.end.start += 1;
-            });
-        } else if(e.key === "Delete") {
-            e.preventDefault();
-            for(const noteID of selectedNotes) {
+        if(selectedNotes.size > 0) {
+            const updateAllSelected = (cb: (n: MapNote) => void) => {
                 map.notes.update(notes => {
-                    notes.delete(noteID);
+                    for(const noteID of selectedNotes) {
+                        const note = notes.get(noteID);
+                        if(note) {
+                            cb(note);
+                            notes.set(noteID, { ...note });
+                        }
+                    }
                     return notes;
                 });
+                editedFile.changed();
+            };
+
+            if(e.key === "ArrowUp") {
+                e.preventDefault();
+                const movementAmount = 1 / subdivisions;
+                updateAllSelected(note => {
+                    note.startTime -= movementAmount;
+                    note.endTime -= movementAmount;
+                });
+            } else if(e.key === "ArrowDown") {
+                e.preventDefault();
+                const movementAmount = 1 / subdivisions;
+                updateAllSelected(note => {
+                    note.startTime += movementAmount;
+                    note.endTime += movementAmount;
+                });
+            } else if(e.key === "ArrowLeft") {
+                e.preventDefault();
+                updateAllSelected(note => {
+                    note.start.start = Math.max(0, note.start.start - 1);
+                    note.end.start = Math.max(0, note.end.start - 1);
+                });
+            } else if(e.key === "ArrowRight") {
+                e.preventDefault();
+                updateAllSelected(note => {
+                    note.start.start += 1;
+                    note.end.start += 1;
+                });
+            } else if(e.key === "Delete") {
+                e.preventDefault();
+                for(const noteID of selectedNotes) {
+                    map.notes.update(notes => {
+                        notes.delete(noteID);
+                        return notes;
+                    });
+                }
+                editedFile.changed();
+                selectedNotes.clear();
             }
-            editedFile.changed();
-            selectedNotes.clear();
+        } else if(selectedEvent !== null) {
+            function shiftEventTime(amount: number) {
+                map.events.update(events => {
+                    const event = events.get(selectedEvent!);
+                    if(event) {
+                        event.time += amount;
+                        events.set(selectedEvent!, { ...event });
+                    }
+                    return events;
+                });
+                editedFile.changed();
+            }
+            if(e.key === "ArrowUp") {
+                e.preventDefault();
+                shiftEventTime(-1 / subdivisions);
+            } else if(e.key === "ArrowDown") {
+                e.preventDefault();
+                shiftEventTime(1 / subdivisions);
+            } else if(e.key === "Delete") {
+                e.preventDefault();
+                map.events.update(events => {
+                    events.delete(selectedEvent!);
+                    return events;
+                });
+                editedFile.changed();
+                
+                selectedEvent = null;
+            }
         }
     }
 
@@ -411,8 +399,6 @@
                     wakatimeHandler.mouseBeat = Math.round(beat);
                     wakatimeHandler.mouseLane = lane;
                 }}
-                oncopy={copyNotes}
-                onpaste={() => pasteNotes(playbackState.time)}
             />
         {:else}
             <p class="placeholder">Select a map to view its lanes.</p>

@@ -9,16 +9,16 @@
     import { get } from "svelte/store";
     import TimeColumn from "./TimeColumn.svelte";
     import EventsColumn from "./EventsColumn.svelte";
+    import { copyNotes, paste } from "../clipboard.svelte";
     
-    const {
+    let {
         file,
         map,
         playbackState = $bindable(),
         subdivisions,
         selectedNotes = $bindable(),
         selectedEvent = $bindable(),
-        onmousemove,
-        oncopy, onpaste
+        onmousemove
     }: {
         file: EditorFile,
         map: EditorMapID,
@@ -26,8 +26,7 @@
         subdivisions: number,
         selectedNotes: Set<EditorNoteID>,
         selectedEvent: EditorEventID | null,
-        onmousemove?: (beat: number, lane: number) => void,
-        oncopy?: (notes: EditorNoteID[]) => void, onpaste?: () => void
+        onmousemove?: (beat: number, lane: number) => void
     } = $props();
 
     let colWidthPx = $state(0);
@@ -48,7 +47,6 @@
     const mapData = $derived(file.getMap(map) ?? null);
 
     const notes = $derived(mapData?.notes ?? null);
-    const events = $derived(mapData?.events ?? null);
 
     let times = $derived.by(() => {
         const total = Math.ceil(trackLength * bpm / 60 * subdivisions);
@@ -115,6 +113,10 @@
 
         if(selectedNotes.size > 0) {
             selectedNotes.clear();
+            return;
+        }
+        if(selectedEvent) {
+            selectedEvent = null;
             return;
         }
 
@@ -205,16 +207,16 @@
 
 <!-- TODO: wrapping notes around 0 :c -->
 {#snippet menu()}
-    {#if selectedNotes.size > 0}
+    {#if mapData && selectedNotes.size > 0}
         <button onclick={() => {
-            oncopy?.(Array.from(selectedNotes));
+            copyNotes(Array.from(selectedNotes), mapData);
         }}>Copy selected</button>
         <button onclick={() => {
             if(!mapData) return;
-            oncopy?.(Array.from(get(mapData.notes).keys()));
+            copyNotes(Array.from(get(mapData.notes).keys()), mapData);
         }}>Copy all</button>
         <button onclick={() => {
-            oncopy?.(Array.from(selectedNotes));
+            copyNotes(Array.from(selectedNotes), mapData);
             deleteNotes(Array.from(selectedNotes));
         }}>Cut selected</button>
         <button onclick={() => {
@@ -256,7 +258,7 @@
         }}>Snap selected to grid</button>
     {/if}
     <button onclick={() => {
-        onpaste?.();
+        if(mapData) paste(playbackState.time, file, mapData, selectedNotes);
     }}>Paste</button>
     <hr />
     <button onclick={() => {
@@ -324,13 +326,14 @@
                 <p class="placeholder">No times available. Add a song to sequence.</p>
             {/if}
 
-            <TimeColumn {bpm} {playbackState} {getBeatFromEvent} />
-            {#if events}
+            <TimeColumn {bpm} bind:playbackState={playbackState} {getBeatFromEvent} />
+            {#if mapData}
                 <EventsColumn
                     {getBeatFromEvent}
                     generateEventId={file.generateEventId}
-                    {selectedEvent}
-                    {events}
+                    bind:selectedEvent={selectedEvent}
+                    {file}
+                    map={mapData}
                     {subdivisions}
                     {rowHeightPx}
                 />
@@ -346,7 +349,7 @@
                             file.changed();
                         }}
                         ondelete={() => deleteNotes([id])}
-                        oncopy={() => oncopy?.([id])}
+                        oncopy={() => copyNotes([id], mapData)}
                         onselect={(type) => {
                             switch(type) {
                                 case SelectionType.Add:
