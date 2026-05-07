@@ -66,7 +66,7 @@
                 duration: 1,
 
                 type: "flash",
-                color: "#ffffff30"
+                color: "#ffffff"
             };
             events.update(v => {
                 v.set(generateEventId(), newEvent);

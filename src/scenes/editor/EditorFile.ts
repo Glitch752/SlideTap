@@ -40,7 +40,7 @@ export class EditorMapData {
     }
 
     public deserialize(data: LoadedMapDataJSON, editor: EditorFile) {
-        this.notes.update(v => {
+        if(data.notes) this.notes.update(v => {
             v.clear();
             for(const note of data.notes) {
                 v.set(editor.generateNoteId(), note);
@@ -48,7 +48,7 @@ export class EditorMapData {
 
             return v;
         });
-        this.events.update(v => {
+        if(data.events) this.events.update(v => {
             v.clear();
             for(const event of data.events) {
                 v.set(editor.generateEventId(), event);
@@ -292,7 +292,7 @@ export class EditorFile {
         try {
             editorData.deserialize(data, this);
         } catch(e) {
-            console.error(`Failed to deserialize map ${editorData.name}`);
+            console.error(`Failed to deserialize map ${editorData.name}`, e);
         }
     }
 

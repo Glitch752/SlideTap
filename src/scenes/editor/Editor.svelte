@@ -106,6 +106,8 @@
     }
 
     function mapShortcuts(map: EditorMapData, e: KeyboardEvent) {
+        if(document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement) return;
+
         if(e.ctrlKey && e.key.toLowerCase() === 'a') {
             e.preventDefault();
             selectedNotes.clear();

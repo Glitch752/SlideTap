@@ -2,6 +2,7 @@
     import { get } from "svelte/store";
     import type { EditorEventID, EditorFile, EditorMapID } from "../EditorFile";
   import type { MapEvent } from "../../../Map";
+  import AutoResizeTextArea from "./AutoResizeTextArea.svelte";
 
     const {
         file,
@@ -64,10 +65,14 @@
         }) }>
     {:else if event?.type === "text"}
         <span>Text</span>
-        <input type="text" value={event.text} oninput={(e) => setEvent({
-            ...event,
-            text: (e.target as HTMLInputElement).value
-        }) }>
+        <AutoResizeTextArea
+            value={event.text}
+            oninput={(e) => setEvent({
+                ...event,
+                text: (e.target as HTMLInputElement).value
+            })}
+            style="resize: vertical;"
+        ></AutoResizeTextArea>
     {/if}
 </div>
 
@@ -107,7 +112,7 @@ button {
     }
 }
 
-input[type="color"], input[type="text"] {
+input[type="color"], :global(textarea) {
     display: block;
     border: none;
     background-color: var(--surface);
@@ -115,6 +120,6 @@ input[type="color"], input[type="text"] {
     margin-top: 0.5rem;
     padding: 0.25rem;
     width: 100%;
-    font-size: 1em;
+    font-size: 0.8rem;
 }
 </style>
