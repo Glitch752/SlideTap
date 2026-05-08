@@ -1,7 +1,7 @@
 import { Vector2 } from "three";
 import { AlignMode, UINode } from "./UINode";
 
-const measurementContext = document.createElement("canvas").getContext("2d")!;
+export const measurementContext = document.createElement("canvas").getContext("2d")!;
 
 export class TextNode extends UINode {
     private font: string = "20px Helvetica";

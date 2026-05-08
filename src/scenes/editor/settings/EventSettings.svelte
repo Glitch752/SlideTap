@@ -3,6 +3,7 @@
     import type { EditorEventID, EditorFile, EditorMapID } from "../EditorFile";
   import type { MapEvent } from "../../../Map";
   import AutoResizeTextArea from "./AutoResizeTextArea.svelte";
+  import { RichText } from "../../../lib/RichText";
 
     const {
         file,
@@ -73,7 +74,13 @@
             })}
             style="resize: vertical;"
         ></AutoResizeTextArea>
+        <div class="preview">
+            {@html new RichText(event.text).toHTMLString()}
+        </div>
     {/if}
+
+    <span>Other</span>
+    <button onclick={ondelete}>Delete Event</button>
 </div>
 
 <style lang="scss">
@@ -121,5 +128,12 @@ input[type="color"], :global(textarea) {
     padding: 0.25rem;
     width: 100%;
     font-size: 0.8rem;
+}
+
+.preview {
+    padding: 0.2rem 0.5rem;
+    background-color: var(--panel);
+    color: var(--text);
+    font-size: 0.9em;
 }
 </style>

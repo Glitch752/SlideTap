@@ -2,6 +2,7 @@
     import type { Writable } from "svelte/store";
     import type { MapEvent } from "../../../Map";
     import type { EditorEventID, EditorFile } from "../EditorFile";
+  import { RichText } from "../../../lib/RichText";
 
     let {
         id,
@@ -76,7 +77,7 @@ z-index: {eventStacking.get(id) ?? 0};
     <div class="previewBox">
         {#if event.type === "text"}
             <span class="label">Text</span>
-            <span>{event.text}</span>
+            <span>{@html new RichText(event.text).toHTMLString()}</span>
         {:else if event.type === "flash"}
             <span class="label">Flash</span>
             <span class="color" style="background-color: {event.color}"></span>
