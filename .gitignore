@@ -15,9 +15,5 @@ dist/
 !.vscode/extensions.json
 .idea
 
-# I need to figure out how to distribute songs :skulk:
-public/songs/**/*.opus
-public/songs/**/*.ogg
-public/songs/**/*.png
 *.crswap
 .vercel

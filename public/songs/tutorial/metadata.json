@@ -1,1 +1,1 @@
-{"id":"3lk2v","name":"Tutorial - Feather","artist":"Nujables","bpm":90,"firstBeatOffset":0.3215416666666744,"start":0,"length":68.65233333333333,"maps":[{"difficulty":1,"name":"Default","notes":0,"dataPath":"maps/map1.json"}],"cover":"","track":"track.ogg"}
+{"id":"3lk2v","name":"Tutorial - Feather","artist":"Nujables","bpm":90,"firstBeatOffset":0.3215416666666744,"start":0,"length":68.65233333333333,"maps":[{"difficulty":1,"name":"Tutorial","notes":0,"dataPath":"maps/map1.json"}],"cover":"cover.png","track":"track.ogg"}
