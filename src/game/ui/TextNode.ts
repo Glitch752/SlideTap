@@ -55,6 +55,7 @@ export class TextNode extends UINode {
     }
 
     draw(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
         ctx.font = this.font;
         ctx.fillStyle = this.color;
         ctx.textBaseline = "top";
@@ -64,5 +65,6 @@ export class TextNode extends UINode {
             ctx.strokeText(this.text, this.x + this.margin, this.y + this.margin / 2);
         }
         ctx.fillText(this.text, this.x + this.margin, this.y + this.margin / 2.);
+        ctx.restore();
     }
 }

@@ -166,11 +166,11 @@ export class NodeTree<T, G extends {}> {
         if(newId) this.namedChildren.set(newId, node);
     }
 
-    addChildren(...nodes: Array<Node<T, G>>): void {
-        for(const node of nodes) this.add(node);
+    addChildren(...nodes: Array<Node<T, G> | null>): void {
+        for(const node of nodes) if(node) this.add(node);
     }
-    with(...nodes: Array<Node<T, G>>): this {
-        for(const node of nodes) this.add(node);
+    with(...nodes: Array<Node<T, G> | null>): this {
+        for(const node of nodes) if(node) this.add(node);
         return this;
     }
 

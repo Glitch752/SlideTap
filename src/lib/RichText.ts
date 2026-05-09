@@ -128,6 +128,18 @@ export class RichText {
         }
     }
 
+    private getFont(ctx: CanvasRenderingContext2D, props: Record<string, string | boolean>): string {
+        let font = this.font;
+        if(props.bold && props.italic) {
+            font = font.replace(/^(\d+px )?/, "italic bold $1");
+        } else if(props.bold) {
+            font = font.replace(/^(\d+px )?/, "bold $1");
+        } else if(props.italic) {
+            font = font.replace(/^(\d+px )?/, "italic $1");
+        }
+        return font;
+    }
+    
     private computeLines(ctx: CanvasRenderingContext2D) {
         this.cachedLines = [];
         let currentLine: RichTextTextPart[] = [];
@@ -140,13 +152,7 @@ export class RichText {
             ctx.save();
             ctx.font = tempFont;
             if(part.props) {
-                if(part.props.bold && part.props.italic) {
-                    ctx.font = ctx.font.replace(/^(\d+px )?/, "$1italic bold ");
-                } else if(part.props.bold) {
-                    ctx.font = ctx.font.replace(/^(\d+px )?/, "$1bold ");
-                } else if(part.props.italic) {
-                    ctx.font = ctx.font.replace(/^(\d+px )?/, "$1italic ");
-                }
+                ctx.font = this.getFont(ctx, part.props);
             }
             const width = ctx.measureText(part.text ?? "").width;
             ctx.restore();
@@ -181,7 +187,7 @@ export class RichText {
         return { width, height };
     }
 
-    public draw(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    public draw(ctx: CanvasRenderingContext2D, x: number, y: number, stroke: boolean = false): void {
         ctx.save();
         ctx.font = this.font;
 
@@ -202,21 +208,19 @@ export class RichText {
             for(const part of line.parts) {
                 const { text, props } = part;
 
-                ctx.font = this.font;
-                if(props.bold && props.italic) {
-                    ctx.font = ctx.font.replace(/^(\d+px )?/, "$1italic bold ");
-                } else if(props.bold) {
-                    ctx.font = ctx.font.replace(/^(\d+px )?/, "$1bold ");
-                } else if(props.italic) {
-                    ctx.font = ctx.font.replace(/^(\d+px )?/, "$1italic ");
-                }
-                if(props.color) {
-                    ctx.fillStyle = props.color as string;
+                ctx.font = this.getFont(ctx, props);
+
+                if(stroke) {
+                    ctx.strokeText(text, cursorX, cursorY);
                 } else {
-                    ctx.fillStyle = "#fff";
+                    if(props.color) {
+                        ctx.fillStyle = props.color as string;
+                    } else {
+                        ctx.fillStyle = "#fff";
+                    }
+                    ctx.fillText(text, cursorX, cursorY);
                 }
 
-                ctx.fillText(text, cursorX, cursorY);
                 const metrics = ctx.measureText(text);
                 cursorX += metrics.width;
             }

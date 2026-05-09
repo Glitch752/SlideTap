@@ -80,7 +80,7 @@ export class GameScene implements Scene {
             new Lanes(this.map).setId(NodeID.Lanes),
 
             // Renderer must be last so we update before drawing
-            new LevelInterface(),
+            new LevelInterface(this.controlledByEditor),
             new Renderer().setId(NodeID.Renderer)
         );
 
@@ -161,7 +161,8 @@ export class GameScene implements Scene {
         if(!this.map) return;
 
         const elapsed = this.tree.get<Timer>(NodeID.Timer)!.getElapsed();
-        while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsed) {
+        const elapsedBeats = elapsed / this.song!.beatDuration;
+        while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsedBeats) {
             this.eventIndex++;
         }
     }

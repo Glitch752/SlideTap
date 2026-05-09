@@ -21,14 +21,16 @@ export class LevelInterface extends GameNode {
         return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
     }
 
-    constructor() {
+    private panelColor = this.getCSSVariable('--panel');
+
+    constructor(inEditor: boolean) {
         super(null);
 
         const textColor = this.getCSSVariable('--text');
         
         const surfaceColor = this.getCSSVariable('--surface');
         const sectionColor = this.getCSSVariable('--section');
-        const panelColor = this.getCSSVariable('--panel');
+        const panelColor = this.panelColor;
 
         const surfaceGreen = this.getCSSVariable('--surface-green');
         const surfaceRed = this.getCSSVariable('--surface-red');
@@ -47,9 +49,9 @@ export class LevelInterface extends GameNode {
         let timer: Timer | undefined;
 
         this.addChildren(
-            new MarginContainer(12).with(
+           new MarginContainer(12).with(
                 // Health bar
-                new StackContainer().with(
+                inEditor ? null : new StackContainer().with(
                     new ProgressBarNode(surfaceColor, healthGradient)
                         .withTargetSize(400, 25)
                         .withUpdate((self, _) => {
@@ -70,7 +72,7 @@ export class LevelInterface extends GameNode {
                 ),
 
                 // Score
-                new ColumnFlexContainer(18).withHorizontalAlign(AlignMode.End).with(
+                inEditor ? null : new ColumnFlexContainer(18).withHorizontalAlign(AlignMode.End).with(
                     new StackContainer().withTargetSize(180, 0).withHorizontalAlign(AlignMode.End).with(
                         new TextNode("0", textColor)
                             .withOutline(sectionColor, 8)
@@ -145,7 +147,7 @@ export class LevelInterface extends GameNode {
                         .withUpdate((self, _) => {
                             if(timer) self.setProgress(timer.getElapsed() / (this.context?.song?.length ?? 1));
                         }),
-                    new PanelNode(panel).with(
+                    inEditor ? null : new PanelNode(panel).with(
                         new TextNode("0/0", textColor).withFont("14px monospace").withUpdate((self, _) => {
                             const game = this.context;
                             if(!game) return;
@@ -172,7 +174,7 @@ export class LevelInterface extends GameNode {
     init(context: GameScene): void {
         context.onMapEvent.connect((event) => {
             if(event.type === "text") {
-                this.get<ColumnFlexContainer>("textEventContainer")!.add(new TextEventDisplay(event));
+                this.get<ColumnFlexContainer>("textEventContainer")!.add(new TextEventDisplay(event, this.panelColor));
             }
         });
     }
@@ -184,7 +186,6 @@ export class LevelInterface extends GameNode {
 
         const game = this.context;
         if(!game) return;
-        if(game.controlledByEditor) return;
         
         const screenWidth = this.ui.canvas.width / devicePixelRatio, screenHeight = this.ui.canvas.height / devicePixelRatio;
         for(const child of this.children) {

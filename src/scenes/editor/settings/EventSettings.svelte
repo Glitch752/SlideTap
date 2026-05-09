@@ -81,6 +81,10 @@
 
     <span>Other</span>
     <button onclick={ondelete}>Delete Event</button>
+
+    <br />
+    <p>Start beat: {event?.time?.toFixed(2)}</p>
+    <p>Beat duration: {event?.duration?.toFixed(2)}</p>
 </div>
 
 <style lang="scss">
@@ -97,6 +101,12 @@ label, span {
     display: block;
     font-size: 1.1em;
     margin-top: 1.5rem;
+}
+
+p {
+    margin: 0.5rem 1rem;
+    font-size: 0.9em;
+    color: var(--text-dim);
 }
 
 .option-list {

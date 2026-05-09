@@ -6,7 +6,7 @@ import { RichTextNode } from "./RichTextNode";
 export class TextEventDisplay extends RichTextNode {
     private event: MapEvent;
     
-    constructor(event: MapEvent) {
+    constructor(event: MapEvent, outlineColor: string) {
         if(event.type !== "text") throw new Error("Invalid event type for TextEventDisplay: " + event.type);
         
         const text = new RichText(event.text);
@@ -18,6 +18,7 @@ export class TextEventDisplay extends RichTextNode {
 
         this.opacity = 0;
         this.withTargetSize(500, 150);
+        this.withOutline(outlineColor, 8)
     }
 
     init(): void {

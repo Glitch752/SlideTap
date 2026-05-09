@@ -10,6 +10,19 @@ export class RichTextNode extends UINode {
     /** X-axis margin; Y axis is half of this */
     private margin: number = 12;
 
+    private outlineColor?: string;
+    private outlineWidth: number = 0;
+
+    withMargin(margin: number): this {
+        this.margin = margin;
+        return this;
+    }
+    withOutline(color: string, width: number): this {
+        this.outlineColor = color;
+        this.outlineWidth = width;
+        return this;
+    }
+
     constructor(text: RichText) {
         super();
         this.text = text;
@@ -34,6 +47,13 @@ export class RichTextNode extends UINode {
         } else if(this.text.align === "right") {
             x = this.x + this.width - this.margin;
         }
+
+        if(this.outlineColor && this.outlineWidth > 0) {
+            ctx.lineWidth = this.outlineWidth;
+            ctx.strokeStyle = this.outlineColor;
+            this.text.draw(ctx, x, this.y + this.margin / 2, true);
+        }
+
         this.text.draw(ctx, x, this.y + this.margin / 2);
         ctx.restore();
     }
