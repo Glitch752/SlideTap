@@ -65,7 +65,7 @@ function onKeydown(event: KeyboardEvent) {
 
 <!-- Autoplay the selected song -->
 <audio
-    src={songs[selectedSongIndex].track?.src}
+    src={songs[selectedSongIndex].trackSrc}
     autoplay
     volume="0.3"
     onplay={(e) => {

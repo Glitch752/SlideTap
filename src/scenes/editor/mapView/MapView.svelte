@@ -326,7 +326,7 @@
                 <p class="placeholder">No times available. Add a song to sequence.</p>
             {/if}
 
-            <TimeColumn {bpm} bind:playbackState={playbackState} {getBeatFromEvent} />
+            <TimeColumn {bpm} {subdivisions} bind:playbackState={playbackState} {getBeatFromEvent} />
             {#if mapData}
                 <EventsColumn
                     {getBeatFromEvent}

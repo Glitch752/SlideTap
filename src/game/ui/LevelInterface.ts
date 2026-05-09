@@ -9,6 +9,7 @@ import { DebugPanel } from "./DebugPanel";
 import { ProgressBarNode } from "./ProgressBarNode";
 import { ColorGradient, RGBAColor } from "../../lib/color";
 import type { Timer } from "../Timer";
+import type { GameScene } from "../Game";
 
 export class LevelInterface extends GameNode {
     private get ui(): CanvasRenderingContext2D | null {
@@ -151,6 +152,13 @@ export class LevelInterface extends GameNode {
                         })
                     )
                 ),
+
+                // Text events
+                new MarginContainer(0, 0, 32, 0)
+                .withHorizontalAlign(AlignMode.Center)
+                .withVerticalAlign(AlignMode.Start).with(
+                    new ColumnFlexContainer(8).setId("textEventContainer")
+                ),
                 
                 // Debug text
                 new PanelNode(panel).withHorizontalAlign(AlignMode.End).withVerticalAlign(AlignMode.End).with(
@@ -160,10 +168,14 @@ export class LevelInterface extends GameNode {
         );
     }
 
+    init(context: GameScene): void {
+        context.onMapEvent.connect((event) => {
+            console.log("Map event:", event);
+        });
+    }
+
     update(deltaTime: number): void {
         if(!this.ui) return;
-
-        // TODO: Node-based UI
 
         this.ui.clearRect(0, 0, this.ui.canvas.width, this.ui.canvas.height);
 

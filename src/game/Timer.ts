@@ -22,40 +22,47 @@ export class Timer extends GameNode {
         return this.time;
     }
 
-    public start() {
-        this.running = true;
-        this.time = 0;
-        this.length = Infinity;
-        return this;
-    }
+    private audioSourceNode: AudioBufferSourceNode | null = null;
 
     public startPlayback(song: Song | null) {
-        if(!song) {
+        if(!song) return;
+
+        this.running = true;
+        this.time = 0;
+        this.length = song.length;
+
+        // Stop previous sources
+        if(this.audioSourceNode) {
+            try { this.audioSourceNode.stop(); } catch {}
+            this.audioSourceNode = null;
+        }
+
+        if(!song.audioContext || !song.audioBuffer) {
+            console.warn("Audio not ready for song", song.name);
             return;
         }
 
-        this.running = true;
-        this.time = song.firstBeatOffset * song.beatDuration;
-        if(!song.track) return;
+        const ctx = song.audioContext;
+        const source = ctx.createBufferSource();
+        source.buffer = song.audioBuffer;
+        source.playbackRate.value = this.timeScale;
+        source.connect(ctx.destination);
 
-        song.track.playbackRate = this.timeScale;
-        
-        let songTime = this.time + song.startTime - Settings.audioLatency.value / 1000.;
-        if(songTime < 0) {
-            // If the time is negative, we need to delay the start of the track
-            setTimeout(() => {
-                song.track?.play();
-            }, -songTime * 1000);
-        } else {
-            // Otherwise, we can start the track immediately and seek to the correct time
-            song.track.currentTime = songTime;
-            song.track.play();
-        }
-        this.length = song.length + song.firstBeatOffset * song.beatDuration;
+        // Calculate when to start and offset
+        let songTime = song.firstBeatOffset * song.beatDuration + song.startTime - Settings.audioLatency.value / 1000.;
+        let offset = Math.max(0, songTime);
+        let when = ctx.currentTime;
+        if(songTime < 0) when -= songTime;
+        source.start(when, offset);
+        this.audioSourceNode = source;
     }
 
     public stop() {
         this.running = false;
+        if(this.audioSourceNode) {
+            try { this.audioSourceNode.stop(); } catch {}
+            this.audioSourceNode = null;
+        }
         return this;
     }
 

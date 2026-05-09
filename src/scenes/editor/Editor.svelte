@@ -26,6 +26,8 @@
     import type { MapNote } from "../../Map";
     import EventSettings from "./settings/EventSettings.svelte";
     import { copyEvent, copyNotes, paste } from "./clipboard.svelte";
+  import { loadScene } from "../../router";
+  import { MenuScene } from "../Menu";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -293,6 +295,13 @@
                         }}>Save as {handler.getName()}</button>
                     {/each}
                 </ToolbarDropdownSubmenu>
+                <hr />
+                <button onclick={() => {
+                    if($unsavedChanges) {
+                        if(!confirm("You have unsaved changes. Are you sure you want to exit?")) return;
+                    }
+                    loadScene(new MenuScene());
+                }}>Exit</button>
             </ToolbarDropdown>
             <ToolbarDropdown title="View">
                 <ToolbarDropdownSubmenu title="Subdivisions">

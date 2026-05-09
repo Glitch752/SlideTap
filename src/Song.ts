@@ -68,7 +68,9 @@ export class Song {
     public leaderboard: SongLeaderboard;
 
     public cover: HTMLImageElement | null = null;
-    public track: HTMLAudioElement | null = null;
+    public audioContext: AudioContext | null = null;
+    public audioBuffer: AudioBuffer | null = null;
+    public trackSrc: string | null = null;
 
     public maps: EditorMapData[] = [];
 
@@ -97,10 +99,9 @@ export class Song {
 
         const audioData = get(file.audioFileData);
         if(audioData) {
-            const blob = audioData.blob;
-            const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            song.track = audio;
+            song.trackSrc = audioData.url;
+            song.audioContext = audioData.context;
+            song.audioBuffer = audioData.buffer;
         }
 
         return song;

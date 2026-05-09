@@ -108,7 +108,6 @@ export class GameScene implements Scene {
 
         this.map = (await this.song?.getMap(this.mapIndex)) ?? null;
         this.tree.get<Lanes>(NodeID.Lanes)?.setMap(this.map);
-        console.log("Map loaded:", this.map);
     }
 
     public static async load(song: Song, mapIndex: number): Promise<GameScene> {
@@ -150,7 +149,8 @@ export class GameScene implements Scene {
         
         const events = [];
         const elapsed = this.tree.get<Timer>(NodeID.Timer)!.getElapsed();
-        while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsed) {
+        const elapsedBeats = elapsed / this.song!.beatDuration;
+        while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsedBeats) {
             events.push(this.map.events[this.eventIndex]);
             this.eventIndex++;
         }

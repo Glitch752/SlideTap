@@ -143,12 +143,12 @@ export class MarginContainer extends ContainerNode {
     marginTop: number = 0;
     marginBottom: number = 0;
 
-    constructor(marginOrLeft: number, marginOrRight?: number, marginOrTop?: number, marginOrBottom?: number) {
+    constructor(marginOrLeft: number, right?: number, top?: number, bottom?: number) {
         super();
         this.marginLeft = marginOrLeft;
-        this.marginRight = marginOrRight !== undefined ? marginOrRight : marginOrLeft;
-        this.marginTop = marginOrTop !== undefined ? marginOrTop : marginOrLeft;
-        this.marginBottom = marginOrBottom !== undefined ? marginOrBottom : marginOrLeft;
+        this.marginRight = right !== undefined ? right : marginOrLeft;
+        this.marginTop = top !== undefined ? top : marginOrLeft;
+        this.marginBottom = bottom !== undefined ? bottom : marginOrLeft;
     }
 
     measure(available: Vector2): Vector2 {
