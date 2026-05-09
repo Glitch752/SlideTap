@@ -10,6 +10,7 @@ import { ProgressBarNode } from "./ProgressBarNode";
 import { ColorGradient, RGBAColor } from "../../lib/color";
 import type { Timer } from "../Timer";
 import type { GameScene } from "../Game";
+import { TextEventDisplay } from "./TextEventDisplay";
 
 export class LevelInterface extends GameNode {
     private get ui(): CanvasRenderingContext2D | null {
@@ -154,7 +155,7 @@ export class LevelInterface extends GameNode {
                 ),
 
                 // Text events
-                new MarginContainer(0, 0, 32, 0)
+                new MarginContainer(0, 0, 80, 0)
                 .withHorizontalAlign(AlignMode.Center)
                 .withVerticalAlign(AlignMode.Start).with(
                     new ColumnFlexContainer(8).setId("textEventContainer")
@@ -170,7 +171,9 @@ export class LevelInterface extends GameNode {
 
     init(context: GameScene): void {
         context.onMapEvent.connect((event) => {
-            console.log("Map event:", event);
+            if(event.type === "text") {
+                this.get<ColumnFlexContainer>("textEventContainer")!.add(new TextEventDisplay(event));
+            }
         });
     }
 

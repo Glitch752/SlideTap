@@ -4,6 +4,7 @@ import { Node } from "../lib/miniNodeTree";
 
 // This is so cursed what
 export const GameNode = Node<THREE.Object3D, GameScene>;
+export type GameNode = InstanceType<typeof GameNode>;
 
 export enum NodeID {
     Renderer = "renderer",

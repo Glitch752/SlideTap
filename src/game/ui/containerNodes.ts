@@ -1,8 +1,19 @@
 import { Vector2 } from "three";
 import { Direction, UINode } from "./UINode";
+import type { GameNode } from "../types";
 
 /** A simple container node that lays out all children in itself, stacked on top of each other. */
 export abstract class ContainerNode extends UINode {
+    add(node: GameNode): this {
+        super.add(node);
+        this.setNeedsRelayout(false);
+        return this;
+    }
+    remove(node: GameNode): void {
+        super.remove(node);
+        this.setNeedsRelayout(false);
+    }
+
     measure(available: Vector2): Vector2 {
         let maxWidth = 0, maxHeight = 0;
         for(const child of this.getUiChildren()) {

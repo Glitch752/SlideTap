@@ -45,6 +45,7 @@ export type MapNote = {
 };
 
 export type MapEvent = {
+    /** Beats */
     duration: number,
     /** Beats; based off of the beginning of the track, not the played segment */
     time: number

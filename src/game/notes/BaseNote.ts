@@ -161,7 +161,7 @@ export abstract class BaseNote extends GameNode {
         this.material.uniforms.uv_bottom_width.value = uvBottomCircumference;
 
         if(this.note.endTime / this.bpm * 60 < elapsed) {
-            const tween = new Tween(this.material, "opacity", 0, 0.1);
+            const tween = new Tween().interpolate(this.material, "opacity", 0, 0.1);
             tween.complete.connect(() => this.removeFromParent());
             this.add(tween);
         }

@@ -3,14 +3,9 @@ import { UINode } from "./UINode";
 import { RichText } from "../../lib/RichText";
 import { measurementContext } from "./TextNode";
 
-export class TextNode extends UINode {
+export class RichTextNode extends UINode {
     private text: RichText;
-    private opacity: number = 1;
-
-    public setOpacity(opacity: number): this {
-        this.opacity = opacity;
-        return this;
-    }
+    public opacity: number = 1;
     
     /** X-axis margin; Y axis is half of this */
     private margin: number = 12;
@@ -33,7 +28,13 @@ export class TextNode extends UINode {
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.save();
         ctx.globalAlpha = this.opacity;
-        this.text.draw(ctx, this.x + this.margin, this.y + this.margin / 2);
+        let x = this.x + this.margin;
+        if(this.text.align === "center") {
+            x = this.x + this.width / 2;
+        } else if(this.text.align === "right") {
+            x = this.x + this.width - this.margin;
+        }
+        this.text.draw(ctx, x, this.y + this.margin / 2);
         ctx.restore();
     }
 }

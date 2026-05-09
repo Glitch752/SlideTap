@@ -28,7 +28,7 @@ export class Timer extends GameNode {
         if(!song) return;
 
         this.running = true;
-        this.time = 0;
+        this.time = song.startTime;
         this.length = song.length;
 
         // Stop previous sources
@@ -49,7 +49,7 @@ export class Timer extends GameNode {
         source.connect(ctx.destination);
 
         // Calculate when to start and offset
-        let songTime = song.firstBeatOffset * song.beatDuration + song.startTime - Settings.audioLatency.value / 1000.;
+        let songTime = this.time + song.firstBeatOffset * song.beatDuration - Settings.audioLatency.value / 1000.;
         let offset = Math.max(0, songTime);
         let when = ctx.currentTime;
         if(songTime < 0) when -= songTime;
