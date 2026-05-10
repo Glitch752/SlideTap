@@ -17,7 +17,8 @@ let settings: SettingsContainer;
 
 <!-- TODO: less generic ahh menu -->
 <div class="menu">
-    <h1>SlideTap</h1>
+    <!-- <h1>SlideTap</h1> -->
+    <img src="/title.png" alt="SlideTap Logo" />
     <button onclick={startGame}>Play</button>
     <button onclick={() => settings.open()}>Settings</button>
     <button onclick={startEditor}>Editor</button>
@@ -35,15 +36,21 @@ let settings: SettingsContainer;
     gap: 1rem;
 }
 
-.menu h1 {
+h1 {
     color: #fff;
     font-size: 3rem;
     letter-spacing: 2px;
     text-shadow: 0 2px 8px rgba(0,0,0,0.2);
     margin: 0;
 }
+img {
+    width: 480px;
+    height: auto;
+    margin-top: -200px;
+    margin-bottom: 4rem;
+}
 
-.menu button {
+button {
     --bg-color: var(--panel);
     color: #ccc;
     border: none;

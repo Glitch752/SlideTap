@@ -78,6 +78,16 @@ export function parseColor(color: string): RGBAColor {
         return new RGBAColor(r, g, b, a);
     }
 
+    // color(srgb r g b) and color(srgb r g b / a) colors (chrome returns these)
+    const srgbMatch = computed.match(/^color\(srgb (\d+\.?\d*) (\d+\.?\d*) (\d+\.?\d*)(?: \/ ([\d.]+))?\)$/);
+    if(srgbMatch) {
+        const r = Math.round(parseFloat(srgbMatch[1]) * 255);
+        const g = Math.round(parseFloat(srgbMatch[2]) * 255);
+        const b = Math.round(parseFloat(srgbMatch[3]) * 255);
+        const a = srgbMatch[4] !== undefined ? parseFloat(srgbMatch[4]) : 1;
+        return new RGBAColor(r, g, b, a);
+    }
+
     throw new Error(`Unsupported color format: ${computed}`);
 }
 
