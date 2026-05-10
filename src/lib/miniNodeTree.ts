@@ -9,7 +9,11 @@ export interface Signal<T extends [...any[]]> {
 /**
  * A simple signal implementation for handling events.  
  * Supports connecting and disconnecting listeners, as well as emitting events with arguments.
- * A signal, as constructed, is actuaally a function, so it can be emitted either using `signal(args)` or `signal.emit(args)`.
+ * A signal, as constructed, is actuaally a function, so it can be emitted either using `signal(args)` or `signal.emit(args)`.  
+ * 
+ * Typescript has a handy feature for tuple arrays that allows users to label the arguments of tuples;
+ * for example: `Signal<[param1: string, param2: number]>`  
+ * This is the recommended way to use the Singal type.
  */
 export class Signal<T extends[...any[]]> {
     private listeners!: Set<(...args: T) => void>;

@@ -8,11 +8,9 @@
         scene: Scene | null
     } = $props();
 
-    let sceneProps = $state({});
 	onMount(() => {
         if(!scene) return;
 
-		sceneProps = scene.componentProps ? scene.componentProps() : {};
         if(!(scene as any)["__initialized__"]) {
             (scene as any)["__initialized__"] = true;
             scene.init?.();
@@ -45,6 +43,6 @@
     class="scene"
     bind:this={sceneElement}
 >
-	<Component {...sceneProps} />
+	<Component {...(scene.componentProps ? scene.componentProps() : {})} />
 </div>
 {/if}
