@@ -1,3 +1,5 @@
+import { Signal } from "./lib/miniNodeTree";
+
 type LeaderboardEntry = {
     score: number;
     name: string;
@@ -10,11 +12,13 @@ type LeaderboardEntry = {
  * updated with a small backend in the future, though.
  */
 export class SongLeaderboard {
-    public static readonly MAX_ENTRIES = 10;
+    public static readonly MAX_ENTRIES = 5;
     /**
      * The top MAX_ENTRIES leaderboard entries for this song, sorted in descending order.
      */
     public entries: LeaderboardEntry[];
+
+    public changed: Signal<[]> = new Signal();
     
     constructor(private id: string) {
         this.entries = JSON.parse(
@@ -45,5 +49,6 @@ export class SongLeaderboard {
         while(this.entries.length > SongLeaderboard.MAX_ENTRIES) this.entries.pop();
 
         this.save();
+        this.changed.emit();
     }
 }

@@ -25,6 +25,7 @@ export const dateFormat = Intl.DateTimeFormat(undefined, {
 
 <script lang="ts">
 import SettingsContainer from "../menu/SettingsContainer.svelte";
+import SmallSongPreview from "./SmallSongPreview.svelte";
 
 let deltaAccumulator = $state(0);
 let lastScrollTime = $state(0);
@@ -91,21 +92,7 @@ let settings: SettingsContainer;
 <div class="song-list" onwheel={onScroll} role="listbox" tabindex="0">
     <div class="list" bind:this={songListElement} style="--focus-height: {songListFocusHeight}px">
         {#each songs as song, i}
-            <button
-                class="song"
-                class:selected={i === selectedSongIndex}
-                data-song-idx="{i}"
-                onclick={() => selectedSongIndex = i}
-            >
-                <img src={song.cover?.src ?? "/default-cover.jpg"} alt={song.name} />
-                <span class="title">{song.name}</span>
-                <span class="artist">{song.artist}</span>
-                <div class="maps">
-                    {#each song.maps as map}
-                        <span style="--color: {difficultyColor(map.difficulty)}">{map.difficulty}</span>
-                    {/each}
-                </div>
-            </button>
+            <SmallSongPreview {song} {i} bind:selectedSongIndex={selectedSongIndex} />
         {/each}
     </div>
     <div class="info" bind:this={songInfosElement} style="--focus-height: {songInfosFocusHeight}px">
@@ -156,76 +143,6 @@ header {
 
     transform: translateY(calc(var(--focus-height) * -1));
     transition: transform 200ms ease;
-}
-
-.song {
-    background-color: var(--panel);
-
-    padding: 0.5rem;
-    display: grid;
-    column-gap: 1rem;
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto;
-
-    translate: -2rem 0;
-    opacity: 0.4;
-
-    text-align: left;
-    border: none;
-    box-shadow: none;
-    color: var(--text);
-
-    &.selected {
-        translate: 0;
-        opacity: 1;
-    }
-    transition: translate 200ms ease, opacity 200ms ease;
-
-    img {
-        grid-row: 1 / 3;
-        grid-column: 1;
-        height: 5rem;
-    }
-
-    .title {
-        margin-top: auto;
-        font-weight: bold;
-        font-size: 1.5rem;
-        grid-row: 1;
-        grid-column: 2;
-    }
-    .artist {
-        font-size: 1.25rem;
-        grid-row: 2;
-        grid-column: 2;
-    }
-
-    .maps {
-        grid-column: 3;
-        grid-row: 1 / 3;
-
-        display: grid;
-        grid-template-rows: repeat(2, 1fr);
-        gap: 0.25rem;
-        grid-auto-flow: column;
-
-        padding: 0.5rem;
-
-        span {
-            background-color: color-mix(in srgb, var(--color) 30%, var(--panel));
-            border: 1px solid var(--color);
-            border-radius: 50%;
-
-            // This is a bunch of messy constants, but whatever
-            height: 1.75rem;
-            width: 1.75rem;
-            padding: 0.25rem;
-            
-            display: grid;
-            place-items: center;
-            line-height: 1.375rem;
-        }
-    }
 }
 
 .info {

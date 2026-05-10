@@ -14,6 +14,8 @@ import { NodeID } from "./types";
 import { Timer, TimerState } from "./Timer";
 import { LevelInterface } from "./ui/LevelInterface";
 import { Score } from "./Score";
+import { loadScene } from "../router.svelte";
+import { ScoreViewScene } from "../scenes/ScoreView";
 
 export class GameScene implements Scene {
     public component = Game;
@@ -35,7 +37,7 @@ export class GameScene implements Scene {
     public onInit: Signal<[]> = new Signal();
     public onMapEvent: Signal<[MapEvent]> = new Signal();
 
-    public score: Score = new Score();
+    public score: Score;
 
     public init(): void {
         connectParenting(this.tree, this.scene);
@@ -65,8 +67,9 @@ export class GameScene implements Scene {
             this.timer.done.connect(this.score.end.bind(this.score));
 
             this.score.ended.connect(() => {
-                // TODO
-                console.log("Game ended");
+                this.timer.stop();
+                if(!this.song) return; // and be very confused
+                loadScene(new ScoreViewScene(this.score, this.song, this.mapIndex));
             });
         }
 
@@ -99,6 +102,7 @@ export class GameScene implements Scene {
         this.scene.background = new THREE.Color("#060d16");
 
         this.timer = new Timer(this.speed).setId(NodeID.Timer);
+        this.score = new Score(this.speed !== 1);
     }
 
     public setSong(song: Song, mapIndex: number) {

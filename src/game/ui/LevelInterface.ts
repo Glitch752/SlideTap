@@ -5,7 +5,6 @@ import { ColumnFlexContainer, MarginContainer, OffsetContainer, RowFlexContainer
 import { AlignMode, UINode } from "./UINode";
 import { Panel, PanelNode } from "./PanelNode";
 import { TextNode } from "./TextNode";
-import { DebugPanel } from "./DebugPanel";
 import { ProgressBarNode } from "./ProgressBarNode";
 import { ColorGradient, RGBAColor } from "../../lib/color";
 import type { Timer } from "../Timer";

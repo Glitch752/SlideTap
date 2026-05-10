@@ -7,6 +7,7 @@ import { loadScene } from "../../router.svelte";
 import { GameScene } from "../../game/Game";
 import type { EditorMapData } from "../editor/EditorFile";
   import PracticeModeMenu from "./PracticeModeMenu.svelte";
+  import LevelLeaderboard from "./LevelLeaderboard.svelte";
 
 const { song }: { song: Song } = $props();
 
@@ -55,22 +56,7 @@ let practiceMenu: PracticeModeMenu;
     <button class="preview" onclick={() => practiceMenu.toggle()}>Practice</button>
     <PracticeModeMenu bind:this={practiceMenu} loadPractice={playPractice}/>
 </div>
-<div class="leaderboard">
-    <h2>Leaderboard</h2>
-    {#if song.leaderboard.hasEntries()}
-        {#each song.leaderboard.entries as entry, idx}
-            <div class="entry">
-                <span>{idx + 1}</span>
-                <span>{entry.name}</span>
-                <span>{numberFormat.format(entry.score)}</span>
-                <span>{dateFormat.format(entry.time)}</span>
-            </div>
-        {/each}
-    {:else}
-        <p>This song has no leaderboard entries yet. Be the first to add one!</p>
-        <p class="note">Note: leaderboard is currently only local.</p>
-    {/if}
-</div>
+<LevelLeaderboard leaderboard={song.leaderboard} />
 
 <style lang="scss">
 .title {
@@ -169,24 +155,6 @@ button {
     }
     &.preview {
         flex: 1;
-    }
-}
-
-.leaderboard {
-    grid-column: 1 / -1;
-    grid-row: 6;
-
-    h2 {
-        font-size: 1.5rem;
-        margin: 1rem 0 0.5rem 0;
-    }
-    p {
-        text-align: center;
-        margin: 0.5rem 0;
-
-        &.note {
-            color: var(--text-dim);
-        }
     }
 }
 </style>

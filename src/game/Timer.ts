@@ -86,6 +86,8 @@ export class Timer extends GameNode {
     }
 
     public stop() {
+        if(this.state === TimerState.Stopped) return;
+        
         this.state = TimerState.Stopped;
         this.stateChanged(this.state);
         this.stopPlayback();

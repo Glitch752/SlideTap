@@ -10,6 +10,8 @@ export class Score {
     public hitNotes: number = 0;
     public failed: boolean = false;
     public finished: boolean = false;
+    
+    constructor(public isPractice: boolean) {}
 
     public get scorePercent(): number {
         return this.maxScorePossible === 0 ? 0 : this.score / this.maxScorePossible;

@@ -94,6 +94,8 @@ export class Input extends GameNode {
     }
 
     update(deltaTime: number): void {
+        if(deltaTime === 0) return;
+        
         this.bgLayer.update(deltaTime, this.keysHeld, this.context!);
         this.fgLayer.update(deltaTime, this.keysHeld, this.context!);
     }
