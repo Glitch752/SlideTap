@@ -26,8 +26,8 @@
     import type { MapNote } from "../../Map";
     import EventSettings from "./settings/EventSettings.svelte";
     import { copyEvent, copyNotes, paste } from "./clipboard.svelte";
-  import { loadScene } from "../../router.svelte";
-  import { MenuScene } from "../Menu";
+    import { loadScene } from "../../router.svelte";
+    import { MenuScene } from "../Menu";
     
     const handlers: OpenableSaveArchive[] = (
         [ZipSaveArchive, FolderSaveArchive] satisfies OpenableSaveArchive[]
@@ -45,7 +45,7 @@
     let openMap: EditorMapID | null = $state(null);
 
     const SPLIT_KEY = 'editor_settings_width';
-    let settingsWidth = $state(Number(localStorage.getItem(SPLIT_KEY)) ?? 200);
+    let settingsWidth = $state(Number(localStorage.getItem(SPLIT_KEY)) ?? 450);
     let dragging = false;
 
     let wakatimeHandler: WakatimeHandler = new WakatimeHandler();
