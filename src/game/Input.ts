@@ -2,6 +2,7 @@ import { MapNoteLayer } from "../Map";
 import { Settings, type LayerKeymap } from "../Settings";
 import { Cursor } from "./Cursor";
 import type { GameScene } from "./Game";
+import { Timer, TimerState } from "./Timer";
 import { GameNode, NodeID } from "./types";
 
 /**
@@ -104,6 +105,8 @@ export class Input extends GameNode {
         if(process.env.NODE_ENV === "development" && event.ctrlKey && (event.key.toLowerCase() === "r" || (event.shiftKey && event.key.toLowerCase() === "i"))) {
             return;
         }
+
+        if(this.context?.tree.get<Timer>(NodeID.Timer)?.state !== TimerState.Running) return;
 
         // If in any maps, prevent default
         for(const layer of [Settings.keymap.bg, Settings.keymap.fg]) {

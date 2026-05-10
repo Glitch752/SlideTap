@@ -323,7 +323,7 @@
                 {/each}
             </div>
             {#if times.length === 0}
-                <p class="placeholder">No times available. Add a song to sequence.</p>
+                <p class="placeholder">No times available. Make sure you've added a track, set the time range, and set (or autodetected) the BPM.</p>
             {/if}
 
             <TimeColumn {bpm} {subdivisions} bind:playbackState={playbackState} {getBeatFromEvent} />

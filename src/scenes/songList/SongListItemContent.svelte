@@ -3,9 +3,10 @@ import { get, type Writable } from "svelte/store";
 import type { Song } from "../../Song";
 import { dateFormat, difficultyColor, numberFormat } from "./SongList.svelte";
 import { PersistedValue } from "../../utils/persistedValue";
-import { loadScene } from "../../router";
+import { loadScene } from "../../router.svelte";
 import { GameScene } from "../../game/Game";
 import type { EditorMapData } from "../editor/EditorFile";
+  import PracticeModeMenu from "./PracticeModeMenu.svelte";
 
 const { song }: { song: Song } = $props();
 
@@ -22,6 +23,11 @@ const selectedMap: EditorMapData | null = $derived(song.maps[$selectedMapIndex] 
 async function play() {
     loadScene(await GameScene.load(song, get(selectedMapIndex)));
 }
+async function playPractice(speed: number) {
+    loadScene(await GameScene.load(song, get(selectedMapIndex), speed));
+}
+
+let practiceMenu: PracticeModeMenu;
 </script>
 
 <span class="title">{song.name}</span>
@@ -45,7 +51,9 @@ async function play() {
         Play
         <span class="map-name" style="color: {difficultyColor(selectedMap?.difficulty ?? 0)}">{selectedMap?.name ?? "Select a map"}</span>
     </button>
-    <button class="preview" onclick={() => alert("yeah uh that's not implemented yet")}>Preview</button>
+    <!-- <button class="preview" onclick={() => alert("yeah uh that's not implemented yet")}>Preview</button> -->
+    <button class="preview" onclick={() => practiceMenu.toggle()}>Practice</button>
+    <PracticeModeMenu bind:this={practiceMenu} loadPractice={playPractice}/>
 </div>
 <div class="leaderboard">
     <h2>Leaderboard</h2>
@@ -137,6 +145,8 @@ img {
     display: flex;
     flex-direction: row;
     gap: 0.5rem;
+
+    position: relative;
 }
 button {
     border: none;

@@ -61,6 +61,16 @@ export class EditorMapData {
 }
 export type EditorFileMetadata = Omit<SongMetadataJSON, "track" | "cover" | "maps">;
 
+export type AudioFileData = {
+    blob: Blob,
+    context: AudioContext,
+    source?: AudioBufferSourceNode,
+    globalGain: GainNode,
+    fadeGain: GainNode,
+    buffer: AudioBuffer,
+    url: string
+};
+
 /**
  * The full data in a song opened in the editor. Can be exported to a zip file.
  */
@@ -80,15 +90,7 @@ export class EditorFile {
 
     public coverImageFile: Blob | null = null;
     public coverImageUrl: Writable<string | null> = writable(null);
-    public audioFileData: Writable<{
-        blob: Blob,
-        context: AudioContext,
-        source?: AudioBufferSourceNode,
-        globalGain: GainNode,
-        fadeGain: GainNode,
-        buffer: AudioBuffer,
-        url: string
-    } | null> = writable(null);
+    public audioFileData: Writable<AudioFileData | null> = writable(null);
 
     public beginPlayback(atTime: number) {
         const audioFileData = get(this.audioFileData);
@@ -109,9 +111,8 @@ export class EditorFile {
         source.connect(fadeGain);
         source.start(audioContext.currentTime + offset, time);
 
-        tween(fadeGain.gain.value, 1, 0.1, 16, value => {
-            fadeGain.gain.value = value;
-        });
+        fadeGain.gain.setValueAtTime(0, audioContext.currentTime);
+        fadeGain.gain.setTargetAtTime(1, audioContext.currentTime, 0.05);
 
         this.audioFileData.update(data => {
             if(!data) return data;
@@ -125,10 +126,8 @@ export class EditorFile {
         const audioFileData = get(this.audioFileData);
         if(!audioFileData) return;
         
-        audioFileData.source?.stop(audioFileData.context.currentTime + 0.1);
-        tween(audioFileData.fadeGain.gain.value, 0, 0.1, 16, value => {
-            audioFileData.fadeGain.gain.value = value;
-        });
+        audioFileData.source?.stop(audioFileData.context.currentTime + 0.2);
+        audioFileData.fadeGain.gain.setTargetAtTime(0, audioFileData.context.currentTime, 0.05);
 
         this.audioFileData.update(data => {
             if(!data) return data;
@@ -217,7 +216,7 @@ export class EditorFile {
     }
 
     public getMaps(): EditorMapData[] {
-        return Array.from(this._maps.values());
+        return Array.from(this._maps.values()).sort((a, b) => a.difficulty - b.difficulty);
     }
     public getMap(id: EditorMapID) {
         return this._maps.get(id);

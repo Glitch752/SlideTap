@@ -53,14 +53,14 @@ export class Notes extends GameNode {
         if(!this.context?.song) return;
 
         const game = this.context;
-        game.totalNotes = this.map.notes.length;
-        game.hitNotes = 0;
-        game.combo = 0;
-        game.maxCombo = 0;
-        game.failed = false;
-        game.finished = false;
-        game.health = 100;
-        game.score = 0;
+        game.score.totalScoringNotes = this.map.notes.filter(n => n.type !== MapNoteType.Damage).length;
+        game.score.hitNotes = 0;
+        game.score.combo = 0;
+        game.score.maxCombo = 0;
+        game.score.failed = false;
+        game.score.finished = false;
+        game.score.health = 100;
+        game.score.score = 0;
 
         for(let i = 0; i < this.map.notes.length; i++) {
             const note = this.map.notes[i];

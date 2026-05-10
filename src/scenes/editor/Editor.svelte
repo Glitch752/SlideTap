@@ -26,7 +26,7 @@
     import type { MapNote } from "../../Map";
     import EventSettings from "./settings/EventSettings.svelte";
     import { copyEvent, copyNotes, paste } from "./clipboard.svelte";
-  import { loadScene } from "../../router";
+  import { loadScene } from "../../router.svelte";
   import { MenuScene } from "../Menu";
     
     const handlers: OpenableSaveArchive[] = (
@@ -53,7 +53,7 @@
     
     let subdivisions = $state(8);
 
-    const gameScene = new GameScene(null, 0, true);
+    const gameScene = new GameScene(null, 0, 1, true);
     gameScene.onInit.connect(() => {
         gameScene.tree.get<Timer>(NodeID.Timer)!.setTimeSource(() => playbackState.time);
     })

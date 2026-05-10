@@ -13,7 +13,7 @@
 
 <div class="maps">
     {#if $maps.size > 0}
-        {#each $maps as [id, map], i}
+        {#each Array.from($maps).sort(([_ai, a], [_bi, b]) => a.difficulty - b.difficulty) as [id, map], i}
             <div class="map-item" style="--color: {difficultyColor(map.difficulty)};">
                 <div class="row">
                     <label for="map-name-{i}">Name</label>

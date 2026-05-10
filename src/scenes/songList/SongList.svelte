@@ -1,6 +1,8 @@
 <script module lang="ts">
+  import { loadScene } from "../../router.svelte";
 import { Song } from "../../Song";
 import { songArchives } from "../../songs";
+  import { MenuScene } from "../Menu";
 import SongListItemContent from "./SongListItemContent.svelte";
 
 const songs = (await Promise.all(songArchives.map(
@@ -22,6 +24,8 @@ export const dateFormat = Intl.DateTimeFormat(undefined, {
 </script>
 
 <script lang="ts">
+import SettingsContainer from "../menu/SettingsContainer.svelte";
+
 let deltaAccumulator = $state(0);
 let lastScrollTime = $state(0);
 let selectedSongIndex = $state(0);
@@ -59,13 +63,15 @@ function onKeydown(event: KeyboardEvent) {
         selectedSongIndex = (selectedSongIndex + 1) % songs.length;
     }
 }
+
+let settings: SettingsContainer;
 </script>
 
 <svelte:window onkeydown={onKeydown} />
 
 <!-- Autoplay the selected song -->
 <audio
-    src={songs[selectedSongIndex].trackSrc}
+    src={songs[selectedSongIndex].audioFileData?.url}
     autoplay
     volume="0.3"
     onplay={(e) => {
@@ -74,6 +80,13 @@ function onKeydown(event: KeyboardEvent) {
         audio.currentTime = audio.duration * 0.3;
     }}
 ></audio>
+
+<header>
+    <button onclick={() => loadScene(new MenuScene())}>Back</button>
+    <button onclick={() => settings.open()}>Settings</button>
+</header>
+
+<SettingsContainer bind:this={settings}></SettingsContainer>
 
 <div class="song-list" onwheel={onScroll} role="listbox" tabindex="0">
     <div class="list" bind:this={songListElement} style="--focus-height: {songListFocusHeight}px">
@@ -105,6 +118,24 @@ function onKeydown(event: KeyboardEvent) {
 </div>
 
 <style lang="scss">
+header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    gap: 1rem;
+    padding: 0.5rem;
+
+    button {
+        --bg-color: var(--panel);
+        color: var(--text);
+        border: none;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+}
+
 .song-list {
     display: flex;
     flex-direction: row;

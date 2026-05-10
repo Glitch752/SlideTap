@@ -1,9 +1,8 @@
 <script lang="ts">
-import { fly } from "svelte/transition";
-import Settings from "../../lib/Settings.svelte";
-import { loadScene } from "../../router";
+import { loadScene } from "../../router.svelte";
 import { EditorScene } from "../Editor";
 import { SongListScene } from "../SongList";
+  import SettingsContainer from "./SettingsContainer.svelte";
 
 function startGame() {
     loadScene(new SongListScene());
@@ -13,36 +12,18 @@ function startEditor() {
     loadScene(new EditorScene());
 }
 
-let settingsOpen = $state(false);
+let settings: SettingsContainer;
 </script>
-
-<svelte:document onkeydown={(e) => {
-    if(e.code === "Escape") {
-        settingsOpen = false;
-    }
-}}></svelte:document>
 
 <!-- TODO: less generic ahh menu -->
 <div class="menu">
     <h1>SlideTap</h1>
     <button onclick={startGame}>Play</button>
-    <button onclick={() => settingsOpen = !settingsOpen}>Settings</button>
+    <button onclick={() => settings.open()}>Settings</button>
     <button onclick={startEditor}>Editor</button>
 </div>
 
-{#if settingsOpen}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="settings-container" onclick={(e) => {
-        if(e.target === e.currentTarget) {
-            settingsOpen = false;
-        }
-    }}>
-        <div class="settings" transition:fly={{ duration: 200, y: -20 }}>
-            <Settings></Settings>
-        </div>
-    </div>
-{/if}
+<SettingsContainer bind:this={settings}></SettingsContainer>
 
 <style lang="scss">
 .menu {
@@ -71,20 +52,5 @@ let settingsOpen = $state(false);
     cursor: pointer;
     transition: background-color 0.2s;
     width: 15rem;
-}
-
-.settings-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    inset: 0;
-}
-.settings {
-    background-color: var(--panel);
-    padding: 2rem;
-    border-radius: 5px;
-    max-height: 80vh;
-    overflow: auto;
 }
 </style>

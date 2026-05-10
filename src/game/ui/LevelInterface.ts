@@ -55,7 +55,7 @@ export class LevelInterface extends GameNode {
                     new ProgressBarNode(surfaceColor, healthGradient)
                         .withTargetSize(400, 25)
                         .withUpdate((self, _) => {
-                            self.setProgress(this.context?.health ? this.context.health / 100 : 0);
+                            self.setProgress(this.context?.score.health ? this.context.score.health / 100 : 0);
                         })
                         .inside(new MarginContainer(4))
                         .inside(new PanelNode(panel)),
@@ -67,7 +67,7 @@ export class LevelInterface extends GameNode {
                         .withFont("24px monospace")
                         .withOutline(panelColor, 6)
                         .withHorizontalAlign(AlignMode.End)
-                        .withUpdate((self, _) => self.setText(`${this.context?.health ?? 0}%`))
+                        .withUpdate((self, _) => self.setText(`${this.context?.score.health ?? 0}%`))
                         .inside(new OffsetContainer(0, -6).withHorizontalAlign(AlignMode.End)),
                 ),
 
@@ -81,7 +81,7 @@ export class LevelInterface extends GameNode {
                             .withMargin(16)
                             .withUpdate((self, _) => {
                                 // Format like 000,000
-                                const padded = (this.context?.score ?? 0).toString().padStart(6, "0");
+                                const padded = (this.context?.score.score ?? 0).toString().padStart(6, "0");
                                 self.setText(padded.slice(0, 3) + "," + padded.slice(3));
                             })
                             .inside(new MarginContainer(0, 0, 8, 2).withHorizontalAlign(AlignMode.Stretch))
@@ -101,13 +101,13 @@ export class LevelInterface extends GameNode {
                                     .withFont("48px monospace")
                                     .withHorizontalAlign(AlignMode.Center)
                                     .withMargin(12)
-                                    .withUpdate((self, _) => self.setText(`${this.context?.combo ?? 0}`))
+                                    .withUpdate((self, _) => self.setText(`${this.context?.score.combo ?? 0}`))
                                     .inside(new MarginContainer(0, 0, 12, 8).withHorizontalAlign(AlignMode.Stretch)),
                                 new TextNode("Max 0", textColor)
                                     .withFont("14px monospace")
                                     .withMargin(12)
                                     .withHorizontalAlign(AlignMode.Center)
-                                    .withUpdate((self, _) => self.setText(`Max ${this.context?.maxCombo ?? 0}`))
+                                    .withUpdate((self, _) => self.setText(`Max ${this.context?.score.maxCombo ?? 0}`))
                             )
                         ),
 
@@ -151,7 +151,7 @@ export class LevelInterface extends GameNode {
                         new TextNode("0/0", textColor).withFont("14px monospace").withUpdate((self, _) => {
                             const game = this.context;
                             if(!game) return;
-                            self.setText(`${game.hitNotes}/${game.totalNotes} Notes`);
+                            self.setText(`${game.score.hitNotes}/${game.score.totalScoringNotes} Notes`);
                         })
                     )
                 ),

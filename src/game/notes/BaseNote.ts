@@ -80,6 +80,7 @@ export abstract class BaseNote extends GameNode {
     private vertices: THREE.Float32BufferAttribute;
     private quads: number;
     private material: THREE.ShaderMaterial;
+    private ended: boolean = false;
 
     constructor(protected note: MapNote, protected bpm: number) {
         super(null);
@@ -171,7 +172,10 @@ export abstract class BaseNote extends GameNode {
 
         const cursorDistance = Lanes.HIT_RADIUS;
         const noteEndDistance = this.beatToDistance(this.note.endTime, elapsed);
-        if(cursorDistance > noteEndDistance + margin) this.noteEndLogic();
+        if(cursorDistance > noteEndDistance + margin && !this.ended) {
+            this.ended = true;
+            this.noteEndLogic();
+        }
     }
 
     protected noteWithinDistance(margin: number) {
@@ -204,7 +208,6 @@ export abstract class BaseNote extends GameNode {
 
         const withinAngle = wrappingMod(cursorAngle - leftEdgeAngle, 2 * Math.PI) < wrappingMod(rightEdgeAngle - leftEdgeAngle, 2 * Math.PI);
         return withinAngle;
-
     }
 
     protected abstract handleHitLogic(elapsed: number): void;

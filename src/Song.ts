@@ -1,6 +1,6 @@
 import { get } from "svelte/store";
 import { GameMap } from "./Map";
-import { EditorFile, EditorMapData } from "./scenes/editor/EditorFile";
+import { EditorFile, EditorMapData, type AudioFileData } from "./scenes/editor/EditorFile";
 import type { SaveArchive } from "./scenes/editor/saveHandlers/SaveArchive";
 import { SongLeaderboard } from "./SongLeaderboard";
 
@@ -68,9 +68,10 @@ export class Song {
     public leaderboard: SongLeaderboard;
 
     public cover: HTMLImageElement | null = null;
-    public audioContext: AudioContext | null = null;
-    public audioBuffer: AudioBuffer | null = null;
-    public trackSrc: string | null = null;
+    // public audioContext: AudioContext | null = null;
+    // public audioBuffer: AudioBuffer | null = null;
+    // public trackSrc: string | null = null;
+    public audioFileData: AudioFileData | null = null;
 
     public maps: EditorMapData[] = [];
 
@@ -97,12 +98,7 @@ export class Song {
             song.cover = img;
         }
 
-        const audioData = get(file.audioFileData);
-        if(audioData) {
-            song.trackSrc = audioData.url;
-            song.audioContext = audioData.context;
-            song.audioBuffer = audioData.buffer;
-        }
+        song.audioFileData = get(file.audioFileData);
 
         return song;
     }

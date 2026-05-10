@@ -11,11 +11,20 @@ import { Lighting } from "./environment/Lighting";
 import { Lanes } from "./Lanes";
 import { Input } from "./Input";
 import { NodeID } from "./types";
-import { Timer } from "./Timer";
+import { Timer, TimerState } from "./Timer";
 import { LevelInterface } from "./ui/LevelInterface";
+import { Score } from "./Score";
 
 export class GameScene implements Scene {
     public component = Game;
+    public componentProps() {
+        return {
+            timer: this.timer,
+            editor: this.controlledByEditor
+        };
+    }
+
+    private timer: Timer;
 
     public song: Song | null;
     public map: GameMap | null = null;
@@ -26,50 +35,16 @@ export class GameScene implements Scene {
     public onInit: Signal<[]> = new Signal();
     public onMapEvent: Signal<[MapEvent]> = new Signal();
 
-    public health: number = 100;
-    public score: number = 0;
-    public combo: number = 0;
-    public maxCombo: number = 0;
-    public totalNotes: number = 0;
-    public hitNotes: number = 0;
-    public failed: boolean = false;
-    public finished: boolean = false;
-
-    public onNoteHit() {
-        if(this.failed || this.finished) return;
-        this.hitNotes++;
-        this.combo++;
-        if(this.combo > this.maxCombo) this.maxCombo = this.combo;
-        this.health = Math.min(100, this.health + 3);
-        this.updateScore();
-    }
-    public onNoteMiss() {
-        if(this.failed || this.finished) return;
-        this.combo = 0;
-        this.health = Math.max(0, this.health - 10);
-        if(this.health === 0) {
-            this.failed = true;
-            this.onLevelEnd();
-        }
-        this.updateScore();
-    }
-    private updateScore() {
-        this.score = this.totalNotes > 0 ? Math.round((this.hitNotes / this.totalNotes) * 100) : 0;
-    }
-    public onLevelEnd() {
-        this.finished = true;
-        // TODO: show win/lose screen
-    }
+    public score: Score = new Score();
 
     public init(): void {
         connectParenting(this.tree, this.scene);
 
-        const timer = new Timer().setId(NodeID.Timer);
-        timer.jumpedBackward.connect(() => this.resetEventIndex());
+        this.timer.jumpedBackward.connect(() => this.resetEventIndex());
 
         this.tree.addChildren(
             // Logic
-            timer,
+            this.timer,
             new Input().setId(NodeID.Input),
 
             // Rendering
@@ -86,10 +61,12 @@ export class GameScene implements Scene {
 
         if(!this.controlledByEditor) {
             // Begin playback
-            const timer = this.tree.get<Timer>(NodeID.Timer)!;
-            timer.startPlayback(this.song);
-            timer.done.connect(() => {
-                this.onLevelEnd();
+            this.timer.startPlayback(this.song);
+            this.timer.done.connect(this.score.end.bind(this.score));
+
+            this.score.ended.connect(() => {
+                // TODO
+                console.log("Game ended");
             });
         }
 
@@ -110,16 +87,18 @@ export class GameScene implements Scene {
         this.tree.get<Lanes>(NodeID.Lanes)?.setMap(this.map);
     }
 
-    public static async load(song: Song, mapIndex: number): Promise<GameScene> {
-        const scene = new GameScene(song, mapIndex);
+    public static async load(song: Song, mapIndex: number, speed = 1): Promise<GameScene> {
+        const scene = new GameScene(song, mapIndex, speed);
         await scene.loadMap();
         return scene;
     }
 
-    constructor(song: Song | null, public mapIndex: number, public controlledByEditor: boolean = false) {
+    constructor(song: Song | null, public mapIndex: number, private speed: number = 1, public controlledByEditor: boolean = false) {
         this.song = song;
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("#060d16");
+
+        this.timer = new Timer(this.speed).setId(NodeID.Timer);
     }
 
     public setSong(song: Song, mapIndex: number) {
@@ -139,7 +118,7 @@ export class GameScene implements Scene {
             this.onMapEvent(event);
         }
 
-        this.tree.updateRecursive(deltaTime);
+        this.tree.updateRecursive((this.timer.state === TimerState.Running || this.controlledByEditor) ? deltaTime : 0);
     }
 
     private eventIndex = 0;
@@ -148,7 +127,7 @@ export class GameScene implements Scene {
         if(this.eventIndex >= this.map.events.length) return [];
         
         const events = [];
-        const elapsed = this.tree.get<Timer>(NodeID.Timer)!.getElapsed();
+        const elapsed = this.timer.getElapsed();
         const elapsedBeats = elapsed / this.song!.beatDuration;
         while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsedBeats) {
             events.push(this.map.events[this.eventIndex]);
@@ -160,7 +139,7 @@ export class GameScene implements Scene {
         this.eventIndex = 0;
         if(!this.map) return;
 
-        const elapsed = this.tree.get<Timer>(NodeID.Timer)!.getElapsed();
+        const elapsed = this.timer.getElapsed();
         const elapsedBeats = elapsed / this.song!.beatDuration;
         while(this.eventIndex < this.map.events.length && this.map.events[this.eventIndex].time <= elapsedBeats) {
             this.eventIndex++;
